@@ -1,0 +1,184 @@
+<section class="page container">
+  <a class="back muted" routerLink="/tokens">← All tokens</a>
+
+  @if (error(); as message) {
+    <div class="notice notice-error" role="alert">{{ message }}</div>
+  }
+
+  @if (project() === undefined) {
+    <div class="card hero-card">
+      <span class="skeleton" style="width: 72px; height: 72px; border-radius: 50%"></span>
+      <span class="skeleton" style="width: 240px; height: 28px"></span>
+    </div>
+  } @else if (project() === null) {
+    <div class="card">
+      <h1 class="title">Not in the Launchpad</h1>
+      <p class="muted">
+        No token with this address was launched or imported here on
+        {{ networks.config().label }}.
+      </p>
+      <a class="btn btn-ghost btn-sm" routerLink="/tokens">Explore tokens</a>
+    </div>
+  } @else {
+    @let p = project()!;
+    <div class="card hero-card" [class.with-banner]="banner()">
+      @if (banner()) {
+        <img class="banner" [src]="banner()" alt="" referrerpolicy="no-referrer" />
+      }
+      <div class="identity">
+        <app-project-logo [url]="p.info.logoUrl" [symbol]="p.symbol" />
+        <div class="names">
+          <h1 class="title">{{ p.name }}</h1>
+          <span class="muted">{{ p.symbol }} · {{ category(p) }}</span>
+        </div>
+      </div>
+      <app-project-badges [project]="p" [codeModified]="codeModified()" [showOriginal]="true" />
+      @if (p.info.description) {
+        <p class="description">{{ p.info.description }}</p>
+      }
+      @if (links().length) {
+        <div class="links">
+          @for (link of links(); track link.label) {
+            <a
+              class="btn btn-ghost btn-sm"
+              [href]="link.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              >{{ link.label }}</a
+            >
+          }
+        </div>
+      }
+    </div>
+
+    <div class="columns">
+      <div class="card">
+        <h2>Token</h2>
+        <dl class="rows">
+          <div>
+            <dt>Contract</dt>
+            <dd>
+              <button
+                class="link mono"
+                type="button"
+                (click)="copyAddress()"
+                title="Copy the address"
+              >
+                {{ copied() ? 'Copied ✓' : (p.address | shortAddress) }}
+              </button>
+            </dd>
+          </div>
+          <div>
+            <dt>Total supply</dt>
+            <dd class="tabular">
+              @if (state(); as s) {
+                {{ s.totalSupply | units: p.decimals }} {{ p.symbol }}
+              } @else {
+                <span class="skeleton" style="width: 120px"></span>
+              }
+            </dd>
+          </div>
+          @if (state()?.template; as t) {
+            <div>
+              <dt>Supply</dt>
+              <dd>
+                @if (t.mintable) {
+                  Mintable up to {{ t.maxSupply | units: p.decimals }}
+                } @else {
+                  Fixed
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Burnable</dt>
+              <dd>{{ t.burnable ? 'Yes' : 'No' }}</dd>
+            </div>
+          }
+          <div>
+            <dt>Decimals</dt>
+            <dd>{{ p.decimals }}</dd>
+          </div>
+          <div>
+            <dt>Owner</dt>
+            <dd class="mono">
+              @if (state(); as s) {
+                {{ s.owner ? (s.owner | shortAddress) : 'None (renounced)' }}
+              } @else {
+                <span class="skeleton"></span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>{{ p.source === launched ? 'Launched by' : 'Imported by' }}</dt>
+            <dd class="mono">{{ p.creator | shortAddress }}</dd>
+          </div>
+          <div>
+            <dt>Date</dt>
+            <dd>{{ p.createdAt | date: 'mediumDate' }}</dd>
+          </div>
+          @if (p.source === launched) {
+            <div>
+              <dt>Template</dt>
+              <dd>RC-Token v{{ p.templateVersion }}</dd>
+            </div>
+          }
+        </dl>
+        @if (explorerUrl(p.address); as url) {
+          <a
+            class="btn btn-ghost btn-sm explorer"
+            [href]="url"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View on explorer
+          </a>
+        }
+      </div>
+
+      <div class="side">
+        @if (isOwner()) {
+          <div class="card owner">
+            <h2>You own this token</h2>
+            <div class="actions">
+              <button class="btn btn-red btn-sm" type="button" (click)="edit()">
+                Edit details
+              </button>
+              @if (mintRoom() !== null) {
+                <button class="btn btn-ghost btn-sm" type="button" (click)="mint()">Mint</button>
+              }
+            </div>
+          </div>
+        }
+
+        @if (p.source === launched) {
+          <div class="card">
+            <h2>Original code</h2>
+            <p class="muted small">
+              The template source, the compiled contract and its hash, to rebuild and verify it.
+              {{ keepOnlyOriginal }}
+            </p>
+            <button
+              class="btn btn-ghost btn-sm"
+              type="button"
+              [disabled]="downloading()"
+              (click)="download()"
+            >
+              {{ downloading() ? 'Preparing…' : 'Download original code' }}
+            </button>
+            @if (downloadError(); as message) {
+              <p class="error">{{ message }}</p>
+            }
+          </div>
+        }
+
+        <div class="card">
+          <h2>Presale</h2>
+          <p class="muted small">Token presales arrive in phase 6.</p>
+        </div>
+      </div>
+    </div>
+
+    <app-edit-info-dialog (saved)="onSaved($event)" />
+    <app-mint-dialog (minted)="onMinted()" />
+  }
+</section>

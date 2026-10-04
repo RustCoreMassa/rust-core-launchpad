@@ -14,18 +14,17 @@ export const routes: Routes = [
     title: 'RustCore Launchpad — Launch tokens and NFTs on Massa',
     loadComponent: () => import('./features/home/home-page').then((m) => m.HomePage),
   },
-  plannedRoute('tokens', 'Tokens', {
-    label: 'Tokens',
-    heading: 'Explore tokens',
-    text: 'Every MRC20 token launched or imported through the Launchpad, with filters by category, owner and presale status.',
-    phase: 3,
-  }),
-  plannedRoute('tokens/:address', 'Token', {
-    label: 'Token',
-    heading: 'Token details',
-    text: 'Supply, owner, links and presale for one token — read straight from its contract.',
-    phase: 3,
-  }),
+  {
+    path: 'tokens',
+    title: 'Tokens · RustCore Launchpad',
+    loadComponent: () =>
+      import('./features/tokens/explore-tokens-page').then((m) => m.ExploreTokensPage),
+  },
+  {
+    path: 'tokens/:address',
+    title: 'Token · RustCore Launchpad',
+    loadComponent: () => import('./features/tokens/token-page').then((m) => m.TokenPage),
+  },
   plannedRoute('collections', 'Collections', {
     label: 'NFT',
     heading: 'Explore collections',
@@ -62,12 +61,12 @@ export const routes: Routes = [
     text: 'Progress, terms, your contribution, claim and refund.',
     phase: 6,
   }),
-  plannedRoute('create/token', 'Create a token', {
-    label: 'Create',
-    heading: 'Launch a token',
-    text: 'Name, symbol, supply and presentation — deployed in one transaction, and you are the owner.',
-    phase: 3,
-  }),
+  {
+    path: 'create/token',
+    title: 'Create a token · RustCore Launchpad',
+    loadComponent: () =>
+      import('./features/create/create-token-page').then((m) => m.CreateTokenPage),
+  },
   plannedRoute('create/collection', 'Create a collection', {
     label: 'Create',
     heading: 'Launch an NFT collection',
@@ -80,12 +79,11 @@ export const routes: Routes = [
     text: 'Rate, caps, limits and dates for a token you own.',
     phase: 6,
   }),
-  plannedRoute('me', 'My dashboard', {
-    label: 'Dashboard',
-    heading: 'My launches',
-    text: 'Your tokens, collections, NFTs, listings and contributions — edit, import and download original code.',
-    phase: 3,
-  }),
+  {
+    path: 'me',
+    title: 'My launches · RustCore Launchpad',
+    loadComponent: () => import('./features/dashboard/dashboard-page').then((m) => m.DashboardPage),
+  },
   plannedRoute('admin', 'Admin', {
     label: 'Admin',
     heading: 'Administration',

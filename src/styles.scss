@@ -344,7 +344,7 @@ a.card:hover,
 
 /* ---------- dialog ---------- */
 dialog.sheet {
-  width: min(440px, calc(100vw - 2 * var(--gutter)));
+  width: min(520px, calc(100vw - 2 * var(--gutter)));
   max-height: calc(100vh - 48px);
   padding: 0;
   border-radius: var(--radius-lg);
@@ -357,6 +357,182 @@ dialog.sheet {
 dialog.sheet::backdrop {
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(4px);
+}
+
+/* ---------- forms ---------- */
+.field {
+  display: grid;
+  gap: 6px;
+}
+
+.field > span:first-child,
+.field-label {
+  color: var(--gray-300);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.input {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated-2);
+  color: var(--white);
+  font: 16px/1.4 var(--font-body);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.input:focus {
+  outline: none;
+  border-color: rgba(255, 45, 66, 0.55);
+  box-shadow: var(--ring);
+}
+
+.input.invalid {
+  border-color: rgba(255, 45, 66, 0.6);
+}
+
+textarea.input {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.hint {
+  color: var(--gray-500);
+  font-size: 13px;
+}
+
+.error {
+  color: #ff9aa5;
+  font-size: 13px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--gray-300);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  color: var(--white);
+}
+
+.chip.selected {
+  border-color: rgba(255, 45, 66, 0.55);
+  background: rgba(255, 45, 66, 0.12);
+  color: var(--white);
+}
+
+.toggle {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+}
+
+.toggle input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--red);
+}
+
+.toggle strong {
+  display: block;
+  font-size: 15px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- details ---------- */
+.rows {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.rows > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+}
+
+.rows > div:last-child {
+  border-bottom: 0;
+}
+
+.rows dt {
+  color: var(--gray-500);
+}
+
+.rows dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.sheet-body {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sheet-head h2 {
+  font-size: 22px;
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 /* No spinner buttons on number inputs. */

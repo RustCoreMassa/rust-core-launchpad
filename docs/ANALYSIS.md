@@ -470,9 +470,10 @@ Lucrăm în 8 faze, fiecare încheiată cu ceva care merge pe buildnet; contract
 
 **Faza 3 — Tokenuri în UI**
 
-- [ ] Wizard lansare token cu Review și simulare
-- [ ] Explorare tokenuri cu filtre, pagina tokenului, editare, mint
-- [ ] Dashboard `/me`: tokenurile mele, import token, descărcarea codului original, badge-uri Mutabil / Cod modificat
+- [x] Wizard lansare token cu Review și simulare
+- [x] Explorare tokenuri cu filtre, pagina tokenului, editare, mint
+- [x] Dashboard `/me`: tokenurile mele, import token, descărcarea codului original, badge-uri Mutabil / Cod modificat
+- [ ] Probă cap-coadă pe buildnet, după deploy-ul din faza 2 (lansare, editare, mint, import, descărcare)
 
 **Faza 4 — NFT-uri în UI**
 

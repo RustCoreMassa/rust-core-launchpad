@@ -1,0 +1,112 @@
+.narrow {
+  max-width: calc(760px + 2 * var(--gutter));
+}
+
+.stepper {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.stepper button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--gray-500);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.stepper button:not(:disabled) {
+  cursor: pointer;
+}
+
+.num {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 12px;
+}
+
+.current button {
+  border-color: rgba(255, 45, 66, 0.5);
+  color: var(--white);
+}
+
+.current .num {
+  background: var(--red);
+}
+
+.done button {
+  color: var(--gray-300);
+}
+
+.done .num {
+  background: rgba(51, 209, 122, 0.25);
+}
+
+.step {
+  display: grid;
+  gap: 18px;
+}
+
+h2 {
+  font-size: 22px;
+}
+
+h3 {
+  margin-top: 8px;
+  font-size: 17px;
+}
+
+.ok {
+  color: #7ee2a8;
+}
+
+.warn {
+  border-color: rgba(255, 201, 77, 0.3);
+  background: rgba(255, 201, 77, 0.06);
+  color: #ffe1a0;
+  font-size: 14px;
+}
+
+.review-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.total {
+  font-weight: 700;
+}
+
+.nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.notice .btn {
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .stepper {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

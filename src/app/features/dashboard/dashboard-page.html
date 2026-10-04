@@ -1,0 +1,105 @@
+<section class="page container">
+  <header class="page-head">
+    <span class="label">Dashboard</span>
+    <h1>My launches</h1>
+    <p>Tokens and collections you launched or imported. Edit them from their page.</p>
+  </header>
+
+  @if (!launchpad.address()) {
+    <div class="notice">The Launchpad isn't deployed on {{ network.config().label }} yet.</div>
+  } @else if (!wallet.connected()) {
+    <div class="card connect">
+      <p>Connect your wallet to see your launches.</p>
+      <button class="btn btn-red" type="button" (click)="connect()">Connect wallet</button>
+    </div>
+  } @else {
+    <div class="toolbar">
+      <div class="chips" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          class="chip"
+          [class.selected]="tab() === 'tokens'"
+          [attr.aria-selected]="tab() === 'tokens'"
+          (click)="tab.set('tokens')"
+        >
+          Tokens
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="chip"
+          [class.selected]="tab() === 'collections'"
+          [attr.aria-selected]="tab() === 'collections'"
+          (click)="tab.set('collections')"
+        >
+          Collections
+        </button>
+      </div>
+      @if (tab() === 'tokens') {
+        <div class="actions">
+          <button class="btn btn-ghost btn-sm" type="button" (click)="openImport()">
+            Import a token
+          </button>
+          <a class="btn btn-red btn-sm" routerLink="/create/token">Create a token</a>
+        </div>
+      }
+    </div>
+
+    @if (tab() === 'collections') {
+      <div class="card">
+        <p class="muted">NFT collections arrive in phase 4.</p>
+      </div>
+    } @else {
+      @if (error(); as message) {
+        <div class="notice notice-error" role="alert">{{ message }}</div>
+      }
+      @if (myTokens() === null) {
+        @for (row of [1, 2]; track row) {
+          <div class="card row"><span class="skeleton" style="width: 50%"></span></div>
+        }
+      } @else if (myTokens()!.length === 0) {
+        <div class="card empty">
+          <p>You haven't launched or imported a token yet.</p>
+          <div class="actions">
+            <a class="btn btn-red btn-sm" routerLink="/create/token">Create a token</a>
+            <button class="btn btn-ghost btn-sm" type="button" (click)="openImport()">
+              Import a token
+            </button>
+          </div>
+        </div>
+      } @else {
+        <div class="list">
+          @for (item of myTokens(); track item.project.id) {
+            <a class="card row" [routerLink]="['/tokens', item.project.address]">
+              <app-project-logo [url]="item.project.info.logoUrl" [symbol]="item.project.symbol" />
+              <div class="names">
+                <strong>{{ item.project.name }}</strong>
+                <span class="muted">
+                  {{ item.project.symbol }} · {{ category(item.project) }} ·
+                  {{ item.project.source === imported ? 'imported' : 'launched' }}
+                </span>
+              </div>
+              <app-project-badges [project]="item.project" />
+              <span class="owner" [class.lost]="item.stillOwner === false">
+                @switch (item.stillOwner) {
+                  @case (true) {
+                    You own it
+                  }
+                  @case (false) {
+                    Owned by someone else
+                  }
+                  @default {
+                    <span class="skeleton" style="width: 80px"></span>
+                  }
+                }
+              </span>
+            </a>
+          }
+        </div>
+      }
+    }
+    <app-import-token-dialog (imported)="onImported($event)" />
+  }
+  <app-connect-wallet-dialog />
+</section>

@@ -1,0 +1,54 @@
+.connect,
+.empty {
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.connect p,
+.empty p {
+  margin: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  --logo-size: 44px;
+}
+
+.names {
+  display: grid;
+  flex: 1;
+  min-width: 160px;
+}
+
+.names span {
+  font-size: 14px;
+}
+
+.owner {
+  color: #7ee2a8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.owner.lost {
+  color: var(--gray-500);
+}

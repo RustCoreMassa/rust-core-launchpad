@@ -1,0 +1,107 @@
+.back {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.back:hover {
+  color: var(--white);
+}
+
+.hero-card {
+  position: relative;
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  --logo-size: 72px;
+}
+
+.hero-card.with-banner {
+  padding-top: 0;
+}
+
+.banner {
+  width: calc(100% + 48px);
+  height: 180px;
+  margin: 0 -24px;
+  object-fit: cover;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.names {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.title {
+  font-size: clamp(26px, 4vw, 36px);
+  overflow-wrap: anywhere;
+}
+
+.description {
+  margin: 0;
+  color: var(--gray-300);
+  white-space: pre-line;
+}
+
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.side {
+  display: grid;
+  gap: 16px;
+}
+
+h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+}
+
+.small {
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.owner {
+  border-color: rgba(255, 45, 66, 0.35);
+}
+
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--white);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 45, 66, 0.6);
+  text-underline-offset: 3px;
+}
+
+.explorer {
+  margin-top: 12px;
+}
+
+@media (max-width: 860px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}

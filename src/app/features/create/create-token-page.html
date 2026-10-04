@@ -1,0 +1,301 @@
+<section class="page container narrow">
+  <header class="page-head">
+    <span class="label">Create</span>
+    <h1>Launch a token</h1>
+    <p>An MRC20 token in one transaction. You own the contract and receive the whole supply.</p>
+  </header>
+
+  @if (!launchpad.address()) {
+    <div class="notice">
+      The Launchpad isn't deployed on {{ network.config().label }} yet. Switch the network in the
+      header, or come back soon.
+    </div>
+  } @else {
+    <ol class="stepper">
+      @for (name of steps; track name; let i = $index) {
+        <li [class.current]="i === step()" [class.done]="i < step()">
+          <button type="button" [disabled]="i >= step()" (click)="goTo(i)">
+            <span class="num">{{ i + 1 }}</span
+            >{{ name }}
+          </button>
+        </li>
+      }
+    </ol>
+
+    @let d = draft();
+    <div class="card step">
+      @switch (step()) {
+        @case (0) {
+          <h2>Identity</h2>
+          <label class="field">
+            <span>Name</span>
+            <input
+              class="input"
+              maxlength="32"
+              [class.invalid]="shows('name') && errors().name"
+              [value]="d.name"
+              (input)="update('name', text($event))"
+              placeholder="RustCore Token"
+            />
+            @if (shows('name') && errors().name; as error) {
+              <span class="error">{{ error }}</span>
+            } @else {
+              <span class="hint">3 to 32 characters. It can never change.</span>
+            }
+          </label>
+          <label class="field">
+            <span>Symbol</span>
+            <input
+              class="input mono"
+              maxlength="10"
+              autocapitalize="characters"
+              [class.invalid]="shows('symbol') && (errors().symbol || symbolCheck() === 'taken')"
+              [value]="d.symbol"
+              (input)="setSymbol($event)"
+              (blur)="checkSymbol()"
+              placeholder="RCT"
+            />
+            @if (shows('symbol') && errors().symbol; as error) {
+              <span class="error">{{ error }}</span>
+            } @else {
+              @switch (symbolCheck()) {
+                @case ('checking') {
+                  <span class="hint">Checking…</span>
+                }
+                @case ('free') {
+                  <span class="hint ok">✓ Available</span>
+                }
+                @case ('taken') {
+                  <span class="error">This symbol is already used on the Launchpad.</span>
+                }
+                @case ('error') {
+                  <span class="error">Couldn't check the symbol. Try again.</span>
+                }
+                @default {
+                  <span class="hint">2 to 10 letters or digits, unique on the Launchpad.</span>
+                }
+              }
+            }
+          </label>
+        }
+
+        @case (1) {
+          <h2>Tokenomics</h2>
+          <div class="form-grid">
+            <label class="field">
+              <span>Initial supply</span>
+              <input
+                class="input"
+                inputmode="decimal"
+                [class.invalid]="shows('supply') && errors().supply"
+                [value]="d.supply"
+                (input)="update('supply', text($event))"
+                placeholder="1000000"
+              />
+              @if (shows('supply') && errors().supply; as error) {
+                <span class="error">{{ error }}</span>
+              } @else if (supplyPreview()) {
+                <span class="hint">{{ supplyPreview() }} {{ d.symbol }} to your wallet</span>
+              }
+            </label>
+            <label class="field">
+              <span>Decimals</span>
+              <input
+                class="input"
+                type="number"
+                min="0"
+                max="18"
+                [class.invalid]="shows('decimals') && errors().decimals"
+                [value]="d.decimals"
+                (input)="setDecimals($event)"
+              />
+              @if (shows('decimals') && errors().decimals; as error) {
+                <span class="error">{{ error }}</span>
+              } @else {
+                <span class="hint">18 is the usual choice.</span>
+              }
+            </label>
+          </div>
+
+          <label class="toggle">
+            <input
+              type="checkbox"
+              [checked]="d.mintable"
+              (change)="update('mintable', !d.mintable)"
+            />
+            <span>
+              <strong>Mintable</strong>
+              <span class="hint">You can create more tokens later, up to a maximum supply.</span>
+            </span>
+          </label>
+          @if (d.mintable) {
+            <label class="field">
+              <span>Maximum supply</span>
+              <input
+                class="input"
+                inputmode="decimal"
+                [class.invalid]="shows('maxSupply') && errors().maxSupply"
+                [value]="d.maxSupply"
+                (input)="update('maxSupply', text($event))"
+                placeholder="10000000"
+              />
+              @if (shows('maxSupply') && errors().maxSupply; as error) {
+                <span class="error">{{ error }}</span>
+              }
+            </label>
+          }
+
+          <label class="toggle">
+            <input
+              type="checkbox"
+              [checked]="d.burnable"
+              (change)="update('burnable', !d.burnable)"
+            />
+            <span>
+              <strong>Burnable</strong>
+              <span class="hint">Holders can destroy their own tokens.</span>
+            </span>
+          </label>
+
+          <label class="toggle">
+            <input type="checkbox" [checked]="d.mutable" (change)="update('mutable', !d.mutable)" />
+            <span>
+              <strong>Mutable code</strong>
+              <span class="hint">
+                You can replace the contract's code later. Holders will see a "Mutable code" badge.
+                Leave it off for a contract that can never change.
+              </span>
+            </span>
+          </label>
+          @if (d.mutable) {
+            <label class="toggle warn">
+              <input
+                type="checkbox"
+                [checked]="mutableAccepted()"
+                (change)="mutableAccepted.set(!mutableAccepted())"
+              />
+              <span>{{ keepOnlyOriginal }} I understand.</span>
+            </label>
+          }
+        }
+
+        @case (2) {
+          <h2>Presentation</h2>
+          <p class="hint">Everything here can be edited later.</p>
+          <app-info-form
+            [symbol]="d.symbol"
+            [info]="d.info"
+            (infoChange)="setInfo($event)"
+            [category]="d.category"
+            (categoryChange)="setCategory($event)"
+          />
+        }
+
+        @case (3) {
+          <h2>Review</h2>
+          <div class="review-head">
+            <app-project-logo [url]="d.info.logoUrl" [symbol]="d.symbol" />
+            <div>
+              <strong>{{ d.name }}</strong>
+              <span class="muted"> · {{ d.symbol }} · {{ categories[d.category] }}</span>
+            </div>
+          </div>
+          <dl class="rows">
+            <div>
+              <dt>Initial supply</dt>
+              <dd>{{ supplyPreview() }} {{ d.symbol }}</dd>
+            </div>
+            <div>
+              <dt>Decimals</dt>
+              <dd>{{ d.decimals }}</dd>
+            </div>
+            <div>
+              <dt>Supply</dt>
+              <dd>{{ d.mintable ? 'Mintable up to ' + d.maxSupply : 'Fixed' }}</dd>
+            </div>
+            <div>
+              <dt>Burnable</dt>
+              <dd>{{ d.burnable ? 'Yes' : 'No' }}</dd>
+            </div>
+            <div>
+              <dt>Code</dt>
+              <dd>{{ d.mutable ? 'Mutable' : 'Immutable' }}</dd>
+            </div>
+          </dl>
+
+          <h3>Cost</h3>
+          @if (costError(); as error) {
+            <div class="notice notice-error" role="alert">{{ error }}</div>
+          } @else if (cost(); as c) {
+            <dl class="rows">
+              <div>
+                <dt>Launchpad fee</dt>
+                <dd>{{ c.fee | mas }}</dd>
+              </div>
+              <div>
+                <dt>Contract storage (its code)</dt>
+                <dd>{{ c.contract | mas }}</dd>
+              </div>
+              <div>
+                <dt>Storage deposit for the token</dt>
+                <dd>{{ c.deposit | mas }}</dd>
+              </div>
+              <div>
+                <dt>Record storage (unused part refunded)</dt>
+                <dd>up to {{ c.margin | mas }}</dd>
+              </div>
+              <div class="total">
+                <dt>Sent with the transaction</dt>
+                <dd>{{ c.total | mas }} + network fee</dd>
+              </div>
+            </dl>
+          } @else {
+            <span class="skeleton" style="width: 60%"></span>
+          }
+
+          @if (paused()) {
+            <div class="notice">Launches are paused for now. Please try again later.</div>
+          }
+          @if (!wallet.connected()) {
+            <div class="notice">
+              Connect a wallet to launch.
+              <button class="btn btn-ghost btn-sm" type="button" (click)="connect()">
+                Connect wallet
+              </button>
+            </div>
+          } @else if (wallet.networkMismatch()) {
+            <div class="notice">Switch your wallet to {{ network.config().label }} to launch.</div>
+          }
+          @if (launchError(); as error) {
+            <div class="notice notice-error" role="alert">{{ error }}</div>
+          }
+        }
+      }
+
+      <div class="nav">
+        @if (step() > 0) {
+          <button class="btn btn-ghost" type="button" [disabled]="launching()" (click)="back()">
+            Back
+          </button>
+        } @else {
+          <a class="btn btn-ghost" routerLink="/tokens">Cancel</a>
+        }
+        @if (step() < 3) {
+          <button
+            class="btn btn-red"
+            type="button"
+            [disabled]="symbolCheck() === 'checking'"
+            (click)="next()"
+          >
+            Continue
+          </button>
+        } @else {
+          <button class="btn btn-red" type="button" [disabled]="!canLaunch()" (click)="launch()">
+            {{ launching() ? 'Confirm in your wallet…' : 'Launch token' }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+  <app-connect-wallet-dialog />
+</section>
