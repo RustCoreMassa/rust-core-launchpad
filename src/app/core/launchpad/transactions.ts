@@ -2,6 +2,9 @@ import { Injectable, inject } from '@angular/core';
 import { Args, Operation, OperationStatus } from '@massalabs/massa-web3';
 import { MassaReader } from '../massa/massa-reader';
 import { WalletStore } from '../wallet/wallet-store';
+import { contractReason } from './events';
+
+export { contractReason, eventFields } from './events';
 
 export interface ContractCall {
   target: string;
@@ -96,26 +99,4 @@ export async function waitExecuted(operation: Operation): Promise<string[]> {
     default:
       throw new OperationTimeoutError(operation.id);
   }
-}
-
-/**
- * The contract's own message out of a node error, e.g. "…VM Error … abort with message: This
- * symbol is already taken or reserved at …" → "This symbol is already taken or reserved".
- */
-export function contractReason(raw: string): string {
-  let text = raw;
-  try {
-    const parsed = JSON.parse(raw) as { massa_execution_error?: string };
-    text = parsed.massa_execution_error ?? raw;
-  } catch {
-    // not JSON
-  }
-  const match = /abort with message:\s*(.+?)(?:\s+at\s+\S+\(|\s+at\s+[^\s]*\.ts|$)/s.exec(text);
-  return (match?.[1] ?? text).trim().slice(0, 200) || 'rejected by the network';
-}
-
-/** First event of a kind, split into its fields: "TOKEN_CREATED:3,AS1…" → ["3", "AS1…"]. */
-export function eventFields(events: string[], name: string): string[] | null {
-  const event = events.find((e) => e.startsWith(name + ':'));
-  return event ? event.slice(name.length + 1).split(',') : null;
 }

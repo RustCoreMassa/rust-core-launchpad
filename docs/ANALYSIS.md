@@ -444,7 +444,17 @@ Launchpad SC ține bani străini (escrow de presale și plăți în tranzit), de
 
 ### Costuri estimate pentru user
 
-Prețul storage-ului e confirmat în massa-web3: 0,0001 MAS/octet, plus costul a 4 octeți pentru fiecare intrare nouă. Șabloanele compilate au 38,5 KB (RC-Token) și 46,3 KB (RC-Collection), deja la optimizarea maximă de mărime, deci doar codul unui contract nou costă aproximativ 3,9 MAS (token) și 4,6 MAS (colecție). La asta se adaugă câteva sute de octeți pentru record și indexuri (sub 0,1 MAS), taxa platformei și taxa de rețea (0,01 MAS). Costul exact se confirmă pe buildnet în faza 2. O listare costă sub 0,05 MAS storage, care revine vânzătorului la anulare sau vânzare.
+Prețul storage-ului e confirmat în massa-web3: 0,0001 MAS/octet, plus costul a 4 octeți pentru fiecare intrare nouă. Șabloanele compilate au 38,5 KB (RC-Token) și 46,3 KB (RC-Collection), deja la optimizarea maximă de mărime, deci doar codul unui contract nou costă aproximativ 3,9 MAS (token) și 4,6 MAS (colecție). La asta se adaugă câteva sute de octeți pentru record și indexuri (sub 0,1 MAS), taxa platformei și taxa de rețea (0,01 MAS).
+
+Măsurat pe buildnet pe 4 octombrie 2026 (cu taxele de test: 1 MAS la lansare, 0,5 MAS la import):
+
+| Operație | Trimis | Consumat | Returnat automat |
+| --- | --- | --- | --- |
+| Deploy Launchpad + cele două șabloane (o singură dată, admin) | — | 16,54 MAS | — |
+| Lansare token | 5,2533 MAS | 5,0042 MAS (1 taxă + 3,8533 cod + 0,1 depozit + 0,0509 record) | 0,2491 MAS |
+| Editare prezentare (link mai scurt) | 0,3 MAS | sub 0 — storage-ul eliberat s-a returnat | tot |
+| Import token | 0,8 MAS | 0,5451 MAS (0,5 taxă + 0,0451 record) | 0,2549 MAS |
+| Tranzacție refuzată de contract | 6 MAS | 0,01 MAS (taxa de rețea) | 6 MAS | O listare costă sub 0,05 MAS storage, care revine vânzătorului la anulare sau vânzare.
 
 ## Plan de dezvoltare
 
@@ -466,14 +476,15 @@ Lucrăm în 8 faze, fiecare încheiată cu ceva care merge pe buildnet; contract
 
 - [x] Config, admin, `setTemplate`, contoare, recorduri Serializable
 - [x] `createToken`, `createCollection`, `importToken`, `importCollection`, `updateInfo`, citiri paginate, indexuri; upgrade cu timelock
-- [ ] Contabilitate storage + taxe, teste, deploy pe buildnet, măsurarea costurilor reale
+- [x] Contabilitate storage + taxe, teste, deploy pe buildnet (`AS12oApf4eeQLR76DKadC5oGQvq7LKTGngTFXjXUDojJqbeyTDSzx`), măsurarea costurilor reale
 
 **Faza 3 — Tokenuri în UI**
 
 - [x] Wizard lansare token cu Review și simulare
 - [x] Explorare tokenuri cu filtre, pagina tokenului, editare, mint
 - [x] Dashboard `/me`: tokenurile mele, import token, descărcarea codului original, badge-uri Mutabil / Cod modificat
-- [ ] Probă cap-coadă pe buildnet, după deploy-ul din faza 2 (lansare, editare, mint, import, descărcare)
+- [x] Probă cap-coadă pe buildnet cu codul aplicației (`smart-contract/src/e2e.ts`): lansare, editare, mint, import, codul original
+- [ ] Încercare în browser cu un wallet real (Bearby / Massa Station)
 
 **Faza 4 — NFT-uri în UI**
 

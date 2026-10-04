@@ -1,11 +1,29 @@
-import { contractReason, eventFields } from './transactions';
+import { contractReason, eventFields } from './events';
 
 describe('contractReason', () => {
+  it('extracts the reason from the error a buildnet node returns', () => {
+    const raw =
+      'readonly call failed: VM Error in ReadOnlyExecutionTarget::FunctionCall context: Depth ' +
+      'error: Runtime error: error: This symbol is already taken or reserved at ' +
+      'assembly/contracts/launchpad.ts:140 col: 3';
+    expect(contractReason(raw)).toBe('This symbol is already taken or reserved');
+  });
+
   it('extracts the contract’s abort message from a VM error', () => {
     const raw =
       'VM Error in ReadOnlyExecutionTarget::FunctionCall context: Runtime error: ' +
       'runtime error when executing abi abort: abort with message: This symbol is already ' +
       'taken or reserved at assembly/contracts/launchpad.ts:141 col: 3';
+    expect(contractReason(raw)).toBe('This symbol is already taken or reserved');
+  });
+
+  it('extracts the reason from a failed operation’s event on buildnet', () => {
+    const raw = JSON.stringify({
+      massa_execution_error:
+        'Runtime error: runtime error when executing operation O11Q595CbUt7xUN8HngSFH9GFBnJcj: ' +
+        'VM Error in CallSC context: Depth error: Runtime error: error: This symbol is already ' +
+        'taken or reserved at assembly/contracts/launchpad.ts:140 col: 3',
+    });
     expect(contractReason(raw)).toBe('This symbol is already taken or reserved');
   });
 
