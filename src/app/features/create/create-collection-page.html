@@ -1,0 +1,387 @@
+<section class="page container narrow">
+  <header class="page-head">
+    <span class="label">Create</span>
+    <h1>Launch an NFT collection</h1>
+    <p>
+      An MRC721 collection in one transaction. You own the contract; mint for yourself or open a
+      paid public mint.
+    </p>
+  </header>
+
+  @if (!launchpad.address()) {
+    <div class="notice">
+      The Launchpad isn't deployed on {{ network.config().label }} yet. Switch the network in the
+      header.
+    </div>
+  } @else {
+    <ol class="stepper" style="--steps: 5">
+      @for (name of steps; track name; let i = $index) {
+        <li [class.current]="i === step()" [class.done]="i < step()">
+          <button type="button" [disabled]="i >= step()" (click)="goTo(i)">
+            <span class="num">{{ i + 1 }}</span
+            >{{ name }}
+          </button>
+        </li>
+      }
+    </ol>
+
+    @let d = draft();
+    <div class="card step">
+      @switch (step()) {
+        @case (0) {
+          <h2>Identity</h2>
+          <label class="field">
+            <span>Collection name</span>
+            <input
+              class="input"
+              maxlength="32"
+              [class.invalid]="shows('name') && errors().name"
+              [value]="d.name"
+              (input)="update('name', text($event))"
+              placeholder="RustCore Cats"
+            />
+            @if (shows('name') && errors().name; as error) {
+              <span class="error">{{ error }}</span>
+            } @else {
+              <span class="hint">3 to 32 characters. It can never change.</span>
+            }
+          </label>
+          <label class="field">
+            <span>Symbol</span>
+            <input
+              class="input mono"
+              maxlength="10"
+              [class.invalid]="shows('symbol') && errors().symbol"
+              [value]="d.symbol"
+              (input)="setSymbol($event)"
+              placeholder="RCAT"
+            />
+            @if (shows('symbol') && errors().symbol; as error) {
+              <span class="error">{{ error }}</span>
+            } @else {
+              <span class="hint">2 to 10 letters or digits.</span>
+            }
+          </label>
+        }
+
+        @case (1) {
+          <h2>Supply & metadata</h2>
+          <label class="field">
+            <span>Maximum supply</span>
+            <input
+              class="input"
+              inputmode="numeric"
+              [class.invalid]="shows('maxSupply') && errors().maxSupply"
+              [value]="d.maxSupply"
+              (input)="update('maxSupply', text($event))"
+              placeholder="1000"
+            />
+            @if (shows('maxSupply') && errors().maxSupply; as error) {
+              <span class="error">{{ error }}</span>
+            } @else {
+              <span class="hint"
+                >How many NFTs can ever exist. You can lower it later, never raise it.</span
+              >
+            }
+          </label>
+
+          <div class="field">
+            <span class="field-label">Metadata</span>
+            <div class="radio-cards">
+              <label class="toggle">
+                <input
+                  type="radio"
+                  name="mode"
+                  [checked]="d.metadataMode === 'folder'"
+                  (change)="setMode('folder')"
+                />
+                <span>
+                  <strong>One IPFS folder</strong>
+                  <span class="hint">1.json, 2.json… — needed for a public mint.</span>
+                </span>
+              </label>
+              <label class="toggle">
+                <input
+                  type="radio"
+                  name="mode"
+                  [checked]="d.metadataMode === 'perToken'"
+                  (change)="setMode('perToken')"
+                />
+                <span>
+                  <strong>A link per NFT</strong>
+                  <span class="hint">You give each NFT's metadata link when you mint it.</span>
+                </span>
+              </label>
+            </div>
+          </div>
+
+          @if (d.metadataMode === 'folder') {
+            <label class="field">
+              <span>Folder link (base URI)</span>
+              <input
+                class="input mono"
+                [class.invalid]="shows('baseURI') && errors().baseURI"
+                [value]="d.baseURI"
+                (input)="update('baseURI', text($event).trim())"
+                (blur)="checkFolder()"
+                placeholder="ipfs://bafy…/"
+              />
+              @if (shows('baseURI') && errors().baseURI; as error) {
+                <span class="error">{{ error }}</span>
+              } @else {
+                <span class="hint"
+                  >NFT #7 reads its metadata from this link + "7.json". You can change it until you
+                  freeze it.</span
+                >
+              }
+            </label>
+            @switch (folderCheck()) {
+              @case ('checking') {
+                <span class="hint">Loading 1.json…</span>
+              }
+              @case ('ok') {
+                <div class="preview">
+                  @if (firstNft()?.image) {
+                    <img [src]="firstNft()!.image" alt="" referrerpolicy="no-referrer" />
+                  }
+                  <span
+                    >✓ Found NFT #1: <strong>{{ firstNft()?.name || 'unnamed' }}</strong></span
+                  >
+                </div>
+              }
+              @case ('failed') {
+                <div class="notice">
+                  Couldn't load 1.json from this folder. Check the link (it should end with "/"), or
+                  continue if the files aren't online yet.
+                </div>
+              }
+            }
+          }
+        }
+
+        @case (2) {
+          <h2>Mint & royalty</h2>
+          @if (publicAllowed()) {
+            <label class="toggle">
+              <input
+                type="checkbox"
+                [checked]="d.publicMint"
+                (change)="update('publicMint', !d.publicMint)"
+              />
+              <span>
+                <strong>Open a public mint</strong>
+                <span class="hint"
+                  >Anyone can mint, paying the price to you. You can open or close it later.</span
+                >
+              </span>
+            </label>
+            @if (d.publicMint) {
+              <div class="form-grid">
+                <label class="field">
+                  <span>Price per NFT (MAS)</span>
+                  <input
+                    class="input"
+                    inputmode="decimal"
+                    [class.invalid]="shows('mintPrice') && errors().mintPrice"
+                    [value]="d.mintPrice"
+                    (input)="update('mintPrice', text($event))"
+                    placeholder="0 = free"
+                  />
+                  @if (shows('mintPrice') && errors().mintPrice; as error) {
+                    <span class="error">{{ error }}</span>
+                  }
+                </label>
+                <label class="field">
+                  <span>Limit per wallet</span>
+                  <input
+                    class="input"
+                    inputmode="numeric"
+                    [class.invalid]="shows('maxPerWallet') && errors().maxPerWallet"
+                    [value]="d.maxPerWallet"
+                    (input)="update('maxPerWallet', text($event))"
+                    placeholder="empty = no limit"
+                  />
+                  @if (shows('maxPerWallet') && errors().maxPerWallet; as error) {
+                    <span class="error">{{ error }}</span>
+                  }
+                </label>
+              </div>
+            }
+          } @else {
+            <p class="hint">With a link per NFT, only you can mint (each NFT needs its link).</p>
+          }
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Royalty (%)</span>
+              <input
+                class="input"
+                inputmode="decimal"
+                [class.invalid]="shows('royalty') && errors().royalty"
+                [value]="d.royalty"
+                (input)="update('royalty', text($event))"
+              />
+              @if (shows('royalty') && errors().royalty; as error) {
+                <span class="error">{{ error }}</span>
+              } @else {
+                <span class="hint">Paid to you on every sale in our marketplace. 0 to 10%.</span>
+              }
+            </label>
+            <label class="field">
+              <span>Royalty receiver</span>
+              <input
+                class="input mono"
+                [class.invalid]="shows('royaltyReceiver') && errors().royaltyReceiver"
+                [value]="d.royaltyReceiver"
+                (input)="update('royaltyReceiver', text($event).trim())"
+                placeholder="empty = your wallet"
+              />
+              @if (shows('royaltyReceiver') && errors().royaltyReceiver; as error) {
+                <span class="error">{{ error }}</span>
+              }
+            </label>
+          </div>
+
+          <label class="toggle">
+            <input type="checkbox" [checked]="d.mutable" (change)="update('mutable', !d.mutable)" />
+            <span>
+              <strong>Mutable code</strong>
+              <span class="hint"
+                >You can replace the contract's code later. Buyers will see a "Mutable code"
+                badge.</span
+              >
+            </span>
+          </label>
+          @if (d.mutable) {
+            <label class="toggle warn">
+              <input
+                type="checkbox"
+                [checked]="mutableAccepted()"
+                (change)="mutableAccepted.set(!mutableAccepted())"
+              />
+              <span>{{ keepOnlyOriginal }} I understand.</span>
+            </label>
+          }
+        }
+
+        @case (3) {
+          <h2>Presentation</h2>
+          <p class="hint">Everything here can be edited later.</p>
+          <app-info-form
+            [kind]="1"
+            [symbol]="d.symbol"
+            [info]="d.info"
+            (infoChange)="setInfo($event)"
+            [category]="d.category"
+            (categoryChange)="setCategory($event)"
+          />
+        }
+
+        @case (4) {
+          @let s = summary();
+          <h2>Review</h2>
+          <div class="review-head">
+            <app-project-logo [url]="d.info.logoUrl" [symbol]="d.symbol" />
+            <div>
+              <strong>{{ d.name }}</strong>
+              <span class="muted"> · {{ d.symbol }} · {{ categories[d.category] }}</span>
+            </div>
+          </div>
+          <dl class="rows">
+            <div>
+              <dt>Maximum supply</dt>
+              <dd>{{ s.maxSupply }}</dd>
+            </div>
+            <div>
+              <dt>Metadata</dt>
+              <dd class="mono">{{ d.metadataMode === 'folder' ? d.baseURI : 'a link per NFT' }}</dd>
+            </div>
+            <div>
+              <dt>Public mint</dt>
+              <dd>
+                @if (s.price !== null) {
+                  {{ s.price | mas }} each, {{ s.perWallet }} per wallet
+                } @else {
+                  Closed
+                }
+              </dd>
+            </div>
+            <div>
+              <dt>Royalty</dt>
+              <dd>{{ s.royalty }}% to {{ d.royaltyReceiver || 'your wallet' }}</dd>
+            </div>
+            <div>
+              <dt>Code</dt>
+              <dd>{{ d.mutable ? 'Mutable' : 'Immutable' }}</dd>
+            </div>
+          </dl>
+
+          <h3>Cost</h3>
+          @if (costError(); as error) {
+            <div class="notice notice-error" role="alert">{{ error }}</div>
+          } @else if (cost(); as c) {
+            <dl class="rows">
+              <div>
+                <dt>Launchpad fee</dt>
+                <dd>{{ c.fee | mas }}</dd>
+              </div>
+              <div>
+                <dt>Contract storage (its code)</dt>
+                <dd>{{ c.contract | mas }}</dd>
+              </div>
+              <div>
+                <dt>Storage deposit for the collection</dt>
+                <dd>{{ c.deposit | mas }}</dd>
+              </div>
+              <div>
+                <dt>Record storage (unused part refunded)</dt>
+                <dd>up to {{ c.margin | mas }}</dd>
+              </div>
+              <div class="total">
+                <dt>Sent with the transaction</dt>
+                <dd>{{ c.total | mas }} + network fee</dd>
+              </div>
+            </dl>
+          } @else {
+            <span class="skeleton" style="width: 60%"></span>
+          }
+
+          @if (paused()) {
+            <div class="notice">Launches are paused for now. Please try again later.</div>
+          }
+          @if (!wallet.connected()) {
+            <div class="notice">
+              Connect a wallet to launch.
+              <button class="btn btn-ghost btn-sm" type="button" (click)="connect()">
+                Connect wallet
+              </button>
+            </div>
+          } @else if (wallet.networkMismatch()) {
+            <div class="notice">Switch your wallet to {{ network.config().label }} to launch.</div>
+          }
+          @if (launchError(); as error) {
+            <div class="notice notice-error" role="alert">{{ error }}</div>
+          }
+        }
+      }
+
+      <div class="nav">
+        @if (step() > 0) {
+          <button class="btn btn-ghost" type="button" [disabled]="launching()" (click)="back()">
+            Back
+          </button>
+        } @else {
+          <a class="btn btn-ghost" routerLink="/collections">Cancel</a>
+        }
+        @if (step() < 4) {
+          <button class="btn btn-red" type="button" (click)="next()">Continue</button>
+        } @else {
+          <button class="btn btn-red" type="button" [disabled]="!canLaunch()" (click)="launch()">
+            {{ launching() ? 'Confirm in your wallet…' : 'Launch collection' }}
+          </button>
+        }
+      </div>
+    </div>
+  }
+  <app-connect-wallet-dialog />
+</section>

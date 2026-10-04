@@ -4,14 +4,18 @@ import {
   computed,
   effect,
   inject,
+  input,
   signal,
+  untracked,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
 import { ProjectStore } from '../../core/launchpad/project-store';
 import {
+  COLLECTION_CATEGORIES,
   KIND_TOKEN,
   Project,
+  ProjectKind,
   SOURCE_IMPORTED,
   SOURCE_LAUNCHED,
   TOKEN_CATEGORIES,
@@ -27,24 +31,52 @@ type Sort = 'newest' | 'oldest' | 'name';
 /** Shows this many cards, then "Show more" (the list itself is already in memory). */
 const STEP = 24;
 
+/** Texts and links per kind. */
+const PAGES = {
+  [KIND_TOKEN]: {
+    label: 'Tokens',
+    title: 'Explore tokens',
+    lead: 'Every MRC20 token launched or imported through the Launchpad.',
+    noun: 'tokens',
+    base: '/tokens',
+    create: '/create/token',
+    createLabel: 'Create a token',
+  },
+  1: {
+    label: 'NFT',
+    title: 'Explore collections',
+    lead: 'Every NFT collection launched or imported through the Launchpad.',
+    noun: 'collections',
+    base: '/collections',
+    create: '/create/collection',
+    createLabel: 'Create a collection',
+  },
+} as const;
+
 /**
- * Every token in the Launchpad. Filters (docs/ANALYSIS.md, "Indexare, filtre"): the list is read
- * once into the browser and search, category, source, verified and sort apply there.
+ * Every token or collection in the Launchpad (the kind comes from the route's data). Filters
+ * (docs/ANALYSIS.md, "Indexare, filtre"): the list is read once into the browser and search,
+ * category, source, verified and sort apply there.
  */
 @Component({
-  selector: 'app-explore-tokens-page',
+  selector: 'app-explore-page',
   imports: [RouterLink, ProjectLogo, ProjectBadges],
-  templateUrl: './explore-tokens-page.html',
-  styleUrl: './explore-tokens-page.scss',
+  templateUrl: './explore-page.html',
+  styleUrl: './explore-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ExploreTokensPage {
+export class ExplorePage {
+  /** Route data. */
+  readonly kind = input<ProjectKind>(KIND_TOKEN);
   private readonly store = inject(ProjectStore);
   protected readonly launchpad = inject(LaunchpadReader);
   protected readonly network = inject(NetworkStore);
 
-  protected readonly list = this.store.list(KIND_TOKEN);
-  protected readonly categories = TOKEN_CATEGORIES;
+  protected readonly page = computed(() => PAGES[this.kind()]);
+  protected readonly list = computed(() => this.store.list(this.kind())());
+  protected readonly categories = computed(() =>
+    this.kind() === KIND_TOKEN ? TOKEN_CATEGORIES : COLLECTION_CATEGORIES,
+  );
   protected readonly query = signal('');
   protected readonly category = signal<number | null>(null);
   protected readonly source = signal<SourceFilter>('all');
@@ -75,7 +107,8 @@ export class ExploreTokensPage {
 
   constructor() {
     effect(() => {
-      if (this.launchpad.address()) void this.store.load(KIND_TOKEN);
+      const kind = this.kind();
+      if (this.launchpad.address()) untracked(() => void this.store.load(kind));
     });
     // A new filter starts from the first cards again.
     effect(() => {
@@ -89,7 +122,7 @@ export class ExploreTokensPage {
   }
 
   protected label(project: Project): string {
-    return categoryLabel(KIND_TOKEN, project.category);
+    return categoryLabel(project.kind, project.category);
   }
 
   protected toggleCategory(index: number): void {
@@ -101,7 +134,7 @@ export class ExploreTokensPage {
   }
 
   protected retry(): void {
-    void this.store.load(KIND_TOKEN, true);
+    void this.store.load(this.kind(), true);
   }
 }
 

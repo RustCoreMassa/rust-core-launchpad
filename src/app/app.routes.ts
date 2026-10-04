@@ -17,32 +17,31 @@ export const routes: Routes = [
   {
     path: 'tokens',
     title: 'Tokens · RustCore Launchpad',
-    loadComponent: () =>
-      import('./features/tokens/explore-tokens-page').then((m) => m.ExploreTokensPage),
+    loadComponent: () => import('./features/explore/explore-page').then((m) => m.ExplorePage),
+    data: { kind: 0 },
   },
   {
     path: 'tokens/:address',
     title: 'Token · RustCore Launchpad',
     loadComponent: () => import('./features/tokens/token-page').then((m) => m.TokenPage),
   },
-  plannedRoute('collections', 'Collections', {
-    label: 'NFT',
-    heading: 'Explore collections',
-    text: 'NFT collections launched or imported through the Launchpad.',
-    phase: 4,
-  }),
-  plannedRoute('collections/:address', 'Collection', {
-    label: 'NFT',
-    heading: 'Collection',
-    text: 'Items, traits, listings and sales of one collection.',
-    phase: 4,
-  }),
-  plannedRoute('collections/:address/:tokenId', 'NFT', {
-    label: 'NFT',
-    heading: 'NFT details',
-    text: 'Image, attributes, owner, price and sale history.',
-    phase: 4,
-  }),
+  {
+    path: 'collections',
+    title: 'Collections · RustCore Launchpad',
+    loadComponent: () => import('./features/explore/explore-page').then((m) => m.ExplorePage),
+    data: { kind: 1 },
+  },
+  {
+    path: 'collections/:address',
+    title: 'Collection · RustCore Launchpad',
+    loadComponent: () =>
+      import('./features/collections/collection-page').then((m) => m.CollectionPage),
+  },
+  {
+    path: 'collections/:address/:tokenId',
+    title: 'NFT · RustCore Launchpad',
+    loadComponent: () => import('./features/collections/nft-page').then((m) => m.NftPage),
+  },
   plannedRoute('marketplace', 'Marketplace', {
     label: 'Marketplace',
     heading: 'NFT marketplace',
@@ -67,12 +66,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/create/create-token-page').then((m) => m.CreateTokenPage),
   },
-  plannedRoute('create/collection', 'Create a collection', {
-    label: 'Create',
-    heading: 'Launch an NFT collection',
-    text: 'Name, supply, mint price, royalty and metadata — deployed in one transaction.',
-    phase: 4,
-  }),
+  {
+    path: 'create/collection',
+    title: 'Create a collection · RustCore Launchpad',
+    loadComponent: () =>
+      import('./features/create/create-collection-page').then((m) => m.CreateCollectionPage),
+  },
   plannedRoute('create/presale/:token', 'Create a presale', {
     label: 'Create',
     heading: 'Start a presale',

@@ -1,0 +1,74 @@
+import { parseMetadata } from './nft-metadata';
+import { readMintInfo, tokenIdFromKey } from './collection-reader';
+import { Args } from '@massalabs/massa-web3';
+
+describe('parseMetadata', () => {
+  it('keeps the usual fields as text', () => {
+    const meta = parseMetadata({
+      name: 'Cat #1',
+      description: 'A cat',
+      image: 'ipfs://bafyCat/1.png',
+      attributes: [
+        { trait_type: 'Fur', value: 'Orange' },
+        { trait_type: 'Level', value: 3 },
+      ],
+    });
+    expect(meta).toEqual({
+      name: 'Cat #1',
+      description: 'A cat',
+      image: 'https://ipfs.io/ipfs/bafyCat/1.png',
+      attributes: [
+        { trait: 'Fur', value: 'Orange' },
+        { trait: 'Level', value: '3' },
+      ],
+    });
+  });
+
+  it('drops what it can’t trust or use', () => {
+    const meta = parseMetadata({
+      name: { html: '<script>' },
+      image: 'javascript:alert(1)',
+      attributes: [null, 'x', { trait_type: '', value: 'y' }, { trait_type: 'Ok', value: {} }],
+    });
+    expect(meta).toEqual({ name: '', description: '', image: '', attributes: [] });
+  });
+
+  it('refuses anything that isn’t a JSON object', () => {
+    expect(parseMetadata(null)).toBeNull();
+    expect(parseMetadata([1, 2])).toBeNull();
+    expect(parseMetadata('text')).toBeNull();
+  });
+});
+
+describe('collection storage decoding', () => {
+  it('reads a token id from an owner key (prefix 0x04 + u256 little-endian)', () => {
+    const key = new Uint8Array(33);
+    key[0] = 0x04;
+    key[1] = 0x2c;
+    key[2] = 0x01; // 300
+    expect(tokenIdFromKey(key)).toBe(300n);
+  });
+
+  it('reads mintInfo in the contract’s order', () => {
+    const bytes = new Args()
+      .addU256(10n)
+      .addU256(4n)
+      .addU256(3n)
+      .addU64(2_000_000_000n)
+      .addU32(2n)
+      .addBool(true)
+      .addString('ipfs://bafy/')
+      .addBool(false)
+      .serialize();
+    expect(readMintInfo(bytes)).toEqual({
+      maxSupply: 10n,
+      minted: 4n,
+      totalSupply: 3n,
+      mintPrice: 2_000_000_000n,
+      maxPerWallet: 2,
+      publicMint: true,
+      baseURI: 'ipfs://bafy/',
+      frozen: false,
+    });
+  });
+});

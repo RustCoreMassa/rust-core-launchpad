@@ -34,10 +34,9 @@ RustCore Wallet will join once its browser extension can connect to dApps.
 - Your wallet. Looking for wallets (when you open **Connect wallet**, or at start if you
   connected before) talks to the Bearby / MetaMask extensions inside your browser and asks
   Massa Station's local server (`station.massa`, `localhost:8080`) whether it is running.
-
-- Images and links that project owners chose: logos and banners load from the address they
-  gave (any `https://` host), `ipfs://` images through the public gateway `ipfs.io`. Images are
-  requested without a referrer.
+- Images and metadata that project owners chose: logos, banners, NFT metadata (JSON) and NFT
+  images load from the address they gave (any `https://` host), `ipfs://` links through the
+  public gateway `ipfs.io`. They are requested without a referrer or cookies.
 
 Nothing else: no analytics, no backend, fonts are bundled. "Download original code" is built in
 your browser from files the app ships and the contract code stored on-chain.

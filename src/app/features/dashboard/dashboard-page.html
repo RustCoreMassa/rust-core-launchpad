@@ -2,7 +2,7 @@
   <header class="page-head">
     <span class="label">Dashboard</span>
     <h1>My launches</h1>
-    <p>Tokens and collections you launched or imported. Edit them from their page.</p>
+    <p>Tokens and collections you launched or imported, and the NFTs you hold.</p>
   </header>
 
   @if (!launchpad.address()) {
@@ -35,43 +35,90 @@
         >
           Collections
         </button>
+        <button
+          type="button"
+          role="tab"
+          class="chip"
+          [class.selected]="tab() === 'nfts'"
+          [attr.aria-selected]="tab() === 'nfts'"
+          (click)="tab.set('nfts')"
+        >
+          My NFTs
+        </button>
       </div>
-      @if (tab() === 'tokens') {
+      @if (tab() !== 'nfts') {
         <div class="actions">
           <button class="btn btn-ghost btn-sm" type="button" (click)="openImport()">
-            Import a token
+            Import a {{ noun() }}
           </button>
-          <a class="btn btn-red btn-sm" routerLink="/create/token">Create a token</a>
+          <a class="btn btn-red btn-sm" [routerLink]="'/create/' + noun()">Create a {{ noun() }}</a>
         </div>
       }
     </div>
 
-    @if (tab() === 'collections') {
-      <div class="card">
-        <p class="muted">NFT collections arrive in phase 4.</p>
-      </div>
-    } @else {
-      @if (error(); as message) {
-        <div class="notice notice-error" role="alert">{{ message }}</div>
+    @if (error(); as message) {
+      <div class="notice notice-error" role="alert">{{ message }}</div>
+    }
+
+    @if (tab() === 'nfts') {
+      @if (nfts() === null) {
+        <div class="card row">
+          <span class="muted">Looking through the collections… {{ nftsScanned() }} checked</span>
+        </div>
+      } @else if (nfts()!.length === 0) {
+        <div class="card empty">
+          <p>You don't hold NFTs from Launchpad collections yet.</p>
+          <a class="btn btn-ghost btn-sm" routerLink="/collections">Explore collections</a>
+        </div>
+      } @else {
+        <p class="muted count">{{ nftCount() }} NFTs in {{ nfts()!.length }} collections</p>
+        <div class="list">
+          @for (entry of nfts(); track entry.project.id) {
+            <a class="card row" [routerLink]="['/collections', entry.project.address]">
+              <app-project-logo
+                [url]="entry.project.info.logoUrl"
+                [symbol]="entry.project.symbol"
+              />
+              <div class="names">
+                <strong>{{ entry.project.name }}</strong>
+                <span class="muted">
+                  {{ entry.ids.length }} NFT{{ entry.ids.length === 1 ? '' : 's' }}:
+                  @for (id of entry.ids.slice(0, 8); track id; let last = $last) {
+                    #{{ id }}{{ last ? '' : ', ' }}
+                  }
+                  @if (entry.ids.length > 8) {
+                    …
+                  }
+                </span>
+              </div>
+            </a>
+          }
+        </div>
+        <p class="hint">
+          Collections without an owner index (some imported ones) can't be listed here.
+        </p>
       }
-      @if (myTokens() === null) {
+    } @else {
+      @if (list() === null) {
         @for (row of [1, 2]; track row) {
           <div class="card row"><span class="skeleton" style="width: 50%"></span></div>
         }
-      } @else if (myTokens()!.length === 0) {
+      } @else if (list()!.length === 0) {
         <div class="card empty">
-          <p>You haven't launched or imported a token yet.</p>
+          <p>You haven't launched or imported a {{ noun() }} yet.</p>
           <div class="actions">
-            <a class="btn btn-red btn-sm" routerLink="/create/token">Create a token</a>
+            <a class="btn btn-red btn-sm" [routerLink]="'/create/' + noun()"
+              >Create a {{ noun() }}</a
+            >
             <button class="btn btn-ghost btn-sm" type="button" (click)="openImport()">
-              Import a token
+              Import a {{ noun() }}
             </button>
           </div>
         </div>
       } @else {
         <div class="list">
-          @for (item of myTokens(); track item.project.id) {
-            <a class="card row" [routerLink]="['/tokens', item.project.address]">
+          @for (item of list(); track item.project.id) {
+            <a class="card row" [routerLink]="[base(), item.project.address]">
               <app-project-logo [url]="item.project.info.logoUrl" [symbol]="item.project.symbol" />
               <div class="names">
                 <strong>{{ item.project.name }}</strong>
@@ -99,7 +146,7 @@
         </div>
       }
     }
-    <app-import-token-dialog (imported)="onImported($event)" />
+    <app-import-dialog (imported)="onImported($event)" />
   }
   <app-connect-wallet-dialog />
 </section>

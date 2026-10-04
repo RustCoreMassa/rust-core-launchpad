@@ -4,7 +4,7 @@
 
 .stepper {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(var(--steps, 4), minmax(0, 1fr));
   gap: 8px;
   margin: 0 0 16px;
   padding: 0;
@@ -91,6 +91,28 @@ h3 {
 
 .total {
   font-weight: 700;
+}
+
+.preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.preview img {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+.radio-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .nav {

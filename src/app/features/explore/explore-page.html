@@ -1,12 +1,12 @@
 <section class="page container">
   <header class="head">
     <div class="page-head">
-      <span class="label">Tokens</span>
-      <h1>Explore tokens</h1>
-      <p>Every MRC20 token launched or imported through the Launchpad.</p>
+      <span class="label">{{ page().label }}</span>
+      <h1>{{ page().title }}</h1>
+      <p>{{ page().lead }}</p>
     </div>
     <div class="actions">
-      <a class="btn btn-red" routerLink="/create/token">Create a token</a>
+      <a class="btn btn-red" [routerLink]="page().create">{{ page().createLabel }}</a>
     </div>
   </header>
 
@@ -21,12 +21,12 @@
         class="input search"
         type="search"
         placeholder="Search by name, symbol or address"
-        aria-label="Search tokens"
+        [attr.aria-label]="'Search ' + page().noun"
         [value]="query()"
         (input)="setQuery($event)"
       />
       <div class="chips" aria-label="Category">
-        @for (name of categories; track name; let i = $index) {
+        @for (name of categories(); track name; let i = $index) {
           <button
             type="button"
             class="chip"
@@ -112,7 +112,7 @@
     @if (!list().loaded) {
       <div class="grid">
         @for (row of [1, 2, 3, 4, 5, 6]; track row) {
-          <div class="card token-card">
+          <div class="card project-card">
             <span class="skeleton" style="width: 48px; height: 48px; border-radius: 50%"></span>
             <span class="skeleton" style="width: 60%"></span>
           </div>
@@ -120,7 +120,7 @@
       </div>
     } @else {
       <p class="muted count">
-        {{ filtered().length }} of {{ list().projects.length }} tokens
+        {{ filtered().length }} of {{ list().projects.length }} {{ page().noun }}
         @if (list().loading) {
           · loading more…
         }
@@ -128,27 +128,27 @@
       @if (filtered().length === 0) {
         <div class="card empty">
           @if (list().projects.length === 0) {
-            <p>No tokens yet — be the first.</p>
-            <a class="btn btn-red btn-sm" routerLink="/create/token">Create a token</a>
+            <p>No {{ page().noun }} yet — be the first.</p>
+            <a class="btn btn-red btn-sm" [routerLink]="page().create">{{ page().createLabel }}</a>
           } @else {
-            <p>No token matches these filters.</p>
+            <p>Nothing matches these filters.</p>
           }
         </div>
       } @else {
         <div class="grid">
-          @for (token of visible(); track token.id) {
-            <a class="card token-card" [routerLink]="['/tokens', token.address]">
-              <div class="token-top">
-                <app-project-logo [url]="token.info.logoUrl" [symbol]="token.symbol" />
-                <div class="token-name">
-                  <strong>{{ token.name }}</strong>
-                  <span class="muted">{{ token.symbol }} · {{ label(token) }}</span>
+          @for (project of visible(); track project.id) {
+            <a class="card project-card" [routerLink]="[page().base, project.address]">
+              <div class="project-top">
+                <app-project-logo [url]="project.info.logoUrl" [symbol]="project.symbol" />
+                <div class="project-name">
+                  <strong>{{ project.name }}</strong>
+                  <span class="muted">{{ project.symbol }} · {{ label(project) }}</span>
                 </div>
               </div>
-              @if (token.info.description) {
-                <p class="description">{{ token.info.description }}</p>
+              @if (project.info.description) {
+                <p class="description">{{ project.info.description }}</p>
               }
-              <app-project-badges [project]="token" />
+              <app-project-badges [project]="project" />
             </a>
           }
         </div>

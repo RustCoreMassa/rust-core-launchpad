@@ -1,0 +1,247 @@
+<section class="page container">
+  <a class="back muted" routerLink="/collections">← All collections</a>
+
+  @if (error(); as message) {
+    <div class="notice notice-error" role="alert">{{ message }}</div>
+  }
+
+  @if (project() === undefined) {
+    <div class="card hero-card">
+      <span class="skeleton" style="width: 72px; height: 72px; border-radius: 50%"></span>
+      <span class="skeleton" style="width: 240px; height: 28px"></span>
+    </div>
+  } @else if (project() === null) {
+    <div class="card">
+      <h1 class="title">Not in the Launchpad</h1>
+      <p class="muted">
+        No collection with this address was launched or imported here on
+        {{ networks.config().label }}.
+      </p>
+      <a class="btn btn-ghost btn-sm" routerLink="/collections">Explore collections</a>
+    </div>
+  } @else {
+    @let p = project()!;
+    <div class="card hero-card" [class.with-banner]="banner()">
+      @if (banner()) {
+        <img class="banner" [src]="banner()" alt="" referrerpolicy="no-referrer" />
+      }
+      <div class="identity">
+        <app-project-logo [url]="p.info.logoUrl" [symbol]="p.symbol" />
+        <div class="names">
+          <h1 class="title">{{ p.name }}</h1>
+          <span class="muted">{{ p.symbol }} · {{ category(p) }}</span>
+        </div>
+      </div>
+      <app-project-badges [project]="p" [codeModified]="codeModified()" [showOriginal]="true" />
+      @if (p.info.description) {
+        <p class="description">{{ p.info.description }}</p>
+      }
+      @if (links().length) {
+        <div class="links">
+          @for (link of links(); track link.label) {
+            <a
+              class="btn btn-ghost btn-sm"
+              [href]="link.url"
+              target="_blank"
+              rel="noopener noreferrer"
+              >{{ link.label }}</a
+            >
+          }
+        </div>
+      }
+    </div>
+
+    <div class="stats">
+      <div class="card stat">
+        <span class="muted">Minted</span>
+        <strong>
+          @if (mint(); as m) {
+            {{ m.minted }} / {{ m.maxSupply }}
+          } @else if (items(); as list) {
+            {{ list.length }}
+          } @else {
+            <span class="skeleton"></span>
+          }
+        </strong>
+      </div>
+      <div class="card stat">
+        <span class="muted">Holders</span>
+        <strong>
+          @if (items()) {
+            {{ holders() }}
+          } @else {
+            <span class="skeleton"></span>
+          }
+        </strong>
+      </div>
+      <div class="card stat">
+        <span class="muted">Royalty</span>
+        <strong>{{ p.royaltyBps / 100 }}%</strong>
+      </div>
+      <div class="card stat">
+        <span class="muted">Owner</span>
+        <strong class="mono small">
+          @if (state(); as s) {
+            {{ s.owner ? (s.owner | shortAddress) : 'None' }}
+          } @else {
+            <span class="skeleton"></span>
+          }
+        </strong>
+      </div>
+    </div>
+
+    <div class="columns">
+      <div class="main">
+        <h2>NFTs</h2>
+        @if (items(); as list) {
+          <app-nft-grid [collection]="p.address" [items]="list" [me]="wallet.address()" />
+        } @else {
+          <div class="card"><span class="skeleton" style="width: 40%"></span></div>
+        }
+      </div>
+
+      <div class="side">
+        @if (mint(); as m) {
+          @if (m.publicMint) {
+            <div class="card mint">
+              <h2>Mint</h2>
+              <dl class="rows">
+                <div>
+                  <dt>Price</dt>
+                  <dd>{{ m.mintPrice ? (m.mintPrice | mas) : 'Free' }}</dd>
+                </div>
+                <div>
+                  <dt>Left</dt>
+                  <dd>{{ remaining() }}</dd>
+                </div>
+                @if (myAllowance() !== null) {
+                  <div>
+                    <dt>You can still mint</dt>
+                    <dd>{{ myAllowance() }}</dd>
+                  </div>
+                }
+              </dl>
+              @if (remaining() === 0) {
+                <p class="muted small">Sold out.</p>
+              } @else if (!wallet.connected()) {
+                <button class="btn btn-red btn-block" type="button" (click)="connect()">
+                  Connect wallet to mint
+                </button>
+              } @else if (maxMint() === 0) {
+                <p class="muted small">You reached the limit per wallet.</p>
+              } @else {
+                <label class="field">
+                  <span>How many</span>
+                  <input
+                    class="input"
+                    inputmode="numeric"
+                    [value]="mintCount()"
+                    (input)="setMintCount($event)"
+                  />
+                  @if (mintCount() < 1 || mintCount() > maxMint()) {
+                    <span class="error">Choose 1 to {{ maxMint() }}.</span>
+                  }
+                </label>
+                <p class="hint">
+                  Sends {{ mintCost() | mas }} (price + storage); what isn't used comes back.
+                </p>
+                <button
+                  class="btn btn-red btn-block"
+                  type="button"
+                  [disabled]="
+                    minting() ||
+                    mintCount() < 1 ||
+                    mintCount() > maxMint() ||
+                    wallet.networkMismatch()
+                  "
+                  (click)="publicMint()"
+                >
+                  {{ minting() ? 'Confirm in your wallet…' : 'Mint' }}
+                </button>
+              }
+              @if (mintError(); as message) {
+                <p class="error">{{ message }}</p>
+              }
+            </div>
+          }
+        }
+
+        @if (isOwner()) {
+          <div class="card owner">
+            <h2>You own this collection</h2>
+            <div class="actions">
+              @if (mint() && remaining() > 0) {
+                <button class="btn btn-red btn-sm" type="button" (click)="ownerMint()">
+                  Mint NFTs
+                </button>
+              }
+              @if (mint()) {
+                <button class="btn btn-ghost btn-sm" type="button" (click)="settings()">
+                  Settings
+                </button>
+              }
+              <button class="btn btn-ghost btn-sm" type="button" (click)="edit()">
+                Edit details
+              </button>
+            </div>
+          </div>
+        }
+
+        <div class="card">
+          <h2>Details</h2>
+          <dl class="rows">
+            <div>
+              <dt>Contract</dt>
+              <dd class="mono">{{ p.address | shortAddress }}</dd>
+            </div>
+            <div>
+              <dt>{{ p.source === launched ? 'Launched by' : 'Imported by' }}</dt>
+              <dd class="mono">{{ p.creator | shortAddress }}</dd>
+            </div>
+            <div>
+              <dt>Date</dt>
+              <dd>{{ p.createdAt | date: 'mediumDate' }}</dd>
+            </div>
+            @if (mint(); as m) {
+              <div>
+                <dt>Metadata</dt>
+                <dd>
+                  {{
+                    m.baseURI
+                      ? m.frozen
+                        ? 'Frozen folder'
+                        : 'Folder (can change)'
+                      : 'A link per NFT'
+                  }}
+                </dd>
+              </div>
+            }
+          </dl>
+        </div>
+
+        @if (p.source === launched) {
+          <div class="card">
+            <h2>Original code</h2>
+            <p class="muted small">{{ keepOnlyOriginal }}</p>
+            <button
+              class="btn btn-ghost btn-sm"
+              type="button"
+              [disabled]="downloading()"
+              (click)="download()"
+            >
+              {{ downloading() ? 'Preparing…' : 'Download original code' }}
+            </button>
+            @if (downloadError(); as message) {
+              <p class="error">{{ message }}</p>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <app-edit-info-dialog (saved)="onSaved($event)" />
+    <app-owner-mint-dialog (minted)="refresh()" />
+    <app-collection-settings-dialog (changed)="refresh()" />
+  }
+  <app-connect-wallet-dialog />
+</section>

@@ -454,6 +454,10 @@ Măsurat pe buildnet pe 4 octombrie 2026 (cu taxele de test: 1 MAS la lansare, 0
 | Lansare token | 5,2533 MAS | 5,0042 MAS (1 taxă + 3,8533 cod + 0,1 depozit + 0,0509 record) | 0,2491 MAS |
 | Editare prezentare (link mai scurt) | 0,3 MAS | sub 0 — storage-ul eliberat s-a returnat | tot |
 | Import token | 0,8 MAS | 0,5451 MAS (0,5 taxă + 0,0451 record) | 0,2549 MAS |
+| Lansare colecție | 6,0319 MAS | 5,7786 MAS (1 taxă + 4,632 cod + 0,1 depozit + record) | 0,2533 MAS |
+| Mint public de 2 NFT (prețul revine owner-ului) | preț + 0,06 MAS | 0,054 MAS storage | restul |
+| Mint de owner, per NFT | 0,02 MAS | ≈ 0,019 MAS storage | rămâne în colecție ca rezervă |
+| Import colecție | 0,8 MAS | 0,5458 MAS | 0,2542 MAS |
 | Tranzacție refuzată de contract | 6 MAS | 0,01 MAS (taxa de rețea) | 6 MAS | O listare costă sub 0,05 MAS storage, care revine vânzătorului la anulare sau vânzare.
 
 ## Plan de dezvoltare
@@ -488,8 +492,9 @@ Lucrăm în 8 faze, fiecare încheiată cu ceva care merge pe buildnet; contract
 
 **Faza 4 — NFT-uri în UI**
 
-- [ ] Wizard colecție, mint de owner și public, import colecție cu sincronizarea NFT-urilor
-- [ ] Pagina colecției (grid, trait-uri), pagina NFT-ului, NFT-urile mele
+- [x] Wizard colecție, mint de owner și public, import colecție cu sincronizarea NFT-urilor
+- [x] Pagina colecției (grid, trait-uri), pagina NFT-ului, NFT-urile mele
+- [x] Probă cap-coadă pe buildnet (`smart-contract/src/e2e-collections.ts`): lansare, mint public cu plată, limită per wallet, mint de owner (și cu URI propriu), setări, royalty, import
 
 **Faza 5 — Marketplace**
 

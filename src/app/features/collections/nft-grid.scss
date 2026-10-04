@@ -1,0 +1,120 @@
+:host {
+  display: grid;
+  gap: 14px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.count {
+  font-size: 14px;
+}
+
+.traits {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.traits summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trait {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.trait-name {
+  color: var(--gray-300);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.nft {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+}
+
+.image {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated-2);
+}
+
+.image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fill {
+  width: 100%;
+  height: 100%;
+}
+
+.no-image {
+  color: var(--gray-500);
+  font: 700 22px/1 var(--font-display);
+}
+
+.caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 4px 4px;
+}
+
+.caption strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.mine {
+  flex: none;
+  color: #7ee2a8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.empty p {
+  margin: 0;
+}
+
+.more {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 980px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

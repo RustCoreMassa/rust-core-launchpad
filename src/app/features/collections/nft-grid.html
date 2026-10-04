@@ -1,0 +1,65 @@
+<div class="toolbar">
+  <span class="muted count">{{ filtered().length }} of {{ items().length }} NFTs</span>
+  @if (me()) {
+    <button type="button" class="chip" [class.selected]="mineOnly()" (click)="toggleMine()">
+      Only mine
+    </button>
+  }
+</div>
+
+@if (traits().length) {
+  <details class="traits">
+    <summary>Traits</summary>
+    @for (group of traits(); track group.trait) {
+      <div class="trait">
+        <span class="trait-name">{{ group.trait }}</span>
+        <div class="chips">
+          @for (entry of group.values; track entry[0]) {
+            <button
+              type="button"
+              class="chip"
+              [class.selected]="selected().get(group.trait) === entry[0]"
+              (click)="pick(group.trait, entry[0])"
+            >
+              {{ entry[0] }} <span class="muted">{{ entry[1] }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+  </details>
+}
+
+@if (items().length === 0) {
+  <div class="card empty"><p class="muted">No NFT has been minted yet.</p></div>
+} @else if (filtered().length === 0) {
+  <div class="card empty"><p class="muted">No NFT matches these filters.</p></div>
+} @else {
+  <div class="grid">
+    @for (item of visible(); track item.id) {
+      @let m = meta(item.id);
+      <a class="card nft" [routerLink]="['/collections', collection(), item.id.toString()]">
+        <div class="image">
+          @if (m === undefined) {
+            <span class="skeleton fill"></span>
+          } @else if (m?.image) {
+            <img [src]="m.image" alt="" loading="lazy" referrerpolicy="no-referrer" />
+          } @else {
+            <span class="no-image">#{{ item.id }}</span>
+          }
+        </div>
+        <div class="caption">
+          <strong>{{ m?.name || '#' + item.id }}</strong>
+          @if (item.owner === me()) {
+            <span class="mine">Yours</span>
+          }
+        </div>
+      </a>
+    }
+  </div>
+  @if (visible().length < filtered().length) {
+    <div class="more">
+      <button class="btn btn-ghost" type="button" (click)="more()">Show more</button>
+    </div>
+  }
+}

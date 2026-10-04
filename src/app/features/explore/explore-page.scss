@@ -53,33 +53,33 @@
   gap: 16px;
 }
 
-.token-card {
+.project-card {
   display: grid;
   align-content: start;
   gap: 12px;
   padding: 20px;
 }
 
-.token-top {
+.project-top {
   display: flex;
   align-items: center;
   gap: 12px;
   min-width: 0;
 }
 
-.token-name {
+.project-name {
   display: grid;
   min-width: 0;
 }
 
-.token-name strong,
-.token-name span {
+.project-name strong,
+.project-name span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.token-name span {
+.project-name span {
   font-size: 14px;
 }
 

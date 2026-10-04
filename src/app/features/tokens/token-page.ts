@@ -30,7 +30,7 @@ import { ShortAddressPipe } from '../../shared/pipes/short-address-pipe';
 import { UnitsPipe } from '../../shared/pipes/units-pipe';
 import { ProjectBadges } from '../../shared/ui/project-badges/project-badges';
 import { ProjectLogo } from '../../shared/ui/project-logo/project-logo';
-import { EditInfoDialog } from './edit-info-dialog';
+import { EditInfoDialog } from '../../shared/ui/edit-info-dialog/edit-info-dialog';
 import { MintDialog } from './mint-dialog';
 
 /** One token: the registry record plus live reads from its contract. */

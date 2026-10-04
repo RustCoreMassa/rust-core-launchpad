@@ -9,14 +9,14 @@ import {
   viewChild,
 } from '@angular/core';
 import { Args } from '@massalabs/massa-web3';
-import { recordCost } from '../../core/launchpad/launch-cost';
-import { infoErrors } from '../../core/launchpad/launch-rules';
-import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
-import { EMPTY_INFO, Project, ProjectInfo, writeInfo } from '../../core/launchpad/records';
-import { Transactions } from '../../core/launchpad/transactions';
-import { toUserMessage } from '../../core/utils/user-error';
-import { InfoForm } from '../../shared/ui/info-form/info-form';
-import { MasPipe } from '../../shared/pipes/units-pipe';
+import { recordCost } from '../../../core/launchpad/launch-cost';
+import { infoErrors } from '../../../core/launchpad/launch-rules';
+import { LaunchpadReader } from '../../../core/launchpad/launchpad-reader';
+import { EMPTY_INFO, Project, ProjectInfo, writeInfo } from '../../../core/launchpad/records';
+import { Transactions } from '../../../core/launchpad/transactions';
+import { toUserMessage } from '../../../core/utils/user-error';
+import { InfoForm } from '../info-form/info-form';
+import { MasPipe } from '../../pipes/units-pipe';
 
 /** Edits a project's presentation (updateInfo). Only the contract's current owner can save. */
 @Component({
