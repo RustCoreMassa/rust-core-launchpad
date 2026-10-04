@@ -113,54 +113,56 @@ Ca la orice MRC20/MRC721, storage-ul nou (un deținător nou, o aprobare, un min
 
 ### Chei de stocare
 
-Toate valorile sunt serializate cu `Args` (clase `Serializable` în AssemblyScript, oglindite în TypeScript). ID-urile sunt `u64` secvențiale, scrise pe 8 octeți big-endian în chei, ca listarea pe prefix să vină în ordine.
+Toate valorile sunt serializate cu `Args` (clase `Serializable` în AssemblyScript, oglindite în TypeScript). `<kind>` e un octet: 0 = token, 1 = colecție. ID-urile sunt `u64` secvențiale per kind, scrise pe 8 octeți big-endian, ca listarea pe prefix să vină în ordine. Orice parte de lungime variabilă (adresă, simbol) se termină cu `:`, ca o adresă să nu fie prefixul alteia.
 
 | Cheie | Valoare | Folosită pentru |
 | --- | --- | --- |
-| `cfg` | admin, taxe, limite, pauză | configurare |
-| `tpl:<kind>:<ver>` / `tplh:<kind>:<ver>` | bytecode / sha256 | șabloane |
-| `n:tok`, `n:col`, `n:lst`, `n:pre` | contor u64 | ID-uri noi |
-| `tok:<id>` | TokenRecord | lista de tokenuri |
-| `tokA:<adresă>` | id | căutare după adresă |
-| `sym:<SIMBOL>` | id | unicitatea simbolului (dacă decidem) |
-| `col:<id>` / `colA:<adresă>` | CollectionRecord / id | colecții |
-| `own:<creator>:<tip>:<id>` | gol | „ce am lansat eu” |
-| `cat:<categorie>:<tip>:<id>` | gol | filtru pe categorie |
-| `lst:<id>` | Listing | marketplace |
-| `lstC:<colId>:<id>`, `lstS:<seller>:<id>` | gol | listări active pe colecție / vânzător |
-| `lstT:<colId>:<tokenId>` | listingId | o singură listare activă per NFT |
-| `sale:<colId>:<id>` | Sale | istoric vânzări |
-| `stat:<colId>` | volum, nr. vânzări, ultimul preț | statistici colecție |
-| `pre:<id>` / `preT:<tokId>` | Presale / id | presale-uri |
-| `ctb:<preId>:<adresă>` | contribuție, claimed | contribuții |
-| `ctbU:<adresă>:<preId>` | gol | „contribuțiile mele” |
-| `fees` | u64 | taxe acumulate, separate de escrow |
+| `admin` | adresa admin | permisiuni |
+| `cfg` | Config | taxe, depozit, pauză |
+| `fees` | u64 | taxe acumulate, separate de orice alt sold |
+| `tplv:<kind>` | u32 | versiunea curentă a șablonului |
+| `tpl:<kind><ver>` / `tplh:<kind><ver>` | bytecode / sha256 | șabloane (și sursa pentru „Descarcă codul original”) |
+| `n:<kind>` | u64 | numărul de proiecte (ID-urile sunt 1..n) |
+| `p:<kind><id>` | Project | recordul |
+| `a:<adresă>:` | kind + id | căutare după adresă, import unic |
+| `o:<creator>:<kind><id>` | gol | „lansate / importate de mine” |
+| `c:<kind><categorie><id>` | gol | filtru pe categorie |
+| `s:<SIMBOL>:` | kind + id, sau gol = rezervat | unicitatea simbolului la lansări |
+| `upg` | UpgradeProposal | upgrade în așteptare (timelock) |
+
+Cheile pentru marketplace (faza 5) și presale (faza 6) urmează același model: `lst:`, `lstC:`, `lstS:`, `lstT:`, `sale:`, `stat:`, `pre:`, `ctb:`, `ctbU:`.
 
 ### Recordurile
 
-- **TokenRecord:** id, adresă, creator, sursă (lansat / importat), mutabil, versiune șablon, hash bytecode original, name, symbol, decimals, initialSupply, mintable, burnable, createdAt, categorie, metadata editabilă (descriere, logoUrl, bannerUrl, website, twitter, telegram, discord), flag-uri (verificat, ascuns).
-- **CollectionRecord:** aceeași structură + maxSupply, royaltyBps, receiver royalty, modul de metadata.
-- **Listing:** id, colId, adresă colecție, tokenId, seller, preț (nanoMAS), createdAt, expiresAt, stare.
-- **Presale:** vezi secțiunea Presale.
+- **Project** (token sau colecție, un singur tip): kind, id, address, source (lansat / importat), creator, createdAt (ms), templateVersion (0 la import), codeHash (sha256 al codului la lansare sau import), name, symbol, decimals (0 la colecții), mutable (mereu true la import: cod necunoscut), category, verified, hidden, royaltyBps, royaltyReceiver, info.
+- **ProjectInfo** (editabil): description, logoUrl, bannerUrl, website, twitter, telegram, discord.
+- **Config**: tokenFee, collectionFee, importFee, presaleFeeBps, deployDeposit (MAS dat fiecărui contract nou pentru storage-ul lui), paused.
+- **UpgradeProposal**: codeHash, executableAt.
+- Supply-ul, mintable, burnable, prețul de mint etc. nu se copiază în registry: aplicația le citește direct din contract (`templateInfo`, `mintInfo`, `totalSupply`), deci sunt mereu la zi.
+- **Listing**, **Sale**, **Presale**: în fazele 5 și 6.
 
-### Funcții publice
+### Funcții publice (implementate în faza 2)
 
 | Modul | Scriere (tranzacție) | Citire (readSC, gratuit) |
 | --- | --- | --- |
-| Factory + Registry | `createToken`, `createCollection`, `importToken`, `importCollection`, `updateTokenInfo`, `updateCollectionInfo`, `setRoyalty` | `getToken(id)`, `getTokenByAddress`, `getTokens(offset, limit)`, `getCollection*`, `getCreatedBy(addr, tip, offset, limit)`, `getByCategory`, `getConfig`, `quoteCreate(tip)` |
-| Marketplace | `list`, `updatePrice`, `cancel`, `buy` | `getListing`, `getListings(colId?, offset, limit)`, `getListingsBySeller`, `getSales(colId, offset, limit)`, `getStats(colId)` |
-| Presale | `createPresale`, `contribute`, `finalize`, `claim`, `refund`, `cancelPresale`, `withdrawRaised` | `getPresale`, `getPresales(offset, limit)`, `getContribution(preId, addr)`, `getContributionsOf(addr)` |
-| Admin | `setConfig`, `setTemplate`, `setVerified`, `setHidden`, `withdrawFees`, `pause`, `transferAdmin`, `proposeUpgrade`, `executeUpgrade` | — |
+| Factory | `createToken`, `createCollection` | `template(kind)`, `isSymbolAvailable(symbol)` |
+| Registry | `importToken`, `importCollection`, `updateInfo(kind, id, category, info)`, `setRoyalty` | `count(kind)`, `getProject(kind, id)`, `getProjectByAddress`, `getProjects(kind, offset, limit)` (cele mai noi primele, maxim 50), `getCreatedBy(creator, kind)` |
+| Admin | `setConfig`, `setPaused`, `setTemplate`, `setVerified`, `setHidden`, `reserveSymbol`, `withdrawFees`, `transferAdmin`, `proposeUpgrade`, `cancelUpgrade`, `executeUpgrade` | `admin`, `config`, `fees`, `pendingUpgrade`, `version` |
+| Marketplace (faza 5) | `list`, `updatePrice`, `cancel`, `buy`, `cleanup` | `getListing`, `getListings`, `getSales`, `getStats` |
+| Presale (faza 6) | `createPresale`, `contribute`, `finalize`, `claim`, `refund`, `cancelPresale`, `withdrawRaised` | `getPresale`, `getPresales`, `getContribution`, `getContributionsOf` |
+
+Filtrul pe categorie nu are funcție dedicată: aplicația listează cheile cu prefixul `c:<kind><categorie>` (`getStorageKeys`) și citește recordurile.
 
 ### Taxe și plata storage-ului
 
-- Fiecare scriere primește MAS (`coins`). Contractul măsoară soldul înainte și după operație, cere `coins ≥ storage consumat + taxă` și returnează restul. `quoteCreate` și simularea `readSC` din frontend arată suma exactă înainte de semnare.
+- Fiecare scriere e plătită de cine o face. Contractul citește soldul la începutul apelului (monedele trimise sunt deja incluse) și la sfârșit. Diferența e ce a consumat apelul: storage nou, bytecode-ul contractului creat, depozitul dat acestuia. Cere `monede trimise ≥ consum + taxă` și returnează restul. Storage-ul eliberat (o cheie ștearsă) se returnează și el.
+- Suma exactă de trimis o află aplicația simulând apelul (`readSC`) înainte de semnare; taxele se văd în `config`.
 - Taxe configurabile de admin, doar la patru operații: taxă fixă la crearea unui token, taxă fixă la crearea unei colecții, taxă fixă la import (token sau colecție) și comision de presale în bps din suma strânsă. Marketplace-ul nu are comision. Valorile se stabilesc înainte de mainnet.
 - Taxele se adună în contorul `fees`. `withdrawFees` poate scoate doar acest contor, niciodată banii din escrow (presale sau plăți în curs).
 
 ### Evenimente
 
-`TOKEN_CREATED`, `COLLECTION_CREATED`, `INFO_UPDATED`, `LISTED`, `SOLD`, `CANCELLED`, `PRESALE_CREATED`, `CONTRIBUTED`, `FINALIZED`, `CLAIMED`, `REFUNDED`. Le folosim doar pentru confirmarea tranzacției în UI, nu ca istoric.
+`TOKEN_CREATED`, `COLLECTION_CREATED`, `TOKEN_IMPORTED`, `COLLECTION_IMPORTED`, `INFO_UPDATED`, `ROYALTY_UPDATED`, `TEMPLATE_SET`, `CONFIG_UPDATED`, `PAUSED` / `UNPAUSED`, `FEES_WITHDRAWN`, `ADMIN_CHANGED`, `UPGRADE_PROPOSED` / `UPGRADE_CANCELLED` / `UPGRADE_EXECUTED`; din fazele 5–6: `LISTED`, `SOLD`, `CANCELLED`, `PRESALE_CREATED`, `CONTRIBUTED`, `FINALIZED`, `CLAIMED`, `REFUNDED`. Le folosim doar pentru confirmarea tranzacției în UI, nu ca istoric.
 
 ## Fluxul de lansare a unui token
 
@@ -187,7 +189,7 @@ Pașii: 1) Identitate (nume, simbol, logo) · 2) Tokenomics (zecimale, supply, m
 ### Pașii tehnici
 
 1. Frontendul validează formularul și serializează argumentele cu `Args`.
-2. Frontendul citește `quoteCreate('token')` (taxă + storage estimat) și simulează apelul cu `readSC`, cu adresa userului ca apelant: dacă simularea eșuează, afișăm motivul și nu cerem semnătura.
+2. Frontendul citește taxa din `config` și simulează apelul cu `readSC`, cu adresa userului ca apelant, ca să afle suma exactă: dacă simularea eșuează, afișăm motivul și nu cerem semnătura.
 3. Pasul Review arată tot ce se scrie pe lanț, taxa platformei, depozitul de storage și taxa de rețea.
 4. Userul semnează `createToken` în wallet, cu `coins` = suma estimată + o marjă mică (surplusul se returnează automat).
 5. Launchpad SC verifică: nu e în pauză, argumente valide, simbol liber (dacă impunem unicitatea), `coins` suficienți.
@@ -216,7 +218,7 @@ O colecție se lansează tot într-o tranzacție (`createCollection`), iar NFT-u
 
 ### Pașii tehnici
 
-1. Validare, `quoteCreate('collection')`, simulare `readSC`, pasul Review (identic cu tokenul).
+1. Validare, taxa din `config`, simulare `readSC`, pasul Review (identic cu tokenul).
 2. `createCollection` → `createSC(tpl:collection:<ver>)` → `constructor` cu owner = user.
 3. Launchpad SC scrie `col:`, `colA:`, `own:`, `cat:`, reține taxa, returnează surplusul, emite `COLLECTION_CREATED`.
 4. Owner-ul face mint din pagina colecției: `ownerMint(to, count)` (airdrop către sine sau altă adresă) sau, în modul B, `ownerMintWithURI(to, uri)` cu URI-ul JSON-ului fiecărui NFT.
@@ -236,7 +238,7 @@ Userul poate edita tot ce ține de prezentare, dar nu identitatea contractului: 
 | --- | --- | --- | --- |
 | Nume, simbol, zecimale (token și colecție) | Nu | — | Imuabile în contract; wallet-urile și DEX-urile le pun în cache |
 | Supply token | Doar crește prin `mint` (dacă e mintable, până la maxim) sau scade prin `burn` | owner / holderi | Pe contractul tokenului |
-| Descriere, logo, banner, website, social, categorie | Da | owner-ul curent | `updateTokenInfo` / `updateCollectionInfo` pe Launchpad SC |
+| Descriere, logo, banner, website, social, categorie | Da | owner-ul curent | `updateInfo` pe Launchpad SC |
 | Base URI colecție | Da, până la `freezeMetadata` | owner-ul colecției | Pe contractul colecției; după freeze, niciodată |
 | Preț mint, mint public on/off, maxim per wallet | Da | owner-ul colecției | `setMintConfig` pe colecție |
 | Supply maxim colecție | Doar în jos, nu sub ce s-a emis | owner-ul colecției | Pe colecție |
@@ -462,8 +464,8 @@ Lucrăm în 8 faze, fiecare încheiată cu ceva care merge pe buildnet; contract
 
 **Faza 2 — Launchpad SC: Factory + Registry**
 
-- [ ] Config, admin, `setTemplate`, contoare, recorduri Serializable
-- [ ] `createToken`, `createCollection`, `importToken`, `importCollection`, `update*Info`, citiri paginate, indexuri; upgrade cu timelock
+- [x] Config, admin, `setTemplate`, contoare, recorduri Serializable
+- [x] `createToken`, `createCollection`, `importToken`, `importCollection`, `updateInfo`, citiri paginate, indexuri; upgrade cu timelock
 - [ ] Contabilitate storage + taxe, teste, deploy pe buildnet, măsurarea costurilor reale
 
 **Faza 3 — Tokenuri în UI**
