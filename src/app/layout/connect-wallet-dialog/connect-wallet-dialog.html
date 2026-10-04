@@ -1,0 +1,52 @@
+<dialog class="sheet" #dialog aria-labelledby="connect-title" (click)="onDialogClick($event)">
+  <div class="panel">
+    <div class="head">
+      <h2 id="connect-title">Connect a wallet</h2>
+      <button class="close" type="button" aria-label="Close" (click)="close()">✕</button>
+    </div>
+    <p class="muted intro">
+      Your wallet signs every transaction. The Launchpad never sees your keys and stores nothing
+      about you.
+    </p>
+
+    @if (wallet.error(); as error) {
+      <div class="notice notice-error" role="alert">{{ error }}</div>
+    }
+
+    <ul class="wallets">
+      @if (wallet.choices(); as choices) {
+        @for (choice of choices; track choice.id) {
+          <li class="wallet-row">
+            <span class="wallet-name">{{ choice.label }}</span>
+            @if (choice.installed) {
+              <button
+                class="btn btn-red btn-sm"
+                type="button"
+                [disabled]="wallet.phase() === 'connecting'"
+                (click)="connect(choice.id)"
+              >
+                {{ wallet.phase() === 'connecting' ? 'Connecting…' : 'Connect' }}
+              </button>
+            } @else {
+              <a
+                class="btn btn-ghost btn-sm"
+                [href]="choice.installUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Install</a
+              >
+            }
+          </li>
+        }
+      } @else {
+        @for (row of [1, 2, 3]; track row) {
+          <li class="wallet-row"><span class="skeleton" style="width: 140px"></span></li>
+        }
+      }
+    </ul>
+
+    <p class="muted note">
+      RustCore Wallet will appear here once its browser extension can connect to dApps.
+    </p>
+  </div>
+</dialog>

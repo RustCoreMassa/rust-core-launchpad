@@ -1,0 +1,42 @@
+<section class="hero">
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="container hero-inner">
+    <span class="pill"><span class="dot"></span>Built on Massa · no backend</span>
+    <h1>Launch tokens and NFTs <span class="grad">on Massa</span></h1>
+    <p class="lead">
+      Create an MRC20 token or an NFT collection in one transaction, trade NFTs and run token
+      presales. Every listing, sale and presale lives in one public smart contract.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-red btn-lg" routerLink="/create/token">Create a token</a>
+      <a class="btn btn-ghost btn-lg" routerLink="/create/collection">Create a collection</a>
+    </div>
+  </div>
+</section>
+
+<section class="container section">
+  <div class="cards">
+    @for (feature of features; track feature.path) {
+      <a class="card" [routerLink]="feature.path">
+        <h3>{{ feature.title }}</h3>
+        <p>{{ feature.text }}</p>
+      </a>
+    }
+  </div>
+</section>
+
+<section class="container section">
+  <div class="section-head">
+    <span class="label">How it works</span>
+    <h2>Three steps, one signature</h2>
+  </div>
+  <ol class="steps">
+    @for (step of steps; track step.title; let i = $index) {
+      <li class="card">
+        <span class="step-num">{{ i + 1 }}</span>
+        <h3>{{ step.title }}</h3>
+        <p>{{ step.text }}</p>
+      </li>
+    }
+  </ol>
+</section>

@@ -1,0 +1,181 @@
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(7, 7, 10, 0.72);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border-bottom: 1px solid var(--border);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: var(--header-height);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  font: 700 18px/1 var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+.brand-logo {
+  height: 34px;
+  width: auto;
+  filter: drop-shadow(0 0 10px rgba(255, 106, 0, 0.25));
+}
+
+.brand-tag {
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 45, 66, 0.1);
+  border: 1px solid rgba(255, 45, 66, 0.25);
+  color: #ff8090;
+  font: 600 11px/1 var(--font-body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.site-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.site-nav a {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--gray-300);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease;
+}
+
+.site-nav a:hover,
+.site-nav a.active {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.wallet-btn {
+  gap: 10px;
+}
+
+.wallet-balance .skeleton {
+  width: 64px;
+}
+
+.menu-btn {
+  display: none;
+  padding: 0 10px;
+}
+
+.menu-btn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.mismatch {
+  margin-top: 12px;
+}
+
+/* Menus are native popovers (light dismiss, Esc, top layer), pinned under the header's right
+   edge so they need no anchor positioning. */
+.menu {
+  position: fixed;
+  inset: calc(var(--header-height) + 8px) max(var(--gutter), calc((100vw - var(--container)) / 2))
+    auto auto;
+  margin: 0;
+  min-width: 240px;
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--white);
+  box-shadow: var(--shadow-md);
+}
+
+.menu-title {
+  margin: 4px 10px 6px;
+  color: var(--gray-500);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--gray-300);
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.menu-item:hover,
+.menu-item.selected {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.menu-item.danger {
+  color: #ff8090;
+}
+
+.account {
+  display: grid;
+  gap: 2px;
+}
+
+.menu hr {
+  margin: 6px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .site-nav {
+    display: none;
+  }
+
+  .menu-btn {
+    display: inline-flex;
+  }
+}
+
+@media (max-width: 560px) {
+  .brand > span:not(.brand-tag),
+  .network-label,
+  .wallet-balance {
+    display: none;
+  }
+
+  .network-btn {
+    padding: 0 12px;
+  }
+}

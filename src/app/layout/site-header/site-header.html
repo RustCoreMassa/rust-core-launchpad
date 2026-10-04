@@ -1,0 +1,124 @@
+<header class="site-header">
+  <div class="container header-inner">
+    <a class="brand" routerLink="/" aria-label="RustCore Launchpad home">
+      <img class="brand-logo" src="assets/logo-light.png" alt="" width="40" height="34" />
+      <span>RustCore</span>
+      <span class="brand-tag">Launchpad</span>
+    </a>
+
+    <nav class="site-nav" aria-label="Main">
+      @for (link of links; track link.path) {
+        <a [routerLink]="link.path" routerLinkActive="active">{{ link.label }}</a>
+      }
+    </nav>
+
+    <div class="header-actions">
+      <button
+        class="btn btn-ghost btn-sm network-btn"
+        type="button"
+        popovertarget="network-menu"
+        [attr.aria-label]="'Network: ' + networks.config().label"
+      >
+        <span class="dot" [class.dot-warn]="networks.network() !== 'mainnet'"></span>
+        <span class="network-label">{{ networks.config().label }}</span>
+      </button>
+
+      @if (wallet.connected()) {
+        <button class="btn btn-ghost btn-sm wallet-btn" type="button" popovertarget="wallet-menu">
+          <span class="wallet-balance tabular">
+            @if (wallet.balance() === null) {
+              <span class="skeleton"></span>
+            } @else {
+              {{ wallet.balance() | amount }} MAS
+            }
+          </span>
+          <span class="mono">{{ wallet.address() | shortAddress }}</span>
+        </button>
+      } @else {
+        <button
+          class="btn btn-red btn-sm"
+          type="button"
+          [disabled]="wallet.phase() === 'connecting'"
+          (click)="openConnect()"
+        >
+          {{ wallet.phase() === 'connecting' ? 'Connecting…' : 'Connect wallet' }}
+        </button>
+      }
+
+      <button
+        class="btn btn-ghost btn-sm menu-btn"
+        type="button"
+        popovertarget="nav-menu"
+        aria-label="Menu"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+@if (wallet.networkMismatch()) {
+  <div class="container mismatch" role="status">
+    <div class="notice">
+      <span>
+        Your wallet is on <strong>{{ wallet.walletNetworkLabel() }}</strong
+        >, but the Launchpad is set to <strong>{{ networks.config().label }}</strong
+        >. Switch the network in your wallet before sending transactions.
+      </span>
+    </div>
+  </div>
+}
+
+<div id="network-menu" class="menu" popover #networkMenu>
+  <p class="menu-title">Network</p>
+  @for (net of networkList; track net.id) {
+    <button
+      class="menu-item"
+      type="button"
+      [class.selected]="net.id === networks.network()"
+      (click)="selectNetwork(net.id)"
+    >
+      {{ net.label }}
+      @if (net.id === networks.network()) {
+        <span aria-label="selected">✓</span>
+      }
+    </button>
+  }
+</div>
+
+<div id="wallet-menu" class="menu" popover #walletMenu>
+  <p class="menu-title">{{ wallet.walletLabel() }}</p>
+  @for (account of wallet.accounts(); track account.address) {
+    <button
+      class="menu-item"
+      type="button"
+      [class.selected]="account.address === wallet.address()"
+      (click)="selectAccount(account.address)"
+    >
+      <span class="account">
+        <span>{{ account.name || 'Account' }}</span>
+        <span class="mono muted">{{ account.address | shortAddress }}</span>
+      </span>
+      @if (account.address === wallet.address()) {
+        <span aria-label="selected">✓</span>
+      }
+    </button>
+  }
+  <hr />
+  <a class="menu-item" routerLink="/me" (click)="closeWalletMenu()">My dashboard</a>
+  <button class="menu-item" type="button" (click)="copyAddress()">Copy address</button>
+  <button class="menu-item danger" type="button" (click)="disconnect()">Disconnect</button>
+</div>
+
+<nav id="nav-menu" class="menu nav-menu" popover aria-label="Main" #navMenu>
+  @for (link of links; track link.path) {
+    <a class="menu-item" [routerLink]="link.path" (click)="closeNav()">{{ link.label }}</a>
+  }
+  <hr />
+  <a class="menu-item" routerLink="/create/token" (click)="closeNav()">Create a token</a>
+  <a class="menu-item" routerLink="/create/collection" (click)="closeNav()">Create a collection</a>
+</nav>
+
+<app-connect-wallet-dialog />
