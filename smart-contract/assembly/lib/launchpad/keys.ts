@@ -1,6 +1,6 @@
-// Datastore keys of the Launchpad SC (docs/ANALYSIS.md, "Chei de stocare"). Ids are written
-// big-endian so that listing keys by prefix returns them in order. A ':' closes every
-// variable-length part (addresses, symbols), so one address can never be a prefix of another.
+// Datastore keys of the Launchpad SC. Ids are written big-endian so that listing keys by prefix
+// returns them in order. A ':' closes every variable-length part (addresses, symbols), so one
+// address can never be a prefix of another.
 import { stringToBytes } from '@massalabs/as-types';
 
 export const KIND_TOKEN: u8 = 0;

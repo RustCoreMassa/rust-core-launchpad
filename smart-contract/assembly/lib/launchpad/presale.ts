@@ -1,7 +1,7 @@
-// Token presales (docs/ANALYSIS.md, "Presale token"). The owner escrows the tokens for sale in
-// the Launchpad; contributors send MAS. At the end, success (raised ≥ soft cap): contributors
-// claim their tokens, the owner withdraws the MAS minus the presale fee and gets the unsold
-// tokens back. Failure or cancel: contributors take their MAS back, the owner all the tokens.
+// Token presales. The owner escrows the tokens for sale in the Launchpad; contributors send MAS.
+// At the end, success (raised ≥ soft cap): contributors claim their tokens, the owner withdraws
+// the MAS minus the presale fee and gets the unsold tokens back. Failure or cancel: contributors
+// take their MAS back, the owner all the tokens.
 // Pull, never push: no call loops over contributors.
 //
 // Token moves call the token's code (it may be an imported contract), so they run under the

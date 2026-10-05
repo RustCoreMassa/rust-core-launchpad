@@ -1,6 +1,6 @@
-// Marketplace (docs/ANALYSIS.md, "Marketplace NFT"). No custody: the NFT stays with the seller,
-// who approves the Launchpad for it; `buy` moves it to the buyer and pays the seller and the
-// creator's royalty in the same call. No platform fee.
+// Marketplace. No custody: the NFT stays with the seller, who approves the Launchpad for it;
+// `buy` moves it to the buyer and pays the seller and the creator's royalty in the same call.
+// No platform fee.
 //
 // Checks read the collection's standard MRC721 storage directly (owner, approvals), so no
 // foreign code runs except the single transferFrom in `buy` — done after this contract's own

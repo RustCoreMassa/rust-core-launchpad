@@ -1,5 +1,5 @@
-// Product rules the Launchpad enforces before it deploys or records anything
-// (docs/ANALYSIS.md, "Fluxul de lansare"). The templates only check basic sanity themselves.
+// Product rules the Launchpad enforces before it deploys or records anything. The templates only
+// check basic sanity themselves.
 import { KIND_COLLECTION, KIND_TOKEN } from './keys';
 import { ProjectInfo } from './records';
 

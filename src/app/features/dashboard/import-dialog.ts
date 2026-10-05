@@ -39,9 +39,9 @@ const CONTRACT = /^AS[1-9A-HJ-NP-Za-km-z]{40,60}$/;
 const ADDRESS = /^A[US][1-9A-HJ-NP-Za-km-z]{40,60}$/;
 
 /**
- * Imports an existing MRC20 token or MRC721 collection the connected wallet owns
- * (docs/ANALYSIS.md, "Import"). The app checks what it can first — standard contract, owner,
- * not listed yet — and the contract checks it all again.
+ * Imports an existing MRC20 token or MRC721 collection the connected wallet owns. The app
+ * checks what it can first — standard contract, owner, not listed yet — and the contract checks
+ * it all again.
  */
 @Component({
   selector: 'app-import-dialog',

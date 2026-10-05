@@ -1,8 +1,8 @@
-// RustCore Launchpad — the platform's only contract (docs/ANALYSIS.md, "Smart contractul
-// Launchpad"). Phase 2: Factory (deploys RC-Token / RC-Collection from versioned templates,
-// the caller becomes the owner), Registry (records, indexes, editable presentation, imports)
-// and Admin (fees, templates, verification, pause, upgrade timelock). Marketplace and Presale
-// arrive in phases 5 and 6.
+// RustCore Launchpad — the platform's only contract.
+// Factory: deploys RC-Token / RC-Collection from versioned templates; the caller becomes the owner.
+// Registry: records, indexes, editable presentation, imports.
+// Admin: fees, templates, verification, pause, upgrade timelock.
+// Marketplace and Presale live in lib/launchpad/ and are re-exported below.
 //
 // Every write settles its own cost (lib/launchpad/settlement.ts): the caller's MAS pay the
 // platform fee and the storage the call consumed; the rest is refunded.

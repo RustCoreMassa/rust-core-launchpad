@@ -52,7 +52,7 @@ interface MyNfts {
   ids: bigint[];
 }
 
-/** The connected wallet's launches, imports and NFTs (docs/ANALYSIS.md, "Dashboard /me"). */
+/** The connected wallet's launches, imports and NFTs. */
 @Component({
   selector: 'app-dashboard-page',
   imports: [RouterLink, ProjectLogo, ProjectBadges, ImportDialog, ConnectWalletDialog, MasPipe],

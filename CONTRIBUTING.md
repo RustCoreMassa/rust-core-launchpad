@@ -4,9 +4,7 @@ Thanks for helping! Bug reports, ideas and pull requests are all welcome. This g
 running the app and the contracts locally, how the code is organized, and the rules that keep
 them safe.
 
-The full design — contract storage, flows, filters, fees, the security review — is in
-[docs/ANALYSIS.md](docs/ANALYSIS.md). For releases and deployment, see
-[docs/RELEASING.md](docs/RELEASING.md).
+For releases and deployment, see [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Ground rules
 

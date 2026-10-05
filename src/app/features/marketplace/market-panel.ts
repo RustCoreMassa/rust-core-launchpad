@@ -34,7 +34,7 @@ const EXPIRIES = [
 
 type Busy = 'approve' | 'list' | 'price' | 'cancel' | 'buy' | null;
 
-/** Buy, list, reprice or cancel one NFT (docs/ANALYSIS.md, "Marketplace NFT"). No custody, no fee. */
+/** Buy, list, reprice or cancel one NFT. No custody, no fee. */
 @Component({
   selector: 'app-market-panel',
   imports: [DatePipe, MasPipe, ShortAddressPipe, ConnectWalletDialog],

@@ -32,7 +32,7 @@ import {
 
 type Busy = 'approve' | 'create' | null;
 
-/** Starts a presale for a token the wallet owns (docs/ANALYSIS.md, "Presale token"). */
+/** Starts a presale for a token the wallet owns. */
 @Component({
   selector: 'app-create-presale-page',
   imports: [RouterLink, ProjectLogo, MasPipe, UnitsPipe, ConnectWalletDialog],

@@ -29,10 +29,9 @@ export const KEEP_ONLY_ORIGINAL =
   'store the new code — keep it yourself.';
 
 /**
- * "Download original code" (docs/ANALYSIS.md): a zip built in the browser with the template
- * source at the version used, the compiled .wasm read from the Launchpad SC, its sha256 and a
- * README on rebuilding and upgrading. Nothing is fetched from anywhere but the app itself and
- * the Massa RPC.
+ * "Download original code": a zip built in the browser with the template source at the version
+ * used, the compiled .wasm read from the Launchpad SC, its sha256 and a README on rebuilding and
+ * upgrading. Nothing is fetched from anywhere but the app itself and the Massa RPC.
  */
 @Injectable({ providedIn: 'root' })
 export class OriginalCode {

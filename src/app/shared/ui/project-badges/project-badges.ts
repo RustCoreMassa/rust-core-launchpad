@@ -2,8 +2,8 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { Project, SOURCE_IMPORTED } from '../../../core/launchpad/records';
 
 /**
- * Trust badges (docs/ANALYSIS.md, "Contracte mutabile"): verified, imported, mutable /
- * immutable code and — once checked against the chain — original or modified code.
+ * Trust badges: verified, imported, mutable / immutable code and — once checked against the
+ * chain — original or modified code.
  */
 @Component({
   selector: 'app-project-badges',

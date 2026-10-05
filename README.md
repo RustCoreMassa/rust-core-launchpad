@@ -206,8 +206,7 @@ just as much.
 ## Contributing
 
 Bug reports, ideas and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how
-to run the app and the contracts locally, and the rules that keep them safe. The full design is
-in [docs/ANALYSIS.md](docs/ANALYSIS.md).
+to run the app and the contracts locally, and the rules that keep them safe.
 
 ## Security
 

@@ -36,7 +36,7 @@ import {
 
 type SymbolCheck = 'idle' | 'checking' | 'free' | 'taken' | 'error';
 
-/** The token launch wizard (docs/ANALYSIS.md, "Fluxul de lansare a unui token"). */
+/** The token launch wizard. */
 @Component({
   selector: 'app-create-token-page',
   imports: [RouterLink, InfoForm, ProjectLogo, MasPipe, ConnectWalletDialog],

@@ -20,9 +20,8 @@ type Sort = 'low' | 'high' | 'newest';
 const STEP = 24;
 
 /**
- * Every NFT for sale in Launchpad collections (docs/ANALYSIS.md, "Marketplace NFT"). Stale
- * listings (NFT moved, approval withdrawn, expired) are hidden. Search, price range and sort run
- * in the browser.
+ * Every NFT for sale in Launchpad collections. Stale listings (NFT moved, approval withdrawn,
+ * expired) are hidden. Search, price range and sort run in the browser.
  */
 @Component({
   selector: 'app-marketplace-page',

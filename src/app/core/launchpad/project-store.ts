@@ -4,7 +4,7 @@ import { toUserMessage } from '../utils/user-error';
 import { LaunchpadReader, PAGE_SIZE } from './launchpad-reader';
 import { Project, ProjectKind } from './records';
 
-/** Safety cap for the in-browser list (docs/ANALYSIS.md, "Limite"): beyond it, an indexer. */
+/** Safety cap for the in-browser list: beyond it, an indexer. */
 export const MAX_LOADED = 2_000;
 
 export interface ProjectList {

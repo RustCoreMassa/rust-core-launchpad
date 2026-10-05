@@ -54,9 +54,8 @@ const PAGES = {
 } as const;
 
 /**
- * Every token or collection in the Launchpad (the kind comes from the route's data). Filters
- * (docs/ANALYSIS.md, "Indexare, filtre"): the list is read once into the browser and search,
- * category, source, verified and sort apply there.
+ * Every token or collection in the Launchpad (the kind comes from the route's data). The list
+ * is read once into the browser; search, category, source, verified and sort apply there.
  */
 @Component({
   selector: 'app-explore-page',

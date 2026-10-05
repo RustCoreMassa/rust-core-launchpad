@@ -50,8 +50,7 @@ mainnet yet; not independently audited.
 
 ### Security
 
-- Internal security review of the Launchpad and the templates (docs/ANALYSIS.md, "Review de
-  securitate"). Fixed before release: a reentrancy path through imported contracts into the
+- Internal security review of the Launchpad and the templates. Fixed before release: a reentrancy path through imported contracts into the
   payment accounting, a presale fee the admin could change after contributions, a price a
   seller could raise under a buyer, a one-step admin transfer, and upgrade storage paid from
   escrow. The app launches only from templates whose source it ships, checked by hash.

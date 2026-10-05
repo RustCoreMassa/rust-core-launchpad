@@ -41,7 +41,7 @@ import {
 
 type FolderCheck = 'idle' | 'checking' | 'ok' | 'failed';
 
-/** The NFT collection launch wizard (docs/ANALYSIS.md, "Fluxul de lansare a unei colecții"). */
+/** The NFT collection launch wizard. */
 @Component({
   selector: 'app-create-collection-page',
   imports: [RouterLink, InfoForm, ProjectLogo, MasPipe, ConnectWalletDialog, MetadataGuide],
