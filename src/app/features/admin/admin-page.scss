@@ -1,0 +1,138 @@
+.page {
+  display: grid;
+  gap: 16px;
+}
+
+.page-head {
+  margin-bottom: 0;
+}
+
+.card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.card p {
+  margin: 0;
+}
+
+h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.state {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(126, 226, 168, 0.4);
+  color: #7ee2a8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.state.paused {
+  border-color: rgba(255, 176, 32, 0.45);
+  color: #ffb020;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.upgrade-card {
+  border-color: rgba(255, 176, 32, 0.45);
+}
+
+.connect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hash {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  color: var(--gray-500);
+}
+
+.with-max {
+  display: flex;
+  gap: 8px;
+}
+
+.with-max .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.good {
+  color: #7ee2a8;
+}
+
+.warn {
+  color: #ffb020;
+}
+
+.bad {
+  color: var(--red);
+}
+
+.projects {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.projects li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.projects .names {
+  display: grid;
+  flex: 1;
+  min-width: 180px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.projects .names span {
+  font-size: 13px;
+}
+
+.flags {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.projects .notice {
+  flex-basis: 100%;
+}
+
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

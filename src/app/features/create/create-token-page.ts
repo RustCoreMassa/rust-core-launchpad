@@ -15,6 +15,7 @@ import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
 import { KEEP_ONLY_ORIGINAL } from '../../core/launchpad/original-code';
 import { ProjectStore } from '../../core/launchpad/project-store';
 import { KIND_TOKEN, ProjectInfo, TOKEN_CATEGORIES } from '../../core/launchpad/records';
+import { assertKnownTemplate } from '../../core/launchpad/templates';
 import { Transactions, eventFields } from '../../core/launchpad/transactions';
 import { NetworkStore } from '../../core/network/network-store';
 import { formatUnits } from '../../core/utils/token-amount';
@@ -181,6 +182,8 @@ export class CreateTokenPage {
     this.launching.set(true);
     this.launchError.set(null);
     try {
+      const template = await this.launchpad.template(KIND_TOKEN);
+      assertKnownTemplate(KIND_TOKEN, template.version, template.hash);
       const result = await this.transactions.send({
         target,
         func: 'createToken',
@@ -206,6 +209,7 @@ export class CreateTokenPage {
       const config = await this.launchpad.config();
       const template = await this.launchpad.template(KIND_TOKEN);
       if (template.version === 0) throw new Error('Token launches are not open yet.');
+      assertKnownTemplate(KIND_TOKEN, template.version, template.hash);
       const code = await this.launchpad.templateCode(KIND_TOKEN, template.version);
       this.paused.set(config.paused);
       this.cost.set(launchCost(config.tokenFee, config.deployDeposit, code.length));

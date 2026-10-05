@@ -16,6 +16,8 @@ interface FakeWalletOptions {
   connects?: boolean;
   trusted?: boolean;
   chainId?: bigint;
+  /** wallet-provider 3.3 throws this for Massa Station and MetaMask. */
+  noAccountListener?: boolean;
 }
 
 /** Just what WalletStore uses of wallet-provider's Wallet. */
@@ -37,6 +39,9 @@ function fakeWallet(id: WalletId, options: FakeWalletOptions = {}) {
       minimalFee: 0n,
     })),
     listenAccountChanges: (cb: (address: string) => void) => {
+      if (options.noAccountListener) {
+        throw new Error('listenAccountChanges is not yet implemented for the current provider.');
+      }
       accountListener = cb;
       return { unsubscribe: () => (accountListener = null) };
     },
@@ -86,7 +91,7 @@ describe('WalletStore', () => {
   });
 
   it('connects, selects the first account and reads its balance', async () => {
-    const { wallets, store } = setup([fakeWallet('BEARBY').wallet]);
+    const { wallets } = setup([fakeWallet('BEARBY').wallet]);
     expect(await wallets.connect('BEARBY')).toBe(true);
     expect(wallets.connected()).toBe(true);
     expect(wallets.address()).toBe(ALICE);
@@ -94,18 +99,13 @@ describe('WalletStore', () => {
     expect(wallets.signer()?.address).toBe(ALICE);
     await wallets.refreshBalance();
     expect(wallets.balance()).toBe(12.345);
-    expect(JSON.parse(store.getItem('launchpad.wallet')!)).toEqual({
-      wallet: 'BEARBY',
-      address: ALICE,
-    });
   });
 
   it('reports a refused connection and changes nothing', async () => {
-    const { wallets, store } = setup([fakeWallet('BEARBY', { connects: false }).wallet]);
+    const { wallets } = setup([fakeWallet('BEARBY', { connects: false }).wallet]);
     expect(await wallets.connect('BEARBY')).toBe(false);
     expect(wallets.connected()).toBe(false);
     expect(wallets.error()).toBe('Bearby refused the connection.');
-    expect(store.getItem('launchpad.wallet')).toBeNull();
   });
 
   it('reports a wallet that is not installed', async () => {
@@ -129,6 +129,42 @@ describe('WalletStore', () => {
     expect(wallets.balance()).toBeNull(); // re-read for the new account, never the old value
   });
 
+  it('connects to wallets that cannot report account switches', async () => {
+    const fake = fakeWallet('MASSA WALLET', { noAccountListener: true });
+    const { wallets } = setup([fake.wallet]);
+    expect(await wallets.connect('MASSA WALLET')).toBe(true);
+    expect(wallets.error()).toBeNull();
+    wallets.selectAccount(BOB);
+    expect(wallets.address()).toBe(BOB);
+    fake.switchNetwork(NETWORKS.mainnet.chainId); // network changes still followed
+    expect(wallets.networkMismatch()).toBe(true);
+  });
+
+  it('marks only the wallet being connected, while it answers', async () => {
+    let answer!: (ok: boolean) => void;
+    const fake = fakeWallet('BEARBY');
+    fake.mock.connect.mockImplementation(() => new Promise<boolean>((r) => (answer = r)));
+    const { wallets } = setup([fake.wallet, fakeWallet('METAMASK').wallet]);
+
+    const connecting = wallets.connect('BEARBY');
+    await vi.waitFor(() => expect(fake.mock.connect).toHaveBeenCalled());
+    expect(wallets.connectingTo()).toBe('BEARBY');
+    answer(true);
+    await connecting;
+    expect(wallets.connectingTo()).toBeNull();
+  });
+
+  it('never connects on its own', async () => {
+    const discover = vi.fn(async () => [fakeWallet('BEARBY', { trusted: true }).wallet]);
+    TestBed.configureTestingModule({
+      providers: [{ provide: WALLET_DISCOVERY, useValue: discover }],
+    });
+    const wallets = TestBed.inject(WalletStore);
+    await new Promise((r) => setTimeout(r));
+    expect(discover).not.toHaveBeenCalled();
+    expect(wallets.phase()).toBe('disconnected');
+  });
+
   it('only selects accounts the wallet gave', async () => {
     const { wallets } = setup([fakeWallet('BEARBY').wallet]);
     await wallets.connect('BEARBY');
@@ -148,39 +184,13 @@ describe('WalletStore', () => {
     expect(wallets.networkMismatch()).toBe(true);
   });
 
-  it('reconnects on start only to a wallet that still trusts the site', async () => {
-    const store = memoryStore();
-    store.setItem('launchpad.wallet', JSON.stringify({ wallet: 'BEARBY', address: BOB }));
-    const trusted = fakeWallet('BEARBY', { trusted: true });
-    const { wallets } = setup([trusted.wallet], store);
-    await wallets.restore();
-    expect(wallets.address()).toBe(BOB);
-
-    TestBed.resetTestingModule();
-    const untrusted = fakeWallet('BEARBY', { trusted: false });
-    const second = setup([untrusted.wallet], store).wallets;
-    await second.restore();
-    expect(second.connected()).toBe(false);
-    expect(untrusted.mock.connect).not.toHaveBeenCalled();
-  });
-
-  it('ignores a corrupt saved wallet', async () => {
-    const store = memoryStore();
-    store.setItem('launchpad.wallet', '{not json');
-    const fake = fakeWallet('BEARBY', { trusted: true });
-    const { wallets } = setup([fake.wallet], store);
-    await wallets.restore();
-    expect(wallets.connected()).toBe(false);
-  });
-
   it('disconnects and forgets the wallet', async () => {
     const fake = fakeWallet('BEARBY');
-    const { wallets, store } = setup([fake.wallet]);
+    const { wallets } = setup([fake.wallet]);
     await wallets.connect('BEARBY');
     await wallets.disconnect();
     expect(wallets.connected()).toBe(false);
     expect(wallets.signer()).toBeNull();
-    expect(store.getItem('launchpad.wallet')).toBeNull();
     expect(fake.mock.disconnect).toHaveBeenCalled();
     fake.switchAccount(BOB); // listeners are gone
     expect(wallets.address()).toBeNull();

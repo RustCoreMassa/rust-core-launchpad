@@ -10,6 +10,7 @@ import {
   Project,
   ProjectKind,
   Sale,
+  UpgradeProposal,
   readConfig,
   readListing,
   readPresale,
@@ -18,7 +19,11 @@ import {
   readProjectPage,
   readSale,
   readStats,
+  readUpgradeProposal,
 } from './records';
+
+/** A symbol in the registry: free, kept aside by the admin, or used by a launched token. */
+export type SymbolStatus = 'free' | 'reserved' | 'taken';
 
 /** Most records one `getProjects` call returns (the contract's MAX_PAGE). */
 export const PAGE_SIZE = 50;
@@ -43,6 +48,43 @@ export class LaunchpadReader {
 
   async config(): Promise<LaunchpadConfig> {
     return readConfig(new Args(await this.read('config')));
+  }
+
+  async admin(): Promise<string> {
+    return new TextDecoder().decode(await this.read('admin'));
+  }
+
+  async version(): Promise<string> {
+    return new TextDecoder().decode(await this.read('version'));
+  }
+
+  /** Platform fees collected and not withdrawn yet, nanoMAS. */
+  async collectedFees(): Promise<bigint> {
+    return new Args(await this.read('fees')).nextU64();
+  }
+
+  /** The address named by transferAdmin, until it accepts; null when none. */
+  async pendingAdmin(): Promise<string | null> {
+    return new TextDecoder().decode(await this.read('pendingAdmin')) || null;
+  }
+
+  /** The Launchpad's MAS balance (fees, escrow, storage reserve), nanoMAS. */
+  async balance(): Promise<bigint> {
+    const [entry] = await this.reader.provider().balanceOf([this.requireAddress()], true);
+    return entry?.balance ?? 0n;
+  }
+
+  async pendingUpgrade(): Promise<UpgradeProposal | null> {
+    const bytes = await this.read('pendingUpgrade');
+    return bytes.length ? readUpgradeProposal(new Args(bytes)) : null;
+  }
+
+  /** Reads the symbol index (`s:<SYMBOL>:`): no entry = free, empty value = reserved. */
+  async symbolStatus(symbol: string): Promise<SymbolStatus> {
+    const key = new TextEncoder().encode(`s:${symbol}:`);
+    const [value] = await this.reader.provider().readStorage(this.requireAddress(), [key], true);
+    if (value == null) return 'free';
+    return value.length ? 'taken' : 'reserved';
   }
 
   async count(kind: ProjectKind): Promise<number> {

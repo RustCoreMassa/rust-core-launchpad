@@ -15,6 +15,8 @@ import { NftMetadata, NftMetadataLoader } from '../../core/launchpad/nft-metadat
 import { KEEP_ONLY_ORIGINAL } from '../../core/launchpad/original-code';
 import { ProjectStore } from '../../core/launchpad/project-store';
 import { COLLECTION_CATEGORIES, KIND_COLLECTION, ProjectInfo } from '../../core/launchpad/records';
+import { MetadataGuide } from './metadata-guide';
+import { assertKnownTemplate } from '../../core/launchpad/templates';
 import { Transactions, eventFields } from '../../core/launchpad/transactions';
 import { NetworkStore } from '../../core/network/network-store';
 import { toUserMessage } from '../../core/utils/user-error';
@@ -42,7 +44,7 @@ type FolderCheck = 'idle' | 'checking' | 'ok' | 'failed';
 /** The NFT collection launch wizard (docs/ANALYSIS.md, "Fluxul de lansare a unei colecții"). */
 @Component({
   selector: 'app-create-collection-page',
-  imports: [RouterLink, InfoForm, ProjectLogo, MasPipe, ConnectWalletDialog],
+  imports: [RouterLink, InfoForm, ProjectLogo, MasPipe, ConnectWalletDialog, MetadataGuide],
   templateUrl: './create-collection-page.html',
   styleUrl: './create-token-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -196,6 +198,8 @@ export class CreateCollectionPage {
     this.launching.set(true);
     this.launchError.set(null);
     try {
+      const template = await this.launchpad.template(KIND_COLLECTION);
+      assertKnownTemplate(KIND_COLLECTION, template.version, template.hash);
       const result = await this.transactions.send({
         target,
         func: 'createCollection',
@@ -221,6 +225,7 @@ export class CreateCollectionPage {
       const config = await this.launchpad.config();
       const template = await this.launchpad.template(KIND_COLLECTION);
       if (template.version === 0) throw new Error('Collection launches are not open yet.');
+      assertKnownTemplate(KIND_COLLECTION, template.version, template.hash);
       const code = await this.launchpad.templateCode(KIND_COLLECTION, template.version);
       this.paused.set(config.paused);
       this.cost.set(launchCost(config.collectionFee, config.deployDeposit, code.length));

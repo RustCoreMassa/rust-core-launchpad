@@ -10,6 +10,8 @@ export const ADMIN_KEY = stringToBytes('admin');
 export const CONFIG_KEY = stringToBytes('cfg');
 export const FEES_KEY = stringToBytes('fees');
 export const UPGRADE_KEY = stringToBytes('upg');
+/** Address named by transferAdmin, until it calls acceptAdmin. */
+export const PENDING_ADMIN_KEY = stringToBytes('padm');
 
 const TEMPLATE_VERSION = stringToBytes('tplv:');
 const TEMPLATE_CODE = stringToBytes('tpl:');

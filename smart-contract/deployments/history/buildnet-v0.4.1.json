@@ -1,10 +1,10 @@
 {
   "network": "buildnet",
-  "address": "AS1HURhi6QmXjS8yhcJnVuZukYrF1FtJkGex8kpsrv89iqrCaAqv",
-  "version": "0.5.1",
+  "address": "AS1GfoubCGA45tZLPLBzQc6jbMC1WzcKB7T1xKtLE8Aemjb41puK",
+  "version": "0.4.1",
   "admin": "AU126wtKuDT74wJmh4dwwZtRRX1Qvi6628y5berGnwtBbnUmsNhJ2",
-  "deployedAt": "2026-10-05T09:22:10.292Z",
-  "launchpadBytes": 140291,
+  "deployedAt": "2026-10-05T07:16:50.890Z",
+  "launchpadBytes": 137863,
   "config": {
     "tokenFee": "1",
     "collectionFee": "1",

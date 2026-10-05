@@ -6,7 +6,9 @@ import {
   SOURCE_LAUNCHED,
   categoryLabel,
   hex,
+  PRESALE_SUCCESS,
   readConfig,
+  readPresale,
   readProject,
   readProjectPage,
   writeProject,
@@ -54,7 +56,40 @@ const CONTRACT_PROJECT_BYTES = new Uint8Array([
   47, 120, 46, 101, 120, 97, 109, 112, 108, 101, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ]);
 
+/** A Presale record serialized by the contract (cross-check.spec.ts logs it too). */
+const CONTRACT_PRESALE_BYTES = new Uint8Array([
+  7, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 51, 0, 0, 0, 65, 85, 49, 50, 66, 113, 90, 69, 81,
+  54, 115, 66, 121, 104, 82, 76, 121, 69, 117, 102, 48, 89, 98, 81, 109, 99, 70, 50, 80, 115, 68,
+  100, 107, 78, 78, 71, 49, 97, 107, 66, 74, 117, 57, 88, 99, 106, 90, 65, 49, 101, 56, 51, 0, 0, 0,
+  65, 85, 49, 50, 66, 113, 90, 69, 81, 54, 115, 66, 121, 104, 82, 76, 121, 69, 117, 102, 48, 89, 98,
+  81, 109, 99, 70, 50, 80, 115, 68, 100, 107, 78, 78, 71, 49, 97, 107, 66, 74, 117, 57, 88, 99, 106,
+  90, 65, 49, 101, 56, 64, 75, 76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 232, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 228, 11, 84, 2, 0, 0, 0, 0, 116, 59, 164, 11, 0, 0, 0, 0, 225, 245, 5, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 192, 44, 200, 153, 1, 0, 0, 0, 28, 83, 205, 153, 1, 0, 0, 0,
+  120, 65, 203, 2, 0, 0, 0, 4, 0, 0, 0, 1, 1, 250, 0,
+]);
+
 describe('Launchpad records', () => {
+  it('decodes a presale serialized by the contract', () => {
+    const p = readPresale(new Args(CONTRACT_PRESALE_BYTES));
+    expect(p.id).toBe(7n);
+    expect(p.tokenId).toBe(3n);
+    expect(p.tokensForSale).toBe(5_000_000n);
+    expect(p.rate).toBe(1_000n);
+    expect(p.softCap).toBe(10_000_000_000n);
+    expect(p.hardCap).toBe(50_000_000_000n);
+    expect(p.minBuy).toBe(100_000_000n);
+    expect(p.maxBuy).toBe(0n);
+    expect(p.start).toBe(1_760_000_000_000);
+    expect(p.end).toBe(1_760_086_400_000);
+    expect(p.raised).toBe(12_000_000_000n);
+    expect(p.contributors).toBe(4);
+    expect(p.status).toBe(PRESALE_SUCCESS);
+    expect(p.withdrawn).toBe(true);
+    expect(p.feeBps).toBe(250);
+  });
+
   it('decodes a record serialized by the contract', () => {
     const p = readProject(new Args(CONTRACT_PROJECT_BYTES));
     expect(p.kind).toBe(KIND_TOKEN);

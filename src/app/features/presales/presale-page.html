@@ -58,6 +58,10 @@
               <dd>{{ p.end | date: 'medium' }}</dd>
             </div>
             <div>
+              <dt>Launchpad fee</dt>
+              <dd>{{ p.feeBps / 100 }}% of the MAS raised, paid by the owner</dd>
+            </div>
+            <div>
               <dt>Contributors</dt>
               <dd>{{ p.contributors }}</dd>
             </div>
@@ -202,7 +206,7 @@
                         : 'Withdraw ' + (p.raised | mas)
                     }}
                   </button>
-                  <p class="hint">Minus the Launchpad's presale fee.</p>
+                  <p class="hint">Minus the Launchpad's presale fee ({{ p.feeBps / 100 }}%).</p>
                 }
               }
             }

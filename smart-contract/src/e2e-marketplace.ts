@@ -137,7 +137,20 @@ const sellerBefore = await balanceOf(SELLER);
 const receiverBefore = await balanceOf(receiver).catch(() => 0n);
 const buyerBefore = await buyer.balance(true);
 const coins = PRICE + Mas.fromString('0.15');
-const sold = await send(buyer, LAUNCHPAD, 'buy', new Args().addU64(listing), coins);
+// A buyer who saw an older price: refused, whatever coins they send.
+const stale = await buyer.readSC({
+  target: LAUNCHPAD,
+  func: 'buy',
+  parameter: new Args().addU64(listing).addU64(PRICE - 1n),
+  coins: coins * 2n,
+  caller: buyer.address,
+});
+check(
+  'a buy at another price than listed is refused',
+  contractReason(stale.info.error ?? '') === 'The price changed, check it again',
+  stale.info.error ?? 'no error',
+);
+const sold = await send(buyer, LAUNCHPAD, 'buy', new Args().addU64(listing).addU64(PRICE), coins);
 check('SOLD event', eventFields(sold, 'SOLD') !== null);
 check('the NFT moved to the buyer', (await ownerOf(collection, 1n)) === BUYER);
 const royalty = (PRICE * 500n) / 10_000n;

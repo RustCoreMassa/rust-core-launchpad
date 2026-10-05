@@ -8,11 +8,16 @@
 // refund, the raised MAS to the presale owner).
 //
 // `before` is read at the very start of the call, when the coins sent are already credited.
+//
+// Never while the lock is held: the lock means an outer call is running foreign code (a token or
+// collection), and a call back into the Launchpad from there would change the balance the outer
+// call measures — its caller would be refunded MAS booked as fees or escrow.
 import { bytesToU64, u64ToBytes } from '@massalabs/as-types';
 import { Context, Storage, balance, transferCoins } from '@massalabs/massa-as-sdk';
-import { FEES_KEY } from './keys';
+import { FEES_KEY, LOCK_KEY } from './keys';
 
 export function settle(before: u64, fee: u64, kept: u64 = 0, released: u64 = 0): void {
+  assert(!Storage.has(LOCK_KEY), 'The Launchpad is busy, try again');
   // Recorded first, so the fee counter's own storage is part of what the caller pays.
   if (fee > 0) Storage.set(FEES_KEY, u64ToBytes(accruedFees() + fee));
   const after = balance();

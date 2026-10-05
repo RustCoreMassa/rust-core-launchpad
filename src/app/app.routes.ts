@@ -1,12 +1,4 @@
 import { Routes } from '@angular/router';
-import type { PlannedPageData } from './shared/ui/planned-page/planned-page';
-
-const planned = () => import('./shared/ui/planned-page/planned-page').then((m) => m.PlannedPage);
-
-/** A page that arrives in a later phase (docs/ANALYSIS.md, "Plan de dezvoltare"). */
-function plannedRoute(path: string, title: string, data: PlannedPageData) {
-  return { path, title: `${title} · RustCore Launchpad`, loadComponent: planned, data };
-}
 
 export const routes: Routes = [
   {
@@ -81,12 +73,11 @@ export const routes: Routes = [
     title: 'My launches · RustCore Launchpad',
     loadComponent: () => import('./features/dashboard/dashboard-page').then((m) => m.DashboardPage),
   },
-  plannedRoute('admin', 'Admin', {
-    label: 'Admin',
-    heading: 'Administration',
-    text: 'Fees, templates, verification and the upgrade timelock — for the Launchpad admin only.',
-    phase: 7,
-  }),
+  {
+    path: 'admin',
+    title: 'Admin · RustCore Launchpad',
+    loadComponent: () => import('./features/admin/admin-page').then((m) => m.AdminPage),
+  },
   {
     path: '**',
     title: 'Page not found · RustCore Launchpad',

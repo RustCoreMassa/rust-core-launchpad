@@ -10,6 +10,7 @@ import {
   symbolError,
   urlError,
 } from './launch-rules';
+import { IPFS_GATEWAY, configureUrls } from '../utils/ipfs';
 
 describe('launch rules (mirror of the Launchpad SC)', () => {
   it('checks names', () => {
@@ -80,5 +81,24 @@ describe('launch rules (mirror of the Launchpad SC)', () => {
       discord: 'https://ok.example',
     });
     expect(Object.keys(errors)).toEqual(['website']);
+  });
+});
+
+describe('links while developing', () => {
+  afterEach(() => configureUrls({ gateway: IPFS_GATEWAY, allowLocal: false }));
+
+  it('refuse http in the published app', () => {
+    expect(urlError('ipfs://bafyMeta/')).toBeNull();
+    expect(urlError('https://nft.example/meta/')).toBeNull();
+    expect(urlError('http://localhost:8081/')).toBe('Start with https:// or ipfs://');
+  });
+
+  it('accept http on this machine with ng serve, never other http hosts', () => {
+    configureUrls({ allowLocal: true });
+    expect(urlError('http://localhost:8081/logo.png')).toBeNull();
+    expect(urlError('http://127.0.0.1:8081/meta/')).toBeNull();
+    expect(urlError('http://[::1]/')).toBeNull();
+    expect(urlError('http://nft.example/meta/')).toBe('Start with https:// or ipfs://');
+    expect(urlError('http://localhost.evil.example/')).toBe('Start with https:// or ipfs://');
   });
 });

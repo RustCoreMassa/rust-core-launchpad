@@ -130,11 +130,11 @@ export class CollectionPage {
     const info = this.project()?.info;
     if (!info) return [];
     return [
-      { label: 'Website', url: info.website },
-      { label: 'X / Twitter', url: info.twitter },
-      { label: 'Telegram', url: info.telegram },
-      { label: 'Discord', url: info.discord },
-    ].filter((link) => link.url.startsWith('https://'));
+      { label: 'Website', url: httpUrl(info.website) },
+      { label: 'X / Twitter', url: httpUrl(info.twitter) },
+      { label: 'Telegram', url: httpUrl(info.telegram) },
+      { label: 'Discord', url: httpUrl(info.discord) },
+    ].filter((link) => link.url !== '');
   });
 
   private readonly editDialog = viewChild.required(EditInfoDialog);

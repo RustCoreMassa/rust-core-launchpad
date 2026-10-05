@@ -321,6 +321,8 @@ export class Presale implements Serializable {
     public status: u8 = PRESALE_OPEN,
     /** The owner took the raised MAS (success only). */
     public withdrawn: bool = false,
+    /** Presale fee in basis points, fixed when the presale is created. */
+    public feeBps: u16 = 0,
   ) {}
 
   serialize(): StaticArray<u8> {
@@ -341,6 +343,7 @@ export class Presale implements Serializable {
       .add(this.contributors)
       .add(this.status)
       .add(this.withdrawn)
+      .add(this.feeBps)
       .serialize();
   }
 
@@ -362,6 +365,7 @@ export class Presale implements Serializable {
     this.contributors = args.nextU32().expect('contributors');
     this.status = args.nextU8().expect('status');
     this.withdrawn = args.nextBool().expect('withdrawn');
+    this.feeBps = args.nextU16().expect('feeBps');
     return new Result(args.offset);
   }
 }

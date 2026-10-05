@@ -21,7 +21,6 @@ import {
 import { u256 } from 'as-bignum/assembly';
 import {
   _activeConfig,
-  _config,
   _count,
   _isAdmin,
   _nextId,
@@ -79,7 +78,7 @@ export const TOKEN_TRANSFER_DEPOSIT: u64 = 10_000_000; // 0.01 MAS
  */
 export function createPresale(binaryArgs: StaticArray<u8>): void {
   const before = balance();
-  _activeConfig();
+  const config = _activeConfig();
   _notLocked();
   const args = new Args(binaryArgs);
   const token = args.nextString().expect('token is missing or invalid');
@@ -128,6 +127,7 @@ export function createPresale(binaryArgs: StaticArray<u8>): void {
     start,
     end,
   );
+  presale.feeBps = config.presaleFeeBps;
   Storage.set(presaleKey(id), presale.serialize());
   Storage.set(presaleActiveKey(token), u64ToBytes(id));
   const owed = _escrowed(token) + tokensForSale;
@@ -247,7 +247,9 @@ export function refund(binaryArgs: StaticArray<u8>): void {
   settle(before, 0, 0, amount);
 }
 
-/** The owner takes the MAS raised, minus the presale fee (success only, once). */
+/**
+ * The owner takes the MAS raised, minus the presale fee fixed at creation (success only, once).
+ */
 export function withdrawRaised(binaryArgs: StaticArray<u8>): void {
   const before = balance();
   _notLocked();
@@ -257,7 +259,7 @@ export function withdrawRaised(binaryArgs: StaticArray<u8>): void {
   assert(!presale.withdrawn, 'Already withdrawn');
   presale.withdrawn = true;
   Storage.set(presaleKey(presale.id), presale.serialize());
-  const fee = _bps(presale.raised, _config().presaleFeeBps);
+  const fee = _bps(presale.raised, presale.feeBps);
   addFee(fee);
   const payout = presale.raised - fee;
   transferCoins(new Address(presale.creator), payout);

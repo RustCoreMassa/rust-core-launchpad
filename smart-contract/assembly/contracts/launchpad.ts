@@ -47,6 +47,7 @@ import {
   MRC721_SYMBOL_KEY,
   STD_OWNER_KEY,
   UPGRADE_KEY,
+  PENDING_ADMIN_KEY,
   addressKey,
   categoryKey,
   countKey,
@@ -70,6 +71,7 @@ import {
 } from '../lib/launchpad/records';
 import {
   MAX_COLLECTION_SUPPLY,
+  MAX_PRESALE_FEE_BPS,
   MAX_PAGE,
   RESERVED_SYMBOLS,
   assertCategory,
@@ -89,7 +91,7 @@ import {
   _ownerOf,
 } from '../lib/launchpad/common';
 
-export const VERSION = '0.4.1';
+export const VERSION = '0.5.1';
 /** Delay between proposing and executing an upgrade of this contract: 72 hours. */
 export const UPGRADE_DELAY_MS: u64 = 72 * 60 * 60 * 1000;
 export const MAX_DECIMALS: u8 = 18;
@@ -106,6 +108,7 @@ export function constructor(binaryArgs: StaticArray<u8>): void {
   const config = new Args(binaryArgs)
     .nextSerializable<Config>()
     .expect('config is missing or invalid');
+  _assertConfig(config);
   Storage.set(ADMIN_KEY, stringToBytes(Context.caller().toString()));
   Storage.set(CONFIG_KEY, config.serialize());
   for (let i = 0; i < RESERVED_SYMBOLS.length; i++) {
@@ -438,6 +441,7 @@ export function setConfig(binaryArgs: StaticArray<u8>): void {
   const config = new Args(binaryArgs)
     .nextSerializable<Config>()
     .expect('config is missing or invalid');
+  _assertConfig(config);
   Storage.set(CONFIG_KEY, config.serialize());
   generateEvent('CONFIG_UPDATED');
   settle(before, 0);
@@ -525,14 +529,36 @@ export function withdrawFees(binaryArgs: StaticArray<u8>): void {
   generateEvent(createEvent('FEES_WITHDRAWN', [to, amount.toString()]));
 }
 
-/** Args: newAdmin (string). */
+/**
+ * First step of an admin change: names the next admin, who must then call acceptAdmin (so a
+ * wrong address can't lock the Launchpad). Args: newAdmin (string; empty = withdraw the offer).
+ */
 export function transferAdmin(binaryArgs: StaticArray<u8>): void {
   const before = balance();
   _onlyAdmin();
   const newAdmin = new Args(binaryArgs).nextString().expect('newAdmin is missing or invalid');
-  assert(validateAddress(newAdmin), 'Invalid admin address');
-  Storage.set(ADMIN_KEY, stringToBytes(newAdmin));
-  generateEvent(createEvent('ADMIN_CHANGED', [newAdmin]));
+  if (newAdmin.length == 0) {
+    assert(Storage.has(PENDING_ADMIN_KEY), 'No admin change is pending');
+    Storage.del(PENDING_ADMIN_KEY);
+  } else {
+    assert(validateAddress(newAdmin), 'Invalid admin address');
+    Storage.set(PENDING_ADMIN_KEY, stringToBytes(newAdmin));
+  }
+  generateEvent(createEvent('ADMIN_OFFERED', [newAdmin]));
+  settle(before, 0);
+}
+
+/** Second step: the address named by transferAdmin becomes the admin. */
+export function acceptAdmin(_: StaticArray<u8>): void {
+  const before = balance();
+  const caller = Context.caller().toString();
+  assert(
+    Storage.has(PENDING_ADMIN_KEY) && bytesToString(Storage.get(PENDING_ADMIN_KEY)) == caller,
+    'Caller is not the pending admin',
+  );
+  Storage.set(ADMIN_KEY, stringToBytes(caller));
+  Storage.del(PENDING_ADMIN_KEY);
+  generateEvent(createEvent('ADMIN_CHANGED', [caller]));
   settle(before, 0);
 }
 
@@ -557,8 +583,12 @@ export function cancelUpgrade(_: StaticArray<u8>): void {
   settle(before, 0);
 }
 
-/** Args: bytecode (bytes). Only the proposed code, and only once the delay has passed. */
+/**
+ * Args: bytecode (bytes). Only the proposed code, and only once the delay has passed. Coins: the
+ * storage of the new code if it is bigger (never paid from escrowed MAS); the rest is refunded.
+ */
 export function executeUpgrade(binaryArgs: StaticArray<u8>): void {
+  const before = balance();
   _onlyAdmin();
   assert(Storage.has(UPGRADE_KEY), 'No upgrade is pending');
   const proposal = new Args(Storage.get(UPGRADE_KEY)).nextSerializable<UpgradeProposal>().unwrap();
@@ -568,6 +598,7 @@ export function executeUpgrade(binaryArgs: StaticArray<u8>): void {
   Storage.del(UPGRADE_KEY);
   setBytecode(bytecode);
   generateEvent('UPGRADE_EXECUTED');
+  settle(before, 0);
 }
 
 // Marketplace (phase 5), in lib/launchpad/marketplace.ts.
@@ -696,6 +727,11 @@ export function isSymbolAvailable(binaryArgs: StaticArray<u8>): StaticArray<u8> 
   return boolToByte(!Storage.has(symbolKey(symbol)));
 }
 
+/** Returns the address named by transferAdmin (string), empty when none. */
+export function pendingAdmin(_: StaticArray<u8>): StaticArray<u8> {
+  return Storage.has(PENDING_ADMIN_KEY) ? Storage.get(PENDING_ADMIN_KEY) : new StaticArray<u8>(0);
+}
+
 /** Returns UpgradeProposal, or empty bytes when none is pending. */
 export function pendingUpgrade(_: StaticArray<u8>): StaticArray<u8> {
   return Storage.has(UPGRADE_KEY) ? Storage.get(UPGRADE_KEY) : new StaticArray<u8>(0);
@@ -704,6 +740,10 @@ export function pendingUpgrade(_: StaticArray<u8>): StaticArray<u8> {
 // ==================================================== //
 // ====                  INTERNALS                 ==== //
 // ==================================================== //
+
+function _assertConfig(config: Config): void {
+  assert(config.presaleFeeBps <= MAX_PRESALE_FEE_BPS, 'The presale fee must be at most 10%');
+}
 
 function _templateVersion(kind: u8): u32 {
   const key = templateVersionKey(kind);

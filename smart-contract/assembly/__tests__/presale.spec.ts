@@ -29,6 +29,7 @@ import {
   setHidden,
   presaleOf,
   refund,
+  setConfig,
   withdrawRaised,
   createPresale,
 } from '../contracts/launchpad';
@@ -500,6 +501,19 @@ describe('Presale claim, refund and withdraw', () => {
     expect(bytesToU64(fees([]))).toBe(MAS + (60 * MAS * 2) / 100); // import fee + presale fee
     expect(masBalanceOf(ALICE)).toBe(1_000 * MAS + 60 * MAS - (60 * MAS * 2) / 100);
     expect(presale().withdrawn).toBe(true);
+  });
+
+  test('the fee is the one in force when the presale was created', () => {
+    setup();
+    runPresale(40 * MAS, 20 * MAS);
+    expect(presale().feeBps).toBe(FEE_BPS);
+    pay(ADMIN, 0);
+    setConfig(new Args().add(new Config(MAS, MAS, MAS, 1_000, MAS / 10, false)).serialize());
+    finalizeNow();
+    pay(ALICE, 0);
+    withdrawRaised(idArgs());
+    done();
+    expect(bytesToU64(fees([]))).toBe(MAS + (60 * MAS * 2) / 100);
   });
 
   throws('a second withdrawal', () => {

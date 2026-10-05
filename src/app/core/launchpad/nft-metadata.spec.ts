@@ -1,4 +1,6 @@
-import { parseMetadata } from './nft-metadata';
+import { TestBed } from '@angular/core/testing';
+import { NftMetadataLoader, parseMetadata } from './nft-metadata';
+import { IPFS_GATEWAY, configureUrls } from '../utils/ipfs';
 import { readMintInfo, tokenIdFromKey } from './collection-reader';
 import { Args } from '@massalabs/massa-web3';
 
@@ -37,6 +39,36 @@ describe('parseMetadata', () => {
     expect(parseMetadata(null)).toBeNull();
     expect(parseMetadata([1, 2])).toBeNull();
     expect(parseMetadata('text')).toBeNull();
+  });
+});
+
+describe('NftMetadataLoader', () => {
+  afterEach(() => {
+    configureUrls({ gateway: IPFS_GATEWAY, allowLocal: false });
+    vi.unstubAllGlobals();
+  });
+
+  it('resolves the ipfs:// image of metadata from a local node through that node (dev)', async () => {
+    configureUrls({ allowLocal: true });
+    const fetch = vi.fn(async () => Response.json({ name: 'One', image: 'ipfs://bafyImg/1.png' }));
+    vi.stubGlobal('fetch', fetch);
+    const meta = await TestBed.inject(NftMetadataLoader).load(
+      'http://127.0.0.1:8090/ipfs/bafyMeta/1.json',
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      'http://127.0.0.1:8090/ipfs/bafyMeta/1.json',
+      expect.anything(),
+    );
+    expect(meta?.image).toBe('http://127.0.0.1:8090/ipfs/bafyImg/1.png');
+  });
+
+  it('uses the public gateway for metadata from anywhere else', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Response.json({ image: 'ipfs://bafyImg/1.png' })),
+    );
+    const meta = await TestBed.inject(NftMetadataLoader).load('ipfs://bafyMeta/1.json');
+    expect(meta?.image).toBe('https://ipfs.io/ipfs/bafyImg/1.png');
   });
 });
 

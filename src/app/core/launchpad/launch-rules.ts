@@ -1,4 +1,5 @@
 import { toUnits } from '../utils/token-amount';
+import { allowsLocalUrls, isLocalUrl } from '../utils/ipfs';
 import {
   COLLECTION_CATEGORIES,
   KIND_TOKEN,
@@ -92,11 +93,15 @@ export function descriptionError(text: string): string | null {
   return null;
 }
 
-/** Empty, or an https:// or ipfs:// link without spaces. */
+/**
+ * Empty, or an https:// or ipfs:// link without spaces. While developing (environment
+ * allowLocalUrls), also http:// on this machine — the contract accepts those hosts too.
+ */
 export function urlError(url: string): string | null {
   if (url === '') return null;
   if (url.length > URL_MAX) return `Use at most ${URL_MAX} characters.`;
-  if (!url.startsWith('https://') && !url.startsWith('ipfs://'))
+  const local = allowsLocalUrls() && isLocalUrl(url);
+  if (!local && !url.startsWith('https://') && !url.startsWith('ipfs://'))
     return 'Start with https:// or ipfs://';
   if (/[\s\u0000-\u001f\u007f]/.test(url)) return 'Remove the spaces.';
   return null;

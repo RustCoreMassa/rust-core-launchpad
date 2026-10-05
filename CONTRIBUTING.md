@@ -34,6 +34,21 @@ npm run smoke                              # boots the production build in jsdom
 npm run format                             # Prettier
 ```
 
+### Local metadata while developing
+
+`npm start` uses `src/environments/environment.development.ts`: links can then point to this
+machine over http (`http://localhost`, `http://127.0.0.1`, `http://[::1]`, any port) — NFT
+metadata, images, logo, banner, website — and the IPFS gateway can be your own node. The
+Launchpad contract accepts exactly these local http hosts besides `https://` and `ipfs://`; the
+published build (`environment.ts`) neither accepts nor loads them.
+
+```bash
+npx http-server ./my-metadata -p 8081 --cors   # folder link: http://localhost:8081/
+```
+
+Set `ipfsGateway: 'http://127.0.0.1:8080/ipfs/'` there to read `ipfs://` links through a local
+Kubo node.
+
 ## Contract commands
 
 ```bash
@@ -43,6 +58,7 @@ npm run build                              # assembly/contracts/*.ts → build/*
 npm test                                   # as-pect unit tests
 cp .env.example .env                       # PRIVATE_KEY of the deployer (never commit .env)
 npm run deploy                             # buildnet; NETWORK=mainnet npm run deploy for mainnet
+npx tsx src/e2e-admin.ts                   # on-chain checks (also e2e, e2e-collections, …)
 ```
 
 ## Rules

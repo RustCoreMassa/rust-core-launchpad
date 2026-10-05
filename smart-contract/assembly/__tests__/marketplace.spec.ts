@@ -147,6 +147,11 @@ function idArgs(id: u64): StaticArray<u8> {
   return new Args().add(id).serialize();
 }
 
+/** buy's args: the listing and the price the buyer saw. */
+function buyArgs(id: u64, price: u64 = PRICE): StaticArray<u8> {
+  return new Args().add(id).add(price).serialize();
+}
+
 describe('Marketplace listing', () => {
   test('the owner lists an approved NFT', () => {
     setup();
@@ -362,7 +367,7 @@ describe('Marketplace buy (rules; the full sale runs on buildnet)', () => {
     setup();
     const id = aliceLists();
     pay(ALICE, PRICE + MAS);
-    buy(idArgs(id));
+    buy(buyArgs(id));
   });
 
   throws('buying an expired listing', () => {
@@ -370,7 +375,7 @@ describe('Marketplace buy (rules; the full sale runs on buildnet)', () => {
     const id = aliceLists(1, NOW + DAY);
     mockTimestamp(NOW + DAY);
     pay(BOB, PRICE + MAS);
-    buy(idArgs(id));
+    buy(buyArgs(id));
   });
 
   throws('buying when the seller no longer owns the NFT', () => {
@@ -378,7 +383,7 @@ describe('Marketplace buy (rules; the full sale runs on buildnet)', () => {
     const id = aliceLists();
     setTokenOwner(COLLECTION, 1, CAROL);
     pay(BOB, PRICE + MAS);
-    buy(idArgs(id));
+    buy(buyArgs(id));
   });
 
   throws('buying when the approval was withdrawn', () => {
@@ -386,7 +391,7 @@ describe('Marketplace buy (rules; the full sale runs on buildnet)', () => {
     const id = aliceLists();
     Storage.setOf(new Address(COLLECTION), tokenKey(0x05, 1), stringToBytes(OTHER));
     pay(BOB, PRICE + MAS);
-    buy(idArgs(id));
+    buy(buyArgs(id));
   });
 
   throws('buying from a hidden collection', () => {
@@ -395,7 +400,7 @@ describe('Marketplace buy (rules; the full sale runs on buildnet)', () => {
     callAs(ADMIN);
     setHidden(new Args().add(KIND_COLLECTION).add(u64(1)).add(true).serialize());
     pay(BOB, PRICE + MAS);
-    buy(idArgs(id));
+    buy(buyArgs(id));
   });
 
   throws('a collection whose transferFrom does not move the NFT', () => {
@@ -403,7 +408,7 @@ describe('Marketplace buy (rules; the full sale runs on buildnet)', () => {
     const id = aliceLists();
     pay(BOB, PRICE + MAS);
     mockScCall([]); // transferFrom "succeeds" but the owner stays ALICE
-    buy(idArgs(id));
+    buy(buyArgs(id));
   });
 
   test('stats start at zero', () => {

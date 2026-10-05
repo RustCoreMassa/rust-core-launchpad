@@ -11,6 +11,7 @@ import {
   resetStorage,
   setDeployContext,
 } from '@massalabs/massa-as-sdk';
+import { u256 } from 'as-bignum/assembly';
 import {
   constructor,
   count,
@@ -20,7 +21,7 @@ import {
   setTemplate,
 } from '../contracts/launchpad';
 import { KIND_COLLECTION, KIND_TOKEN } from '../lib/launchpad/keys';
-import { Config, Project } from '../lib/launchpad/records';
+import { Config, PRESALE_SUCCESS, Presale, Project } from '../lib/launchpad/records';
 
 const LAUNCHPAD = 'AS12BqZEQ6sByhRLyEuf0YbQmcF2PsDdkNNG1akBJu9XcjZA1eT';
 const ADMIN = 'AU12UBnqTHDQALpocVBnkPNy7y5CndUJQTLutaVDDFgMJcq5kQiKq';
@@ -105,4 +106,28 @@ describe('app ↔ contract encoding', () => {
     expect(p.category).toBe(3);
     expect(p.info.description).toBe('Pisici — test');
   });
+
+  test('logs a Presale record for the app to decode (records.spec.ts)', () => {
+    const presale = new Presale(
+      7,
+      3,
+      ALICE,
+      ALICE,
+      u256.fromU64(5_000_000),
+      u256.fromU64(1_000),
+      u64(10_000_000_000),
+      u64(50_000_000_000),
+      u64(100_000_000),
+      0,
+      u64(1_760_000_000_000),
+      u64(1_760_086_400_000),
+    );
+    presale.raised = 12_000_000_000;
+    presale.contributors = 4;
+    presale.status = PRESALE_SUCCESS;
+    presale.withdrawn = true;
+    presale.feeBps = 250;
+    log<string>('PRESALE_BYTES ' + presale.serialize().toString());
+  });
 });
+

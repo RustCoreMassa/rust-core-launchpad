@@ -115,6 +115,8 @@
             </div>
           </div>
 
+          <app-metadata-guide [mode]="d.metadataMode" />
+
           @if (d.metadataMode === 'folder') {
             <label class="field">
               <span>Folder link (base URI)</span>
@@ -144,9 +146,25 @@
                   @if (firstNft()?.image) {
                     <img [src]="firstNft()!.image" alt="" referrerpolicy="no-referrer" />
                   }
-                  <span
-                    >✓ Found NFT #1: <strong>{{ firstNft()?.name || 'unnamed' }}</strong></span
-                  >
+                  <div class="found">
+                    <span
+                      >✓ Found NFT #1: <strong>{{ firstNft()?.name || 'unnamed' }}</strong></span
+                    >
+                    @if (!firstNft()?.image) {
+                      <span class="hint">No image link (ipfs:// or https://) in 1.json.</span>
+                    }
+                    @if (firstNft()?.attributes?.length) {
+                      <div class="chips">
+                        @for (a of firstNft()!.attributes; track $index) {
+                          <span class="chip">{{ a.trait }}: {{ a.value }}</span>
+                        }
+                      </div>
+                    } @else {
+                      <span class="hint"
+                        >No attributes: your collection won't have trait filters.</span
+                      >
+                    }
+                  </div>
                 </div>
               }
               @case ('failed') {

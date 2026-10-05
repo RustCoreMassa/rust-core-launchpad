@@ -177,7 +177,12 @@ export class MarketPanel {
   protected buy(): Promise<void> {
     const listing = this.listing();
     if (!listing) return Promise.resolve();
-    return this.launchpadCall('buy', 'buy', new Args().addU64(listing.id), buyCoins(listing.price));
+    return this.launchpadCall(
+      'buy',
+      'buy',
+      new Args().addU64(listing.id).addU64(listing.price),
+      buyCoins(listing.price),
+    );
   }
 
   private async launchpadCall(busy: Busy, func: string, args: Args, coins: bigint): Promise<void> {

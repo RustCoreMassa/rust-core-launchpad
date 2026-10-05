@@ -146,8 +146,9 @@ export function cancel(binaryArgs: StaticArray<u8>): void {
 }
 
 /**
- * Buys a listed NFT. Args: listingId (u64). Coins: the price + storage of the sale record and
- * the buyer's entries in the collection (≈ 0.1 MAS); the rest is refunded.
+ * Buys a listed NFT. Args: listingId (u64), price (u64, nanoMAS: the price the buyer saw — a
+ * seller can't raise it under them). Coins: the price + storage of the sale record and the
+ * buyer's entries in the collection (≈ 0.1 MAS); the rest is refunded.
  */
 export function buy(binaryArgs: StaticArray<u8>): void {
   const before = balance();
@@ -155,7 +156,10 @@ export function buy(binaryArgs: StaticArray<u8>): void {
   _notLocked();
   Storage.set(LOCK_KEY, bytes(1));
 
-  const listing = _load(new Args(binaryArgs).nextU64().expect('listingId is missing or invalid'));
+  const args = new Args(binaryArgs);
+  const listing = _load(args.nextU64().expect('listingId is missing or invalid'));
+  const price = args.nextU64().expect('price is missing or invalid');
+  assert(price == listing.price, 'The price changed, check it again');
   const buyer = Context.caller().toString();
   const seller = listing.seller;
   const problem = _buyProblem(listing, buyer);

@@ -4,11 +4,8 @@ import type { Wallet } from '@massalabs/wallet-provider';
 import { MassaReader } from '../massa/massa-reader';
 import { NetworkStore } from '../network/network-store';
 import { networkByChainId } from '../network/networks';
-import { LOCAL_STORE } from '../platform/storage';
 import { toUserMessage } from '../utils/user-error';
 import { WALLET_DISCOVERY, WALLET_OPTIONS, WalletId, WalletOption } from './wallet-options';
-
-const STORAGE_KEY = 'launchpad.wallet';
 
 export type WalletPhase = 'disconnected' | 'connecting' | 'connected';
 
@@ -21,26 +18,22 @@ export interface WalletChoice extends WalletOption {
   readonly installed: boolean;
 }
 
-interface SavedWallet {
-  readonly wallet: WalletId;
-  readonly address: string;
-}
-
 /**
  * The user's wallet connection. The app never holds keys: every transaction is signed by the
  * connected wallet, through `signer()`. Balances are read on the network selected in the app,
  * and a wallet on another network is flagged (`networkMismatch`) rather than silently used.
+ * Nothing connects on its own: a connection starts only when the user picks a wallet.
  */
 @Injectable({ providedIn: 'root' })
 export class WalletStore {
   private readonly discover = inject(WALLET_DISCOVERY);
   private readonly reader = inject(MassaReader);
   private readonly networks = inject(NetworkStore);
-  private readonly store = inject(LOCAL_STORE);
 
   private readonly _detected = signal<readonly Wallet[] | null>(null);
   private readonly _detecting = signal(false);
   private readonly _phase = signal<WalletPhase>('disconnected');
+  private readonly _connectingTo = signal<WalletId | null>(null);
   private readonly _walletId = signal<WalletId | null>(null);
   private readonly _accounts = signal<readonly WalletAccount[]>([]);
   private readonly _address = signal<string | null>(null);
@@ -57,6 +50,8 @@ export class WalletStore {
 
   readonly detecting = this._detecting.asReadonly();
   readonly phase = this._phase.asReadonly();
+  /** The wallet the user asked to connect, while it answers; null otherwise. */
+  readonly connectingTo = this._connectingTo.asReadonly();
   readonly walletId = this._walletId.asReadonly();
   readonly accounts = this._accounts.asReadonly();
   readonly address = this._address.asReadonly();
@@ -109,11 +104,12 @@ export class WalletStore {
     }
   }
 
-  async connect(id: WalletId, preferredAddress?: string): Promise<boolean> {
+  async connect(id: WalletId): Promise<boolean> {
     const attempt = ++this.attempt;
     this.stopListening();
     this._error.set(null);
     this._phase.set('connecting');
+    this._connectingTo.set(id);
     try {
       await this.detect();
       const wallet = this._detected()?.find((w) => w.name() === id);
@@ -129,8 +125,7 @@ export class WalletStore {
       this._walletId.set(id);
       this._accounts.set(providers.map(toAccount));
       this._walletChainId.set(network?.chainId ?? null);
-      const chosen = providers.find((p) => p.address === preferredAddress) ?? providers[0];
-      this.setAddress(chosen.address);
+      this.setAddress(providers[0].address);
       this._phase.set('connected');
       this.listen(wallet, attempt);
       return true;
@@ -139,6 +134,8 @@ export class WalletStore {
       this.reset();
       this._error.set(toUserMessage(err));
       return false;
+    } finally {
+      if (attempt === this.attempt) this._connectingTo.set(null);
     }
   }
 
@@ -151,23 +148,11 @@ export class WalletStore {
     this.attempt++;
     this.reset();
     this._error.set(null);
-    this.store.removeItem(STORAGE_KEY);
     try {
       await wallet?.disconnect();
     } catch (err) {
       console.error('[wallet disconnect]', err);
     }
-  }
-
-  /** On app start: reconnects quietly to the last wallet, if it still trusts this site. */
-  async restore(): Promise<void> {
-    const saved = this.saved();
-    if (!saved) return;
-    await this.detect();
-    const wallet = this._detected()?.find((w) => w.name() === saved.wallet);
-    const trusted = wallet ? await wallet.connected().catch(() => false) : false;
-    if (!trusted) return;
-    if (!(await this.connect(saved.wallet, saved.address))) this._error.set(null);
   }
 
   async refreshBalance(): Promise<void> {
@@ -191,23 +176,30 @@ export class WalletStore {
   private setAddress(address: string): void {
     if (address !== this._address()) this._balance.set(null);
     this._address.set(address);
-    const wallet = this._walletId();
-    if (wallet) this.store.setItem(STORAGE_KEY, JSON.stringify({ wallet, address }));
   }
 
+  /**
+   * Follows account and network switches made in the wallet. wallet-provider 3.3 throws "not yet
+   * implemented" for account changes in Massa Station and MetaMask: those wallets still work,
+   * the account is then picked in the app's wallet menu.
+   */
   private listen(wallet: Wallet, attempt: number): void {
-    const accounts = wallet.listenAccountChanges(async (address) => {
-      if (attempt !== this.attempt) return;
-      if (!this.providers.some((p) => p.address === address)) {
-        this.providers = await wallet.accounts();
+    const accounts = subscribe(() =>
+      wallet.listenAccountChanges(async (address) => {
         if (attempt !== this.attempt) return;
-        this._accounts.set(this.providers.map(toAccount));
-      }
-      this.selectAccount(address);
-    });
-    const network = wallet.listenNetworkChanges((info) => {
-      if (attempt === this.attempt) this._walletChainId.set(info.chainId);
-    });
+        if (!this.providers.some((p) => p.address === address)) {
+          this.providers = await wallet.accounts();
+          if (attempt !== this.attempt) return;
+          this._accounts.set(this.providers.map(toAccount));
+        }
+        this.selectAccount(address);
+      }),
+    );
+    const network = subscribe(() =>
+      wallet.listenNetworkChanges((info) => {
+        if (attempt === this.attempt) this._walletChainId.set(info.chainId);
+      }),
+    );
     this.listeners = [accounts, network].filter((l) => !!l);
   }
 
@@ -218,6 +210,7 @@ export class WalletStore {
 
   private reset(): void {
     this.stopListening();
+    this._connectingTo.set(null);
     this.wallet = null;
     this.providers = [];
     this._phase.set('disconnected');
@@ -227,16 +220,15 @@ export class WalletStore {
     this._walletChainId.set(null);
     this._balance.set(null);
   }
+}
 
-  private saved(): SavedWallet | null {
-    try {
-      const value = JSON.parse(this.store.getItem(STORAGE_KEY) ?? 'null');
-      return WALLET_OPTIONS.some((o) => o.id === value?.wallet) && typeof value.address === 'string'
-        ? value
-        : null;
-    } catch {
-      return null;
-    }
+type Subscription = { unsubscribe(): void } | undefined;
+
+function subscribe(listen: () => Subscription): Subscription {
+  try {
+    return listen();
+  } catch {
+    return undefined;
   }
 }
 

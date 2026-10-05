@@ -1,6 +1,5 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { WalletStore } from './core/wallet/wallet-store';
 import { SiteFooter } from './layout/site-footer/site-footer';
 import { SiteHeader } from './layout/site-header/site-header';
 
@@ -27,9 +26,4 @@ import { SiteHeader } from './layout/site-header/site-header';
     }
   `,
 })
-export class App {
-  constructor() {
-    // Reconnect quietly to the last wallet, without holding up the first render.
-    void inject(WalletStore).restore();
-  }
-}
+export class App {}

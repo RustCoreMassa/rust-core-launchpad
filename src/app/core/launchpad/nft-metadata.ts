@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { CollectionReader } from './collection-reader';
-import { httpUrl } from '../utils/ipfs';
+import { httpUrl, localGatewayOf } from '../utils/ipfs';
 
 export interface NftAttribute {
   trait: string;
@@ -49,21 +49,22 @@ export class NftMetadataLoader {
         credentials: 'omit',
       });
       if (!response.ok) return null;
-      return parseMetadata(await response.json());
+      return parseMetadata(await response.json(), localGatewayOf(url) ?? undefined);
     } catch {
       return null;
     }
   }
 }
 
-export function parseMetadata(json: unknown): NftMetadata | null {
+/** `gateway`: where the JSON's ipfs:// links resolve (default: the configured gateway). */
+export function parseMetadata(json: unknown, gateway?: string): NftMetadata | null {
   if (!json || typeof json !== 'object' || Array.isArray(json)) return null;
   const data = json as Record<string, unknown>;
   const attributes = Array.isArray(data['attributes']) ? data['attributes'] : [];
   return {
     name: text(data['name']),
     description: text(data['description']),
-    image: httpUrl(text(data['image'])),
+    image: httpUrl(text(data['image']), gateway),
     attributes: attributes
       .slice(0, MAX_ATTRIBUTES)
       .filter((a): a is Record<string, unknown> => !!a && typeof a === 'object')

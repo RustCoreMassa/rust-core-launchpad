@@ -164,6 +164,27 @@ export function readConfig(args: Args): LaunchpadConfig {
   };
 }
 
+export function writeConfig(args: Args, c: LaunchpadConfig): Args {
+  return args
+    .addU64(c.tokenFee)
+    .addU64(c.collectionFee)
+    .addU64(c.importFee)
+    .addU16(BigInt(c.presaleFeeBps))
+    .addU64(c.deployDeposit)
+    .addBool(c.paused);
+}
+
+/** A pending upgrade of the Launchpad SC (72 h timelock). */
+export interface UpgradeProposal {
+  codeHash: Uint8Array;
+  /** Earliest execution time, milliseconds since the epoch. */
+  executableAt: number;
+}
+
+export function readUpgradeProposal(args: Args): UpgradeProposal {
+  return { codeHash: args.nextUint8Array(), executableAt: Number(args.nextU64()) };
+}
+
 /** `getProjects` result: total count, then a length-prefixed array of Project records. */
 export function readProjectPage(bytes: Uint8Array): { total: bigint; projects: Project[] } {
   const args = new Args(bytes);
@@ -289,6 +310,8 @@ export interface Presale {
   contributors: number;
   status: number;
   withdrawn: boolean;
+  /** Presale fee in basis points, fixed when the presale was created. */
+  feeBps: number;
 }
 
 export function readPresale(args: Args): Presale {
@@ -309,6 +332,7 @@ export function readPresale(args: Args): Presale {
     contributors: Number(args.nextU32()),
     status: Number(args.nextU8()),
     withdrawn: args.nextBool(),
+    feeBps: Number(args.nextU16()),
   };
 }
 

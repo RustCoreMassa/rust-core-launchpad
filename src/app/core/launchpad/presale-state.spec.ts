@@ -26,6 +26,7 @@ const base: Presale = {
   contributors: 0,
   status: PRESALE_OPEN,
   withdrawn: false,
+  feeBps: 200,
 };
 
 describe('presale state', () => {

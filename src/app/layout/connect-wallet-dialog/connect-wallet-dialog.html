@@ -22,10 +22,10 @@
               <button
                 class="btn btn-red btn-sm"
                 type="button"
-                [disabled]="wallet.phase() === 'connecting'"
+                [disabled]="!!wallet.connectingTo()"
                 (click)="connect(choice.id)"
               >
-                {{ wallet.phase() === 'connecting' ? 'Connecting…' : 'Connect' }}
+                {{ wallet.connectingTo() === choice.id ? 'Connecting…' : 'Connect' }}
               </button>
             } @else {
               <a

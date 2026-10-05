@@ -17,6 +17,7 @@ import {
 import { u256 } from 'as-bignum/assembly';
 import {
   UPGRADE_DELAY_MS,
+  acceptAdmin,
   admin,
   cancelUpgrade,
   config,
@@ -33,6 +34,7 @@ import {
   importCollection,
   importToken,
   isSymbolAvailable,
+  pendingAdmin,
   pendingUpgrade,
   proposeUpgrade,
   reserveSymbol,
@@ -47,7 +49,8 @@ import {
   updateInfo,
   withdrawFees,
 } from '../contracts/launchpad';
-import { KIND_COLLECTION, KIND_TOKEN, STD_OWNER_KEY } from '../lib/launchpad/keys';
+import { KIND_COLLECTION, KIND_TOKEN, LOCK_KEY, STD_OWNER_KEY } from '../lib/launchpad/keys';
+import { isLocalHttp } from '../lib/launchpad/rules';
 import {
   Config,
   Project,
@@ -350,6 +353,31 @@ describe('Launchpad token launch', () => {
     pay(ALICE, 10 * MAS);
     mockScCall([]);
     createToken(tokenArgs('RCT', 'RustCore Token', 18, 1_000, false, 0, 6));
+  });
+
+  test('a link to the developer machine (http://localhost…)', () => {
+    deploy();
+    pay(ALICE, 10 * MAS);
+    mockScCall([]);
+    createToken(
+      tokenArgs('RCT', 'RustCore Token', 18, 1_000, false, 0, 1, 'http://localhost:8081/site'),
+    );
+    expect(isLocalHttp('http://localhost')).toBe(true);
+    expect(isLocalHttp('http://127.0.0.1:8080/ipfs/x')).toBe(true);
+    expect(isLocalHttp('http://[::1]/logo.png')).toBe(true);
+    expect(isLocalHttp('http://localhost.evil.example/')).toBe(false);
+    expect(isLocalHttp('http://127.0.0.1.evil.example/')).toBe(false);
+    expect(isLocalHttp('http://example.com/localhost')).toBe(false);
+    expect(isLocalHttp('https://localhost/')).toBe(false); // https is accepted on its own
+  });
+
+  throws('an http link to another host', () => {
+    deploy();
+    pay(ALICE, 10 * MAS);
+    mockScCall([]);
+    createToken(
+      tokenArgs('RCT', 'RustCore Token', 18, 1_000, false, 0, 1, 'http://localhost.evil.example'),
+    );
   });
 
   throws('a link that is not https or ipfs', () => {
@@ -675,11 +703,16 @@ describe('Launchpad admin', () => {
     withdrawFees(new Args().add(ALICE).add(MAS).serialize());
   });
 
-  test('hands the admin role over', () => {
+  test('hands the admin role over in two steps', () => {
     deploy();
     callAs(ADMIN);
     transferAdmin(new Args().add(BOB).serialize());
+    expect(bytesToString(pendingAdmin([]))).toBe(BOB);
+    expect(bytesToString(admin([]))).toBe(ADMIN); // nothing changes until BOB accepts
     callAs(BOB);
+    acceptAdmin([]);
+    expect(bytesToString(admin([]))).toBe(BOB);
+    expect(pendingAdmin([]).length).toBe(0);
     setConfig(new Args().add(testConfig(true)).serialize());
     expect(new Args(config([])).nextSerializable<Config>().unwrap().paused).toBe(true);
   });
@@ -688,7 +721,72 @@ describe('Launchpad admin', () => {
     deploy();
     callAs(ADMIN);
     transferAdmin(new Args().add(BOB).serialize());
+    callAs(BOB);
+    acceptAdmin([]);
+    callAs(ADMIN);
     setConfig(new Args().add(testConfig()).serialize());
+  });
+
+  throws('accepting the admin role without being named', () => {
+    deploy();
+    callAs(ADMIN);
+    transferAdmin(new Args().add(BOB).serialize());
+    callAs(ALICE);
+    acceptAdmin([]);
+  });
+
+  test('withdraws an admin offer', () => {
+    deploy();
+    callAs(ADMIN);
+    transferAdmin(new Args().add(BOB).serialize());
+    transferAdmin(new Args().add('').serialize());
+    expect(pendingAdmin([]).length).toBe(0);
+  });
+
+  throws('accepting a withdrawn admin offer', () => {
+    deploy();
+    callAs(ADMIN);
+    transferAdmin(new Args().add(BOB).serialize());
+    transferAdmin(new Args().add('').serialize());
+    callAs(BOB);
+    acceptAdmin([]);
+  });
+
+  throws('an admin offer by someone else', () => {
+    deploy();
+    callAs(ALICE);
+    transferAdmin(new Args().add(ALICE).serialize());
+  });
+
+  test('accepts a presale fee up to 10%', () => {
+    deploy();
+    callAs(ADMIN);
+    setConfig(
+      new Args().add(new Config(TOKEN_FEE, COLLECTION_FEE, IMPORT_FEE, 1_000, DEPOSIT)).serialize(),
+    );
+    expect(new Args(config([])).nextSerializable<Config>().unwrap().presaleFeeBps).toBe(1_000);
+  });
+
+  throws('a presale fee above 10%', () => {
+    deploy();
+    callAs(ADMIN);
+    setConfig(
+      new Args().add(new Config(TOKEN_FEE, COLLECTION_FEE, IMPORT_FEE, 1_001, DEPOSIT)).serialize(),
+    );
+  });
+
+  throws('a deploy with a presale fee above 10%', () => {
+    resetStorage();
+    setDeployContext(ADMIN);
+    constructor(
+      new Args().add(new Config(TOKEN_FEE, COLLECTION_FEE, IMPORT_FEE, 1_001, DEPOSIT)).serialize(),
+    );
+  });
+
+  throws('a Launchpad write while an outer call holds the lock (reentrancy)', () => {
+    deploy();
+    Storage.set(LOCK_KEY, [1]);
+    aliceLaunches('RCT');
   });
 });
 

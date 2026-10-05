@@ -22,6 +22,7 @@ import {
   StorageCost,
 } from '@massalabs/massa-web3';
 import { getScByteCode } from './utils';
+import { KNOWN_TEMPLATES } from '../../src/app/core/launchpad/templates';
 
 const KIND_TOKEN = 0;
 const KIND_COLLECTION = 1;
@@ -52,6 +53,18 @@ const constructorArgs = new Args()
   .addU16(BigInt(config.presaleFeeBps))
   .addU64(config.deployDeposit)
   .addBool(false);
+// The app launches only from templates it has the source of (src/app/core/launchpad/
+// templates.ts): a fresh Launchpad gets them as v1, so check before spending anything.
+for (const [kind, file] of [
+  [KIND_TOKEN, 'rc-token.wasm'],
+  [KIND_COLLECTION, 'rc-collection.wasm'],
+] as const) {
+  const hash = createHash('sha256').update(getScByteCode('build', file)).digest('hex');
+  if (KNOWN_TEMPLATES[kind][1] !== hash) {
+    throw new Error(`${file} (${hash}) is not the app's known v1 template: update templates.ts`);
+  }
+}
+
 console.log(`Deploying launchpad.wasm (${launchpadCode.length} bytes)…`);
 const launchpad = await SmartContract.deploy(provider, launchpadCode, constructorArgs, {
   coins: Mas.fromString('0.1'), // constructor storage (config, admin, reserved symbols)

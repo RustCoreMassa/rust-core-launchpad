@@ -147,7 +147,7 @@ Cheile pentru marketplace (faza 5) și presale (faza 6) urmează același model:
 | --- | --- | --- |
 | Factory | `createToken`, `createCollection` | `template(kind)`, `isSymbolAvailable(symbol)` |
 | Registry | `importToken`, `importCollection`, `updateInfo(kind, id, category, info)`, `setRoyalty` | `count(kind)`, `getProject(kind, id)`, `getProjectByAddress`, `getProjects(kind, offset, limit)` (cele mai noi primele, maxim 50), `getCreatedBy(creator, kind)` |
-| Admin | `setConfig`, `setPaused`, `setTemplate`, `setVerified`, `setHidden`, `reserveSymbol`, `withdrawFees`, `transferAdmin`, `proposeUpgrade`, `cancelUpgrade`, `executeUpgrade` | `admin`, `config`, `fees`, `pendingUpgrade`, `version` |
+| Admin | `setConfig` (comision presale maxim 10%), `setPaused`, `setTemplate`, `setVerified`, `setHidden`, `reserveSymbol`, `withdrawFees`, `transferAdmin` + `acceptAdmin` (în doi pași), `proposeUpgrade`, `cancelUpgrade`, `executeUpgrade` | `admin`, `pendingAdmin`, `config`, `fees`, `pendingUpgrade`, `version` |
 | Marketplace (faza 5) | `list`, `updatePrice`, `cancel`, `buy`, `cleanup` | `getListing`, `getListings`, `getSales`, `getStats` |
 | Presale (faza 6) | `createPresale`, `contribute`, `finalize`, `claim`, `refund`, `cancelPresale`, `withdrawRaised` | `getPresale`, `getPresales`, `getContribution`, `getContributionsOf` |
 
@@ -157,6 +157,7 @@ Filtrul pe categorie nu are funcție dedicată: aplicația listează cheile cu p
 
 - Fiecare scriere e plătită de cine o face. Contractul citește soldul la începutul apelului (monedele trimise sunt deja incluse) și la sfârșit. Diferența e ce a consumat apelul: storage nou, bytecode-ul contractului creat, depozitul dat acestuia. Cere `monede trimise ≥ consum + taxă` și returnează restul. Storage-ul eliberat (o cheie ștearsă) se returnează și el.
 - Suma exactă de trimis o află aplicația simulând apelul (`readSC`) înainte de semnare; taxele se văd în `config`.
+- Calculul de plată (`settle`) refuză orice apel cât timp `lock` e pus: un contract străin (token sau colecție importată) care ar reapela Launchpad-ul în mijlocul unui transfer ar schimba soldul măsurat de apelul exterior.
 - Taxe configurabile de admin, doar la patru operații: taxă fixă la crearea unui token, taxă fixă la crearea unei colecții, taxă fixă la import (token sau colecție) și comision de presale în bps din suma strânsă. Marketplace-ul nu are comision. Valorile se stabilesc înainte de mainnet.
 - Taxele se adună în contorul `fees`. `withdrawFees` poate scoate doar acest contor, niciodată banii din escrow (presale sau plăți în curs).
 
@@ -226,9 +227,9 @@ O colecție se lansează tot într-o tranzacție (`createCollection`), iar NFT-u
 
 ### Metadata NFT
 
-Un NFT urmează formatul JSON uzual: `name`, `description`, `image`, `attributes[]` (`trait_type`, `value`). Frontendul citește `uri(tokenId)`, descarcă JSON-ul printr-un gateway IPFS public și afișează imaginea și atributele. Atributele permit filtre pe trait-uri în pagina colecției.
+Un NFT urmează formatul JSON uzual: `name`, `description`, `image`, `attributes[]` (`trait_type`, `value`). Formatul nu vine de la Massa (standardul MRC721 definește doar `uri(tokenId)`), ci e convenția din Ethereum: schema EIP-721 plus `attributes` în stilul OpenSea. Restul câmpurilor sunt ignorate. În modul folder, numerele încep de la 1 (`1.json`). Frontendul citește `uri(tokenId)`, descarcă JSON-ul printr-un gateway IPFS public și afișează imaginea și atributele. Atributele permit filtre pe trait-uri în pagina colecției.
 
-Pentru că nu avem backend, nu încărcăm noi fișiere. Userul vine cu fișierele deja pe IPFS (sau alt URL); în wizard arătăm cum se pregătește folderul și verificăm că `1.json` se încarcă înainte de deploy. Varianta de upload direct din browser este o întrebare deschisă (vezi ultima secțiune).
+Pentru că nu avem backend, nu încărcăm noi fișiere. Userul vine cu fișierele deja pe IPFS (sau alt URL); în wizard, panoul „How to prepare your metadata” arată structura folderului și un `1.json` de exemplu (copiere sau descărcare), iar după verificarea lui `1.json` aplicația arată ce a citit: nume, imagine, atribute. Varianta de upload direct din browser este o întrebare deschisă (vezi ultima secțiune).
 
 ## Editarea datelor
 
@@ -283,7 +284,7 @@ Mesajul afișat la lansare și la descărcare: *„Păstrăm doar codul original
 
 ### Upgrade-ul Launchpad SC
 
-Contractul nostru se poate actualiza doar în doi pași: `proposeUpgrade(hash)` (public pe lanț, cu eveniment) și `executeUpgrade(bytecode)` după cel puțin 72 h, cu bytecode-ul verificat față de hash. Frontendul afișează un banner cât timp există o propunere.
+Contractul nostru se poate actualiza doar în doi pași: `proposeUpgrade(hash)` (public pe lanț, cu eveniment) și `executeUpgrade(bytecode)` după cel puțin 72 h, cu bytecode-ul verificat față de hash. Storage-ul codului nou îl plătește admin-ul, nu escrow-ul. Pagina `/admin` arată oricui propunerea în așteptare, cu ora de la care poate rula.
 
 ## Marketplace NFT
 
@@ -294,7 +295,7 @@ Marketplace-ul nu ia NFT-ul în custodie: vânzătorul îl păstrează în walle
 1. **Listare:** vânzătorul aprobă Launchpad-ul pe colecție (`approve(Launchpad, tokenId)` sau `setApprovalForAll`), apoi apelează `list(collection, tokenId, preț, expiresAt)`. Expirarea e 0 (niciodată) sau în următoarele 365 de zile. Contractul verifică owner-ul și aprobarea **citind direct stocarea standard a colecției** (cheile `0x04`, `0x05`, `0x06`), fără să ruleze codul ei, apoi scrie `l:`, `lc:`, `ls:`, `lt:`. Un NFT are o singură listare activă. O listare rămasă de la un owner anterior se șterge automat, iar storage-ul ei se întoarce la vechiul vânzător.
 2. **Schimbare preț:** `updatePrice(listingId, preț)`, doar vânzătorul.
 3. **Anulare și curățare:** `cancel(listingId)`. Vânzătorul o poate face oricând. Admin-ul, sau oricine dacă listarea nu mai e valabilă (NFT mutat, aprobare retrasă, expirată, colecție ascunsă), o poate curăța. Storage-ul eliberat merge **mereu la vânzător**. Merge și cu Launchpad-ul în pauză.
-4. **Cumpărare:** `buy(listingId)` cu `coins = preț + ~0,06 MAS storage`, iar surplusul se returnează. Ordinea în contract:
+4. **Cumpărare:** `buy(listingId, preț)` cu `coins = preț + ~0,06 MAS storage`, iar surplusul se returnează. Prețul trimis e cel văzut de cumpărător: dacă vânzătorul l-a schimbat între timp, cumpărarea e refuzată. Ordinea în contract:
    1. regulile din `buyProblem` (aceleași, expuse și ca citire, ca aplicația să explice de ce nu se poate cumpăra): nu e listarea ta, nu e expirată, colecția e în Launchpad și nu e ascunsă, vânzătorul încă are NFT-ul, aprobarea există;
    2. o blocare împotriva reapelării (`lock`) pe durata cumpărării;
    3. starea proprie întâi: listarea se șterge, vânzarea se scrie în `sa:`, statisticile în `st:` (volum, număr de vânzări, ultimul preț);
@@ -331,7 +332,7 @@ Presale-ul e opțional, pentru tokenuri lansate sau importate prin noi. Owner-ul
 | Start | în următoarele 90 de zile; un start deja trecut (sau „acum”) înseamnă că începe în momentul tranzacției. Motivul: între alegere și execuție trec zeci de secunde, iar un start fix ar fi picat pe buildnet. |
 | Durată | între 1 oră și 30 de zile |
 | Tokenuri nevândute | se întorc mereu la owner (varianta „arse” a fost scoasă: nu toate tokenurile sunt burnable) |
-| Comision | `presaleFeeBps` din config, luat din MAS-ul strâns la `withdrawRaised` |
+| Comision | `presaleFeeBps` din config, **fixat în presale la creare** (`feeBps`), luat din MAS-ul strâns la `withdrawRaised`; admin-ul nu-l poate schimba pentru presale-urile existente și nu poate trece de 10% |
 | Whitelist, vesting, lichiditate pe Dusa | v2 |
 
 ### Stări
@@ -416,7 +417,7 @@ rust-core-launchpad/
 | `/marketplace` | Toate listările active, cu filtre |
 | `/presales`, `/presales/:id`, `/create/presale/:token` | Presale-uri; detaliu cu contribuție / claim / refund; creare |
 | `/me` | Dashboard: tokenurile, colecțiile, NFT-urile, listările și contribuțiile mele; editare |
-| `/admin` | Doar pentru adresa admin: taxe, șabloane, verificare, ascundere |
+| `/admin` | Starea publică (versiune, taxe, sold, șabloane, upgrade în așteptare) pentru oricine; acțiunile doar pentru adresa admin: pauză, taxe, retragere taxe, verificare / ascundere, simboluri rezervate, șabloane, upgrade, predarea rolului |
 
 ### Reguli preluate din wallet
 
@@ -445,7 +446,26 @@ Launchpad SC ține bani străini (escrow de presale și plăți în tranzit), de
 | Bucle fără limită | Niciun apel nu iterează peste toți userii; paginare cu `limit` maxim (de exemplu 100) |
 | Storage plătit din soldul nostru | Fiecare scriere cere `coins` și verifică diferența de sold; tranzacția eșuează dacă nu ajung |
 | Listare cu NFT deja mutat | Verificare `ownerOf` + aprobare în `buy`; `cleanup` pentru listări moarte |
-| Imagini sau linkuri rău intenționate | Doar `ipfs://` și `https://`; imaginile se afișează prin `<img>`, niciodată HTML; linkurile cu `rel="noopener noreferrer"` |
+| Imagini sau linkuri rău intenționate | Doar `ipfs://` și `https://`; imaginile se afișează prin `<img>`, niciodată HTML; linkurile cu `rel="noopener noreferrer"`. Excepție pentru dezvoltare: `http://` doar către mașina proprie (`localhost`, `127.0.0.1`, `[::1]`), acceptat de contract (v0.5.1) și de aplicație doar cu `ng serve` (`environment.development.ts`); build-ul publicat nu le acceptă și nu le încarcă |
+
+### Review de securitate (faza 7, 5 octombrie 2026)
+
+Review intern al Launchpad SC, al șabloanelor și al aplicației. Nu înlocuiește un audit extern înainte de mainnet. Corecturile sunt în contractul v0.5.0, cu teste (verificate prin mutații) și probă pe buildnet.
+
+| Problemă | Gravitate | Corectură |
+| --- | --- | --- |
+| Un token sau o colecție importată putea reapela Launchpad-ul în timpul unui transfer (`claim`, `finalize`, `buy`…) și apelantul exterior primea înapoi MAS înregistrat ca taxe sau escrow | Mare | `settle` refuză orice apel cât timp `lock` e pus |
+| Comisionul de presale se citea la retragere; admin-ul îl putea schimba după contribuții, fără limită (peste 100% bloca retragerea) | Mediu | Fixat în presale la creare; plafon 10% în `setConfig` și constructor |
+| Vânzătorul putea mări prețul chiar înainte de cumpărare, în limita marjei trimise | Mic | `buy(listingId, preț)` cere prețul văzut |
+| `transferAdmin` către o adresă greșită bloca Launchpad-ul definitiv | Mic | Predare în doi pași: `transferAdmin` + `acceptAdmin` |
+| `executeUpgrade` plătea storage-ul codului nou din soldul comun (escrow) | Mic | `settle` și la upgrade: plătește admin-ul |
+| Un șablon schimbat de admin ajungea direct la useri | Mic | Aplicația lansează doar din șabloanele cu hash cunoscut (`core/launchpad/templates.ts`), adică cele cu sursa publicată |
+
+Riscuri acceptate, de afișat sau de rezolvat mai târziu:
+- **Tokenuri importate în presale:** codul lor e al owner-ului (poate fi mutabil sau rău intenționat). Badge-urile „Imported” / „Mutable code” apar pe pagina presale-ului; admin-ul poate ascunde și anula.
+- **Storage plătit de contract în standardele MRC20/MRC721:** `increaseAllowance`, `approve`, `setApprovalForAll`, `transfer` către adrese noi consumă soldul token-ului sau al colecției fără să ceară monede, deci soldul poate fi golit de oricine. Aplicația trimite mereu monede cu aceste apeluri; o versiune 2 a șabloanelor poate cere monede.
+- **Citiri mari:** `getListings` fără filtru citește toate cheile de listare; peste câteva mii de listări e nevoie de indexer.
+- **CSP:** aplicația nu are încă Content-Security-Policy; de adăugat la publicarea pe DeWeb, după o probă în browser.
 
 ### Costuri estimate pentru user
 
@@ -521,8 +541,10 @@ Lucrăm în 8 faze, fiecare încheiată cu ceva care merge pe buildnet; contract
 
 **Faza 7 — Lansare**
 
-- [ ] Pagina admin, badge-uri, ascundere
-- [ ] Review de securitate, deploy pe mainnet, publicare pe DeWeb, linkuri din rustcore.massa
+- [x] Pagina `/admin`: stare publică, pauză, taxe, retragere taxe, verificare / ascundere, simboluri rezervate, șabloane, upgrade cu timelock, predarea rolului în doi pași; link în meniul wallet-ului pentru admin
+- [x] Review de securitate (vezi „Review de securitate”), corecturi în contractul v0.5.0, probă pe buildnet (`smart-contract/src/e2e-admin.ts` și celelalte e2e)
+- [x] Ghid de metadata NFT în wizardul de colecție (structura folderului, exemplu `1.json`, copiere / descărcare)
+- [ ] Deploy pe mainnet, publicare pe DeWeb, linkuri din rustcore.massa
 
 ## Decizii
 

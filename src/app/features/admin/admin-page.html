@@ -1,0 +1,625 @@
+<section class="page container">
+  <header class="page-head">
+    <span class="label">Admin</span>
+    <h1>Administration</h1>
+    <p>
+      The Launchpad's settings, in the open: anyone can check them here. Only the admin wallet can
+      change them, and an upgrade of the Launchpad's code waits 72 hours in public first.
+    </p>
+  </header>
+
+  @if (!launchpad.address()) {
+    <div class="notice">The Launchpad isn't deployed on {{ network.config().label }} yet.</div>
+  } @else if (loadError(); as message) {
+    <div class="notice notice-error" role="alert">{{ message }}</div>
+  } @else if (status() === undefined) {
+    <div class="card"><span class="skeleton" style="width: 60%; height: 24px"></span></div>
+  } @else {
+    @let s = status()!;
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Status</h2>
+        <span class="state" [class.paused]="s.config.paused">{{
+          s.config.paused ? 'Paused' : 'Running'
+        }}</span>
+      </div>
+      <dl class="rows">
+        <div>
+          <dt>Version</dt>
+          <dd>{{ s.version }}</dd>
+        </div>
+        <div>
+          <dt>Admin</dt>
+          <dd class="mono">{{ s.admin | shortAddress }}</dd>
+        </div>
+        @if (s.pendingAdmin) {
+          <div>
+            <dt>Admin offered to</dt>
+            <dd class="mono">{{ s.pendingAdmin | shortAddress }}</dd>
+          </div>
+        }
+        <div>
+          <dt>Balance</dt>
+          <dd>{{ s.balance | mas }}</dd>
+        </div>
+        <div>
+          <dt>Fees collected</dt>
+          <dd>{{ s.fees | mas }}</dd>
+        </div>
+        <div>
+          <dt>Fees</dt>
+          <dd>
+            token {{ s.config.tokenFee | mas }} · collection {{ s.config.collectionFee | mas }} ·
+            import {{ s.config.importFee | mas }} · presale {{ s.config.presaleFeeBps / 100 }}%
+          </dd>
+        </div>
+        @for (t of s.templates; track t.kind) {
+          <div>
+            <dt>{{ t.label }}</dt>
+            <dd>
+              @if (t.version) {
+                v{{ t.version }} ·
+                <span class="mono" [title]="t.hash">{{ t.hash.slice(0, 12) }}…</span>
+                @if (!t.known) {
+                  <span class="bad"> · not known to this app</span>
+                }
+              } @else {
+                none
+              }
+            </dd>
+          </div>
+        }
+        <div>
+          <dt>Upgrade</dt>
+          <dd>
+            @if (s.upgrade; as u) {
+              <span class="warn">pending</span> — runs
+              {{ upgradeReady() ? 'any time now' : 'in ' + countdown(u.executableAt) }}
+            } @else {
+              none pending
+            }
+          </dd>
+        </div>
+      </dl>
+      <p class="hint">
+        The balance holds the fees collected, the MAS of open presales and the Launchpad's own
+        storage. Only the fees collected can ever be withdrawn.
+      </p>
+      @if (isAdmin()) {
+        <div class="actions">
+          <button
+            class="btn btn-sm"
+            [class.btn-red]="!s.config.paused"
+            [class.btn-ghost]="s.config.paused"
+            type="button"
+            [disabled]="!!busy()"
+            (click)="setPaused(!s.config.paused)"
+          >
+            {{
+              busy() === 'status'
+                ? 'Confirm in your wallet…'
+                : s.config.paused
+                  ? 'Resume'
+                  : 'Pause launches and trading'
+            }}
+          </button>
+        </div>
+        <p class="hint">
+          A pause stops launches, imports, listings, purchases, new presales and contributions.
+          Edits, cancels, finalize, claims and refunds keep working.
+        </p>
+        @if (errorIn('status'); as message) {
+          <div class="notice notice-error" role="alert">{{ message }}</div>
+        }
+      }
+    </div>
+
+    @if (s.upgrade; as u) {
+      <div class="card upgrade-card">
+        <h2>Pending upgrade of the Launchpad</h2>
+        <p>
+          The admin proposed new code for the Launchpad. It can run from
+          <strong>{{ u.executableAt | date: 'medium' }}</strong>
+          @if (!upgradeReady()) {
+            ({{ countdown(u.executableAt) }} left)
+          }
+          . Until then, everyone can see it coming and take their MAS or NFTs out.
+        </p>
+        <p class="mono hash">sha256 {{ hex(u.codeHash) }}</p>
+      </div>
+    }
+
+    @if (!wallet.connected()) {
+      <div class="card connect">
+        <p class="muted">Connect the admin wallet to manage the Launchpad.</p>
+        <button class="btn btn-red btn-sm" type="button" (click)="connect()">Connect wallet</button>
+      </div>
+    } @else if (isPendingAdmin()) {
+      <div class="card">
+        <h2>Become the admin</h2>
+        <p>The current admin offered you the Launchpad's admin role.</p>
+        <button
+          class="btn btn-red btn-sm"
+          type="button"
+          [disabled]="!!busy() || wallet.networkMismatch()"
+          (click)="acceptAdmin()"
+        >
+          {{ busy() === 'handover' ? 'Confirm in your wallet…' : 'Accept the admin role' }}
+        </button>
+        @if (errorIn('handover'); as message) {
+          <div class="notice notice-error" role="alert">{{ message }}</div>
+        }
+        @if (doneIn('handover'); as message) {
+          <div class="notice" role="status">{{ message }}</div>
+        }
+      </div>
+    } @else if (!isAdmin()) {
+      <div class="card connect">
+        <p class="muted">
+          This wallet isn't the Launchpad admin: the page is read-only.
+          <a routerLink="/">Back home</a>
+        </p>
+      </div>
+    }
+
+    @if (isAdmin()) {
+      @if (wallet.networkMismatch()) {
+        <div class="notice">Switch your wallet to {{ network.config().label }} first.</div>
+      }
+
+      <div class="grid">
+        <!-- Fees -->
+        @if (feeForm(); as f) {
+          <div class="card">
+            <h2>Fees</h2>
+            <div class="form-grid">
+              <label class="field">
+                <span>Token launch (MAS)</span>
+                <input
+                  class="input"
+                  inputmode="decimal"
+                  [value]="f.tokenFee"
+                  (input)="updateFee('tokenFee', text($event))"
+                />
+                @if (feeErrors().tokenFee; as e) {
+                  <span class="error">{{ e }}</span>
+                }
+              </label>
+              <label class="field">
+                <span>Collection launch (MAS)</span>
+                <input
+                  class="input"
+                  inputmode="decimal"
+                  [value]="f.collectionFee"
+                  (input)="updateFee('collectionFee', text($event))"
+                />
+                @if (feeErrors().collectionFee; as e) {
+                  <span class="error">{{ e }}</span>
+                }
+              </label>
+              <label class="field">
+                <span>Import (MAS)</span>
+                <input
+                  class="input"
+                  inputmode="decimal"
+                  [value]="f.importFee"
+                  (input)="updateFee('importFee', text($event))"
+                />
+                @if (feeErrors().importFee; as e) {
+                  <span class="error">{{ e }}</span>
+                }
+              </label>
+              <label class="field">
+                <span>Presale (% of the MAS raised)</span>
+                <input
+                  class="input"
+                  inputmode="decimal"
+                  [value]="f.presaleFee"
+                  (input)="updateFee('presaleFee', text($event))"
+                />
+                @if (feeErrors().presaleFee; as e) {
+                  <span class="error">{{ e }}</span>
+                }
+              </label>
+              <label class="field">
+                <span>Deposit per new contract (MAS)</span>
+                <input
+                  class="input"
+                  inputmode="decimal"
+                  [value]="f.deployDeposit"
+                  (input)="updateFee('deployDeposit', text($event))"
+                />
+                @if (feeErrors().deployDeposit; as e) {
+                  <span class="error">{{ e }}</span>
+                } @else {
+                  <span class="hint">Given to each new contract for its own storage.</span>
+                }
+              </label>
+            </div>
+            <p class="hint">
+              New fees apply to the next launches and imports. A presale keeps the fee in force when
+              it was created; the presale fee can't go above 10%.
+            </p>
+            <button
+              class="btn btn-red btn-sm"
+              type="button"
+              [disabled]="!!busy() || feeInvalid()"
+              (click)="saveFees()"
+            >
+              {{ busy() === 'fees' ? 'Confirm in your wallet…' : 'Save fees' }}
+            </button>
+            @if (errorIn('fees'); as message) {
+              <div class="notice notice-error" role="alert">{{ message }}</div>
+            }
+            @if (doneIn('fees'); as message) {
+              <div class="notice" role="status">{{ message }}</div>
+            }
+          </div>
+        }
+
+        <!-- Fee withdrawal -->
+        <div class="card">
+          <h2>Withdraw fees</h2>
+          <p class="muted">Collected: {{ s.fees | mas }}</p>
+          <label class="field">
+            <span>To</span>
+            <input
+              class="input mono"
+              [value]="withdrawTo()"
+              (input)="withdrawTo.set(text($event).trim())"
+              placeholder="AU…"
+            />
+          </label>
+          <label class="field">
+            <span>Amount (MAS)</span>
+            <div class="with-max">
+              <input
+                class="input"
+                inputmode="decimal"
+                [value]="withdrawAmount()"
+                (input)="withdrawAmount.set(text($event).trim())"
+              />
+              <button class="btn btn-ghost btn-sm" type="button" (click)="withdrawAll()">
+                All
+              </button>
+            </div>
+            @if (withdrawError(); as e) {
+              <span class="error">{{ e }}</span>
+            }
+          </label>
+          <button
+            class="btn btn-red btn-sm"
+            type="button"
+            [disabled]="!!busy() || !withdrawNano() || !!withdrawError()"
+            (click)="withdrawFees()"
+          >
+            {{ busy() === 'withdraw' ? 'Confirm in your wallet…' : 'Withdraw' }}
+          </button>
+          @if (errorIn('withdraw'); as message) {
+            <div class="notice notice-error" role="alert">{{ message }}</div>
+          }
+          @if (doneIn('withdraw'); as message) {
+            <div class="notice" role="status">{{ message }}</div>
+          }
+        </div>
+      </div>
+
+      <!-- Moderation -->
+      <div class="card">
+        <h2>Tokens and collections</h2>
+        <p class="hint">
+          Verified adds a badge. Hidden takes a project out of the lists and stops its trading and
+          new presales; its page and contract keep working.
+        </p>
+        <input
+          class="input"
+          type="search"
+          placeholder="Search by name, symbol, contract or creator address"
+          [value]="query()"
+          (input)="query.set(text($event))"
+        />
+        @if (projectsLoading()) {
+          <span class="hint">Loading the projects…</span>
+        }
+        @if (!query() && !results().total) {
+          <p class="muted">Nothing verified or hidden yet. Search to find a project.</p>
+        } @else if (query() && !results().total) {
+          <p class="muted">No match.</p>
+        } @else {
+          @if (!query()) {
+            <p class="hint">Verified and hidden projects:</p>
+          }
+          <ul class="projects">
+            @for (p of results().shown; track p.kind + '-' + p.id) {
+              <li>
+                <a
+                  class="names"
+                  [routerLink]="[p.kind === 0 ? '/tokens' : '/collections', p.address]"
+                >
+                  <strong>{{ p.name }}</strong>
+                  <span class="muted"
+                    >{{ p.symbol }} · {{ p.kind === 0 ? 'token' : 'collection' }}
+                    {{ p.source === imported ? '· imported' : '' }}</span
+                  >
+                </a>
+                <span class="flags">
+                  @if (p.verified) {
+                    <span class="good">Verified</span>
+                  }
+                  @if (p.hidden) {
+                    <span class="bad">Hidden</span>
+                  }
+                </span>
+                <span class="actions">
+                  <button
+                    class="btn btn-ghost btn-sm"
+                    type="button"
+                    [disabled]="!!busy()"
+                    (click)="setFlag(p, 'verified')"
+                  >
+                    {{ p.verified ? 'Unverify' : 'Verify' }}
+                  </button>
+                  <button
+                    class="btn btn-ghost btn-sm"
+                    type="button"
+                    [disabled]="!!busy()"
+                    (click)="setFlag(p, 'hidden')"
+                  >
+                    {{ p.hidden ? 'Unhide' : 'Hide' }}
+                  </button>
+                </span>
+                @if (busy() === 'project-' + p.kind + '-' + p.id) {
+                  <span class="hint">Confirm in your wallet…</span>
+                }
+                @if (errorIn('project-' + p.kind + '-' + p.id); as message) {
+                  <div class="notice notice-error" role="alert">{{ message }}</div>
+                }
+              </li>
+            }
+          </ul>
+          @if (results().total > results().shown.length) {
+            <p class="hint">
+              {{ results().total - results().shown.length }} more — refine the search.
+            </p>
+          }
+        }
+      </div>
+
+      <div class="grid">
+        <!-- Symbols -->
+        <div class="card">
+          <h2>Reserved symbols</h2>
+          <p class="hint">
+            A reserved symbol can't be used by a new token launch (imports keep their own).
+          </p>
+          <label class="field">
+            <span>Symbol</span>
+            <div class="with-max">
+              <input
+                class="input mono"
+                [value]="symbol()"
+                (input)="setSymbol(text($event))"
+                (keyup.enter)="checkSymbol()"
+                placeholder="USDC"
+              />
+              <button
+                class="btn btn-ghost btn-sm"
+                type="button"
+                [disabled]="!symbol() || !!symbolInvalid()"
+                (click)="checkSymbol()"
+              >
+                Check
+              </button>
+            </div>
+            @if (symbolInvalid(); as e) {
+              <span class="error">{{ e }}</span>
+            }
+          </label>
+          @switch (symbolStatus()) {
+            @case ('free') {
+              <p>
+                <strong>{{ symbol() }}</strong> is free.
+                <button
+                  class="btn btn-red btn-sm"
+                  type="button"
+                  [disabled]="!!busy()"
+                  (click)="reserveSymbol(true)"
+                >
+                  {{ busy() === 'symbols' ? 'Confirm…' : 'Reserve' }}
+                </button>
+              </p>
+            }
+            @case ('reserved') {
+              <p>
+                <strong>{{ symbol() }}</strong> is reserved.
+                <button
+                  class="btn btn-ghost btn-sm"
+                  type="button"
+                  [disabled]="!!busy()"
+                  (click)="reserveSymbol(false)"
+                >
+                  {{ busy() === 'symbols' ? 'Confirm…' : 'Free it' }}
+                </button>
+              </p>
+            }
+            @case ('taken') {
+              <p>
+                <strong>{{ symbol() }}</strong> belongs to a launched token.
+              </p>
+            }
+          }
+          @if (errorIn('symbols'); as message) {
+            <div class="notice notice-error" role="alert">{{ message }}</div>
+          }
+        </div>
+
+        <!-- Admin handover -->
+        <div class="card">
+          <h2>Hand over the admin role</h2>
+          <p class="hint">
+            Two steps: you name the new admin, then they accept from their wallet on this page.
+            Until they accept, you stay the admin.
+          </p>
+          @if (s.pendingAdmin) {
+            <p>
+              Offered to <span class="mono">{{ s.pendingAdmin | shortAddress }}</span
+              >.
+              <button
+                class="btn btn-ghost btn-sm"
+                type="button"
+                [disabled]="!!busy()"
+                (click)="offerAdmin('')"
+              >
+                Withdraw the offer
+              </button>
+            </p>
+          }
+          <label class="field">
+            <span>New admin address</span>
+            <input
+              class="input mono"
+              [value]="newAdmin()"
+              (input)="newAdmin.set(text($event).trim())"
+              placeholder="AU…"
+            />
+          </label>
+          <button
+            class="btn btn-ghost btn-sm"
+            type="button"
+            [disabled]="!!busy() || !adminAddressValid()"
+            (click)="offerAdmin(newAdmin())"
+          >
+            {{ busy() === 'handover' ? 'Confirm in your wallet…' : 'Offer the admin role' }}
+          </button>
+          @if (errorIn('handover'); as message) {
+            <div class="notice notice-error" role="alert">{{ message }}</div>
+          }
+          @if (doneIn('handover'); as message) {
+            <div class="notice" role="status">{{ message }}</div>
+          }
+        </div>
+      </div>
+
+      <!-- Templates -->
+      <div class="card">
+        <h2>Templates</h2>
+        <p class="hint">
+          New launches use the newest version. The app only launches from templates it has the
+          source of (core/launchpad/templates.ts): add the source snapshot and its hash to the app
+          first, or launches stop.
+        </p>
+        <div class="form-grid">
+          <label class="field">
+            <span>Kind</span>
+            <select
+              class="input"
+              [value]="templateKind()"
+              (change)="templateKind.set(+text($event) === 1 ? 1 : 0); templateCode.set(null)"
+            >
+              <option value="0">RC-Token</option>
+              <option value="1">RC-Collection</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Compiled template (.wasm)</span>
+            <input class="input" type="file" accept=".wasm" (change)="pickTemplate($event)" />
+          </label>
+        </div>
+        @if (templateCode(); as code) {
+          <p class="mono hash">{{ code.name }} · {{ code.bytes.length }} bytes · {{ code.hash }}</p>
+          @if (templateTarget(); as target) {
+            @if (!target.known) {
+              <div class="notice">
+                This app doesn't know this code as v{{ target.next }}: launches of this kind will
+                stop until the app is updated with its source and hash.
+              </div>
+            }
+            <button
+              class="btn btn-red btn-sm"
+              type="button"
+              [disabled]="!!busy()"
+              (click)="setTemplate()"
+            >
+              {{ busy() === 'templates' ? 'Confirm in your wallet…' : 'Add as v' + target.next }}
+            </button>
+          }
+        }
+        @if (errorIn('templates'); as message) {
+          <div class="notice notice-error" role="alert">{{ message }}</div>
+        }
+        @if (doneIn('templates'); as message) {
+          <div class="notice" role="status">{{ message }}</div>
+        }
+      </div>
+
+      <!-- Upgrade -->
+      <div class="card">
+        <h2>Upgrade the Launchpad</h2>
+        <p class="hint">
+          Propose the new code's hash; 72 hours later, run it with the same file. A new proposal
+          replaces the pending one and starts the 72 hours again.
+        </p>
+        <label class="field">
+          <span>New Launchpad code (.wasm)</span>
+          <input class="input" type="file" accept=".wasm" (change)="pickUpgrade($event)" />
+        </label>
+        @if (upgradeCode(); as code) {
+          <p class="mono hash">{{ code.name }} · {{ code.bytes.length }} bytes · {{ code.hash }}</p>
+        }
+        <div class="actions">
+          @if (upgradeCode() && !upgradeMatches()) {
+            <button
+              class="btn btn-ghost btn-sm"
+              type="button"
+              [disabled]="!!busy()"
+              (click)="proposeUpgrade()"
+            >
+              {{ s.upgrade ? 'Propose instead of the pending one' : 'Propose this code' }}
+            </button>
+          }
+          @if (s.upgrade) {
+            <button
+              class="btn btn-red btn-sm"
+              type="button"
+              [disabled]="!!busy() || !upgradeMatches() || !upgradeReady()"
+              (click)="executeUpgrade()"
+            >
+              Run the upgrade
+            </button>
+            <button
+              class="btn btn-ghost btn-sm"
+              type="button"
+              [disabled]="!!busy()"
+              (click)="cancelUpgrade()"
+            >
+              Cancel it
+            </button>
+          }
+        </div>
+        @if (s.upgrade) {
+          <p class="hint">
+            @if (!upgradeReady()) {
+              Runs in {{ countdown(s.upgrade.executableAt) }}.
+            }
+            @if (upgradeCode() && !upgradeMatches()) {
+              This file is not the proposed code.
+            } @else if (!upgradeCode()) {
+              Pick the proposed .wasm to run it.
+            }
+          </p>
+        }
+        @if (busy() === 'upgrade') {
+          <span class="hint">Confirm in your wallet…</span>
+        }
+        @if (errorIn('upgrade'); as message) {
+          <div class="notice notice-error" role="alert">{{ message }}</div>
+        }
+        @if (doneIn('upgrade'); as message) {
+          <div class="notice" role="status">{{ message }}</div>
+        }
+      </div>
+    }
+  }
+  <app-connect-wallet-dialog />
+</section>

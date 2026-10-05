@@ -1,4 +1,5 @@
 import { Injectable, inject } from '@angular/core';
+import { sha256 } from '../utils/sha256';
 import { ZipEntry, createZip } from '../utils/zip';
 import { LaunchpadReader } from './launchpad-reader';
 import { KIND_TOKEN, Project, SOURCE_LAUNCHED, hex } from './records';
@@ -69,8 +70,7 @@ export class OriginalCode {
 }
 
 async function sha256Hex(data: Uint8Array): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', data as Uint8Array<ArrayBuffer>);
-  return hex(new Uint8Array(digest));
+  return hex(await sha256(data));
 }
 
 function projectJson(p: Project): string {
