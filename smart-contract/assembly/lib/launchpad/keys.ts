@@ -163,3 +163,43 @@ export function statsKey(collectionId: u64): StaticArray<u8> {
 export const MRC721_OWNER_PREFIX: u8 = 0x04;
 export const MRC721_APPROVED_PREFIX: u8 = 0x05;
 export const MRC721_OPERATOR_PREFIX: u8 = 0x06;
+
+// ---- presale (phase 6) --------------------------------------------------------------------
+export const COUNTER_PRESALE: u8 = 4;
+
+const PRESALE = stringToBytes('pr:');
+const PRESALE_ACTIVE = stringToBytes('pa:');
+const CONTRIBUTION = stringToBytes('cb:');
+const CONTRIBUTIONS_OF = stringToBytes('cu:');
+const ESCROWED = stringToBytes('esc:');
+
+export function presaleKey(id: u64): StaticArray<u8> {
+  return PRESALE.concat(u64BE(id));
+}
+
+/** The open presale of a token (one at a time): token address → presale id. */
+export function presaleActiveKey(token: string): StaticArray<u8> {
+  return PRESALE_ACTIVE.concat(stringToBytes(token + ':'));
+}
+
+export function contributionKey(presaleId: u64, contributor: string): StaticArray<u8> {
+  return CONTRIBUTION.concat(u64BE(presaleId)).concat(stringToBytes(contributor));
+}
+
+export function contributionsOfPrefix(contributor: string): StaticArray<u8> {
+  return CONTRIBUTIONS_OF.concat(stringToBytes(contributor + ':'));
+}
+
+export function contributionsOfKey(contributor: string, presaleId: u64): StaticArray<u8> {
+  return contributionsOfPrefix(contributor).concat(u64BE(presaleId));
+}
+
+/** Token units the Launchpad holds in escrow for a token, across its presales. */
+export function escrowedKey(token: string): StaticArray<u8> {
+  return ESCROWED.concat(stringToBytes(token + ':'));
+}
+
+/** The standard MRC20 balance key of an address ('BALANCE' + address). */
+export function mrc20BalanceKey(address: string): StaticArray<u8> {
+  return stringToBytes('BALANCE' + address);
+}

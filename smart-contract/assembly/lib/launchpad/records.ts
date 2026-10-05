@@ -283,3 +283,85 @@ export class MarketStats implements Serializable {
     return new Result(args.offset);
   }
 }
+
+export const PRESALE_OPEN: u8 = 0;
+export const PRESALE_SUCCESS: u8 = 1;
+export const PRESALE_FAILED: u8 = 2;
+export const PRESALE_CANCELLED: u8 = 3;
+
+/**
+ * A token presale (phase 6). The tokens for sale sit in the Launchpad from creation; the MAS
+ * raised stays there until success (owner withdraws, contributors claim tokens) or failure /
+ * cancel (contributors take their MAS back, the owner the tokens).
+ */
+export class Presale implements Serializable {
+  constructor(
+    public id: u64 = 0,
+    /** Registry id of the token. */
+    public tokenId: u64 = 0,
+    public token: string = '',
+    public creator: string = '',
+    /** Token units for sale, escrowed at creation. */
+    public tokensForSale: u256 = u256.Zero,
+    /** Token units per 1 MAS (10^9 nanoMAS). */
+    public rate: u256 = u256.Zero,
+    /** nanoMAS. */
+    public softCap: u64 = 0,
+    public hardCap: u64 = 0,
+    /** Per wallet, nanoMAS; maxBuy 0 = no limit. */
+    public minBuy: u64 = 0,
+    public maxBuy: u64 = 0,
+    /** Milliseconds since the epoch. */
+    public start: u64 = 0,
+    public end: u64 = 0,
+    /** nanoMAS contributed so far. */
+    public raised: u64 = 0,
+    public contributors: u32 = 0,
+    /** PRESALE_OPEN / SUCCESS / FAILED / CANCELLED. */
+    public status: u8 = PRESALE_OPEN,
+    /** The owner took the raised MAS (success only). */
+    public withdrawn: bool = false,
+  ) {}
+
+  serialize(): StaticArray<u8> {
+    return new Args()
+      .add(this.id)
+      .add(this.tokenId)
+      .add(this.token)
+      .add(this.creator)
+      .add(this.tokensForSale)
+      .add(this.rate)
+      .add(this.softCap)
+      .add(this.hardCap)
+      .add(this.minBuy)
+      .add(this.maxBuy)
+      .add(this.start)
+      .add(this.end)
+      .add(this.raised)
+      .add(this.contributors)
+      .add(this.status)
+      .add(this.withdrawn)
+      .serialize();
+  }
+
+  deserialize(data: StaticArray<u8>, offset: i32): Result<i32> {
+    const args = new Args(data, offset);
+    this.id = args.nextU64().expect('id');
+    this.tokenId = args.nextU64().expect('tokenId');
+    this.token = args.nextString().expect('token');
+    this.creator = args.nextString().expect('creator');
+    this.tokensForSale = args.nextU256().expect('tokensForSale');
+    this.rate = args.nextU256().expect('rate');
+    this.softCap = args.nextU64().expect('softCap');
+    this.hardCap = args.nextU64().expect('hardCap');
+    this.minBuy = args.nextU64().expect('minBuy');
+    this.maxBuy = args.nextU64().expect('maxBuy');
+    this.start = args.nextU64().expect('start');
+    this.end = args.nextU64().expect('end');
+    this.raised = args.nextU64().expect('raised');
+    this.contributors = args.nextU32().expect('contributors');
+    this.status = args.nextU8().expect('status');
+    this.withdrawn = args.nextBool().expect('withdrawn');
+    return new Result(args.offset);
+  }
+}

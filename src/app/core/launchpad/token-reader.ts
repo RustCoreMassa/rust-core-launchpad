@@ -46,6 +46,19 @@ export class TokenReader {
     return new Args(await this.call(address, 'balanceOf', new Args().addString(holder))).nextU256();
   }
 
+  async allowance(address: string, owner: string, spender: string): Promise<bigint> {
+    const bytes = await this.call(
+      address,
+      'allowance',
+      new Args().addString(owner).addString(spender),
+    );
+    return new Args(bytes).nextU256();
+  }
+
+  async decimals(address: string): Promise<number> {
+    return (await this.call(address, 'decimals'))[0];
+  }
+
   /** sha256 (hex) of the contract's current bytecode, to compare with the original. */
   async codeHash(address: string): Promise<string> {
     const provider = this.reader.provider() as JsonRpcPublicProvider;

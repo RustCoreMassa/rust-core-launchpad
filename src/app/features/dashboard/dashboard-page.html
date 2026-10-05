@@ -45,8 +45,18 @@
         >
           My NFTs
         </button>
+        <button
+          type="button"
+          role="tab"
+          class="chip"
+          [class.selected]="tab() === 'presales'"
+          [attr.aria-selected]="tab() === 'presales'"
+          (click)="tab.set('presales')"
+        >
+          Presales
+        </button>
       </div>
-      @if (tab() !== 'nfts') {
+      @if (tab() === 'tokens' || tab() === 'collections') {
         <div class="actions">
           <button class="btn btn-ghost btn-sm" type="button" (click)="openImport()">
             Import a {{ noun() }}
@@ -60,7 +70,36 @@
       <div class="notice notice-error" role="alert">{{ message }}</div>
     }
 
-    @if (tab() === 'nfts') {
+    @if (tab() === 'presales') {
+      @if (presales() === null) {
+        <div class="card row"><span class="skeleton" style="width: 50%"></span></div>
+      } @else if (presales()!.length === 0) {
+        <div class="card empty">
+          <p>No presale of yours and no contribution to collect.</p>
+          <a class="btn btn-ghost btn-sm" routerLink="/presales">Explore presales</a>
+        </div>
+      } @else {
+        <div class="list">
+          @for (item of presales(); track item.presale.id) {
+            <a class="card row" [routerLink]="['/presales', item.presale.id.toString()]">
+              <app-project-logo
+                [url]="item.token?.info?.logoUrl ?? ''"
+                [symbol]="item.token?.symbol ?? '?'"
+              />
+              <div class="names">
+                <strong>{{ item.token?.name ?? 'Token' }} presale</strong>
+                <span class="muted">{{ phase(item.presale) }}</span>
+              </div>
+              @if (item.contribution) {
+                <span class="owner">You put in {{ item.contribution | mas }}</span>
+              } @else {
+                <span class="owner">Yours</span>
+              }
+            </a>
+          }
+        </div>
+      }
+    } @else if (tab() === 'nfts') {
       @if (nfts() === null) {
         <div class="card row">
           <span class="muted">Looking through the collections… {{ nftsScanned() }} checked</span>

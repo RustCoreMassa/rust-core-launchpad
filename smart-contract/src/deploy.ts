@@ -3,6 +3,9 @@
 //   cp .env.example .env   # PRIVATE_KEY of the deployer (becomes the Launchpad admin)
 //   npm run deploy         # buildnet; NETWORK=mainnet npm run deploy for mainnet
 //
+// Runs with a larger V8 stack (package.json): massa-web3 5.3 spreads the bytecode into one
+// push(...) call, which overflows the default stack above ~120 KB.
+//
 // Fees come from .env (in MAS; buildnet defaults below). The result is written to
 // deployments/<network>.json (move the previous one to deployments/history/ first); copy the
 // address into src/app/core/network/networks.ts.

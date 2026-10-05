@@ -16,6 +16,7 @@ import { KEEP_ONLY_ORIGINAL, OriginalCode } from '../../core/launchpad/original-
 import { ProjectStore } from '../../core/launchpad/project-store';
 import {
   KIND_TOKEN,
+  Presale,
   Project,
   SOURCE_LAUNCHED,
   categoryLabel,
@@ -64,6 +65,8 @@ export class TokenPage {
   /** undefined = loading, null = not in the Launchpad. */
   protected readonly project = signal<Project | null | undefined>(undefined);
   protected readonly state = signal<TokenState | null>(null);
+  /** The token's open presale; undefined while loading. */
+  protected readonly presale = signal<Presale | null | undefined>(undefined);
   protected readonly codeModified = signal<boolean | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly downloading = signal(false);
@@ -167,6 +170,7 @@ export class TokenPage {
     const run = ++this.loadRun;
     this.project.set(undefined);
     this.state.set(null);
+    this.presale.set(undefined);
     this.codeModified.set(null);
     this.error.set(null);
     try {
@@ -177,6 +181,9 @@ export class TokenPage {
       const state = await this.tokens.state(address);
       if (run !== this.loadRun) return;
       this.state.set(state);
+      const presale = await this.launchpad.presaleOf(address).catch(() => null);
+      if (run !== this.loadRun) return;
+      this.presale.set(presale);
       const current = await this.tokens.codeHash(address);
       if (run === this.loadRun) this.codeModified.set(current !== hex(project.codeHash));
     } catch (err) {

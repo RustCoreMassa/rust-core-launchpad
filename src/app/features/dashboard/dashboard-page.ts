@@ -15,12 +15,15 @@ import { ProjectStore } from '../../core/launchpad/project-store';
 import {
   KIND_COLLECTION,
   KIND_TOKEN,
+  Presale,
   Project,
   ProjectKind,
   SOURCE_IMPORTED,
   categoryLabel,
 } from '../../core/launchpad/records';
+import { PHASE_LABELS, presalePhase } from '../../core/launchpad/presale-state';
 import { TokenReader } from '../../core/launchpad/token-reader';
+import { MasPipe } from '../../shared/pipes/units-pipe';
 import { NetworkStore } from '../../core/network/network-store';
 import { toUserMessage } from '../../core/utils/user-error';
 import { WalletStore } from '../../core/wallet/wallet-store';
@@ -29,12 +32,19 @@ import { ProjectBadges } from '../../shared/ui/project-badges/project-badges';
 import { ProjectLogo } from '../../shared/ui/project-logo/project-logo';
 import { ImportDialog } from './import-dialog';
 
-type Tab = 'tokens' | 'collections' | 'nfts';
+type Tab = 'tokens' | 'collections' | 'nfts' | 'presales';
 
 interface MyProject {
   project: Project;
   /** null while the current owner is being read. */
   stillOwner: boolean | null;
+}
+
+interface MyPresale {
+  presale: Presale;
+  token: Project | null;
+  /** The wallet's pending contribution, nanoMAS (0 for presales it only created). */
+  contribution: bigint;
 }
 
 interface MyNfts {
@@ -45,7 +55,7 @@ interface MyNfts {
 /** The connected wallet's launches, imports and NFTs (docs/ANALYSIS.md, "Dashboard /me"). */
 @Component({
   selector: 'app-dashboard-page',
-  imports: [RouterLink, ProjectLogo, ProjectBadges, ImportDialog, ConnectWalletDialog],
+  imports: [RouterLink, ProjectLogo, ProjectBadges, ImportDialog, ConnectWalletDialog, MasPipe],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -64,6 +74,9 @@ export class DashboardPage {
   /** null while loading. */
   protected readonly nfts = signal<MyNfts[] | null>(null);
   protected readonly nftsScanned = signal(0);
+  /** null while loading. */
+  protected readonly presales = signal<MyPresale[] | null>(null);
+  protected readonly phaseLabels = PHASE_LABELS;
   protected readonly error = signal<string | null>(null);
   protected readonly imported = SOURCE_IMPORTED;
 
@@ -92,6 +105,7 @@ export class DashboardPage {
         this.run++;
         this.mine.set([null, null]);
         this.nfts.set(null);
+        this.presales.set(null);
         if (address && deployed) {
           void this.loadMine(address, KIND_TOKEN, this.run);
           void this.loadMine(address, KIND_COLLECTION, this.run);
@@ -103,7 +117,13 @@ export class DashboardPage {
       const address = this.wallet.address();
       if (tab === 'nfts' && address && this.launchpad.address())
         untracked(() => this.nfts() === null && void this.loadNfts(address, this.run));
+      if (tab === 'presales' && address && this.launchpad.address())
+        untracked(() => this.presales() === null && void this.loadPresales(address, this.run));
     });
+  }
+
+  protected phase(p: Presale): string {
+    return this.phaseLabels[presalePhase(p)];
   }
 
   protected category(project: Project): string {
@@ -166,6 +186,26 @@ export class DashboardPage {
         this.nftsScanned.update((n) => n + 1);
       }
       this.nfts.set(found);
+    } catch (err) {
+      if (run === this.run) this.error.set(toUserMessage(err));
+    }
+  }
+
+  /** Presales the wallet created, and those where it has a contribution to claim or refund. */
+  private async loadPresales(address: string, run: number): Promise<void> {
+    try {
+      const all = await this.launchpad.allPresales();
+      const contributed = new Set(await this.launchpad.contributionsOf(address));
+      const list: MyPresale[] = [];
+      for (const presale of all) {
+        if (presale.creator !== address && !contributed.has(presale.id)) continue;
+        const contribution = contributed.has(presale.id)
+          ? await this.launchpad.contribution(presale.id, address)
+          : 0n;
+        const token = await this.launchpad.projectByAddress(presale.token).catch(() => null);
+        list.push({ presale, token, contribution });
+      }
+      if (run === this.run) this.presales.set(list);
     } catch (err) {
       if (run === this.run) this.error.set(toUserMessage(err));
     }

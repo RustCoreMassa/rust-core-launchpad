@@ -20,7 +20,7 @@ export const NETWORKS: Readonly<Record<NetworkId, NetworkConfig>> = {
     label: 'Buildnet',
     chainId: CHAIN_ID.Buildnet,
     // smart-contract/deployments/buildnet.json
-    launchpadAddress: 'AS1KWwW421JfEoW6GBcWyHovjAJ199a63BwGc2XJy6DdJL2rsST8',
+    launchpadAddress: 'AS1GfoubCGA45tZLPLBzQc6jbMC1WzcKB7T1xKtLE8Aemjb41puK',
   },
 };
 

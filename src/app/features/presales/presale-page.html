@@ -1,0 +1,234 @@
+<section class="page container">
+  <a class="back muted" routerLink="/presales">← All presales</a>
+
+  @if (presale() === undefined) {
+    <div class="card"><span class="skeleton" style="width: 50%; height: 28px"></span></div>
+  } @else if (presale() === null) {
+    <div class="card">
+      <h1>Presale not found</h1>
+      <p class="muted">There is no presale with this number on {{ network.config().label }}.</p>
+    </div>
+  } @else {
+    @let p = presale()!;
+    @let t = token();
+    <div class="layout">
+      <div class="main">
+        <div class="card head">
+          <div class="identity">
+            <app-project-logo [url]="t?.info?.logoUrl ?? ''" [symbol]="symbol() || '?'" />
+            <div class="names">
+              <h1>{{ t?.name ?? 'Token' }} presale</h1>
+              <span class="muted"
+                >{{ symbol() }} ·
+                <span class="phase" [attr.data-phase]="phase()">{{ countdown() }}</span></span
+              >
+            </div>
+          </div>
+          @if (t) {
+            <app-project-badges [project]="t" />
+          }
+          <app-presale-progress [presale]="p" />
+        </div>
+
+        <div class="card">
+          <h2>Terms</h2>
+          <dl class="rows">
+            <div>
+              <dt>Price</dt>
+              <dd>1 MAS = {{ pricePerMas() }} {{ symbol() }}</dd>
+            </div>
+            <div>
+              <dt>Soft cap</dt>
+              <dd>{{ p.softCap | mas }} {{ willSucceed() ? '✓ reached' : '' }}</dd>
+            </div>
+            <div>
+              <dt>Hard cap</dt>
+              <dd>{{ p.hardCap | mas }}</dd>
+            </div>
+            <div>
+              <dt>Per wallet</dt>
+              <dd>{{ p.minBuy | mas }} to {{ p.maxBuy ? (p.maxBuy | mas) : 'no limit' }}</dd>
+            </div>
+            <div>
+              <dt>Start</dt>
+              <dd>{{ p.start | date: 'medium' }}</dd>
+            </div>
+            <div>
+              <dt>End</dt>
+              <dd>{{ p.end | date: 'medium' }}</dd>
+            </div>
+            <div>
+              <dt>Contributors</dt>
+              <dd>{{ p.contributors }}</dd>
+            </div>
+            <div>
+              <dt>Owner</dt>
+              <dd class="mono">{{ p.creator | shortAddress }}</dd>
+            </div>
+          </dl>
+          @if (t) {
+            <a class="btn btn-ghost btn-sm token-link" [routerLink]="['/tokens', p.token]"
+              >About {{ symbol() }}</a
+            >
+          }
+        </div>
+      </div>
+
+      <div class="side">
+        <div class="card action">
+          @if (mine()) {
+            <div class="mine">
+              <span class="muted">Your contribution</span>
+              <strong>{{ mine() | mas }}</strong>
+              <span class="muted">= {{ myTokens() }} {{ symbol() }}</span>
+            </div>
+          }
+
+          @switch (phase()) {
+            @case ('upcoming') {
+              <p class="muted">
+                Contributions open in {{ countdown().replace('Starts in ', '') }}.
+              </p>
+              @if (isCreator()) {
+                <button
+                  class="btn btn-ghost btn-sm"
+                  type="button"
+                  [disabled]="!!busy()"
+                  (click)="cancel()"
+                >
+                  {{ busy() === 'cancel' ? 'Confirm in your wallet…' : 'Cancel presale' }}
+                </button>
+                <p class="hint">Only before the start. All tokens come back to you.</p>
+              }
+            }
+            @case ('live') {
+              <h2>Contribute</h2>
+              @if (!wallet.connected()) {
+                <button class="btn btn-red btn-block" type="button" (click)="connect()">
+                  Connect wallet
+                </button>
+              } @else if (!maxNow()) {
+                <p class="muted">You reached the maximum per wallet.</p>
+              } @else {
+                <label class="field">
+                  <span>Amount (MAS)</span>
+                  <div class="with-max">
+                    <input
+                      class="input"
+                      inputmode="decimal"
+                      [value]="amount()"
+                      (input)="amount.set(text($event))"
+                    />
+                    <button class="btn btn-ghost btn-sm" type="button" (click)="useMax()">
+                      Max
+                    </button>
+                  </div>
+                  @if (amountError(); as error) {
+                    <span class="error">{{ error }}</span>
+                  } @else if (preview()) {
+                    <span class="hint"
+                      >You get {{ preview() }} {{ symbol() }} if the presale succeeds.</span
+                    >
+                  }
+                </label>
+                <button
+                  class="btn btn-red btn-block"
+                  type="button"
+                  [disabled]="
+                    !!busy() || !amountNano() || !!amountError() || wallet.networkMismatch()
+                  "
+                  (click)="contribute()"
+                >
+                  {{ busy() === 'contribute' ? 'Confirm in your wallet…' : 'Contribute' }}
+                </button>
+                <p class="hint">
+                  Your MAS stay locked in the Launchpad until the end. If the soft cap isn't
+                  reached, you take them back.
+                </p>
+              }
+            }
+            @case ('ended') {
+              <h2>Ended</h2>
+              <p class="muted">
+                {{ willSucceed() ? 'The soft cap was reached.' : 'The soft cap was not reached.' }}
+                Anyone can finalize it to open {{ willSucceed() ? 'claims' : 'refunds' }}.
+              </p>
+              @if (wallet.connected()) {
+                <button
+                  class="btn btn-red btn-block"
+                  type="button"
+                  [disabled]="!!busy()"
+                  (click)="finalize()"
+                >
+                  {{ busy() === 'finalize' ? 'Confirm in your wallet…' : 'Finalize' }}
+                </button>
+              } @else {
+                <button class="btn btn-ghost btn-block" type="button" (click)="connect()">
+                  Connect wallet
+                </button>
+              }
+            }
+            @case ('success') {
+              <h2>Successful</h2>
+              @if (mine()) {
+                <button
+                  class="btn btn-red btn-block"
+                  type="button"
+                  [disabled]="!!busy()"
+                  (click)="claim()"
+                >
+                  {{
+                    busy() === 'claim'
+                      ? 'Confirm in your wallet…'
+                      : 'Claim ' + myTokens() + ' ' + symbol()
+                  }}
+                </button>
+              } @else if (!isCreator()) {
+                <p class="muted">Contributors claim their tokens here.</p>
+              }
+              @if (isCreator()) {
+                @if (p.withdrawn) {
+                  <p class="muted">You withdrew the MAS raised.</p>
+                } @else {
+                  <button
+                    class="btn btn-ghost btn-block"
+                    type="button"
+                    [disabled]="!!busy()"
+                    (click)="withdraw()"
+                  >
+                    {{
+                      busy() === 'withdraw'
+                        ? 'Confirm in your wallet…'
+                        : 'Withdraw ' + (p.raised | mas)
+                    }}
+                  </button>
+                  <p class="hint">Minus the Launchpad's presale fee.</p>
+                }
+              }
+            }
+            @default {
+              <h2>{{ labels[phase()!] }}</h2>
+              @if (mine()) {
+                <button
+                  class="btn btn-red btn-block"
+                  type="button"
+                  [disabled]="!!busy()"
+                  (click)="refund()"
+                >
+                  {{ busy() === 'refund' ? 'Confirm in your wallet…' : 'Refund ' + (mine() | mas) }}
+                </button>
+              } @else {
+                <p class="muted">Contributors take their MAS back here.</p>
+              }
+            }
+          }
+
+          @if (error(); as message) {
+            <div class="notice notice-error" role="alert">{{ message }}</div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+  <app-connect-wallet-dialog />
+</section>

@@ -108,7 +108,11 @@ export class CollectionReader {
   async isApproved(address: string, owner: string, id: bigint, operator: string): Promise<boolean> {
     const text = new TextEncoder();
     const single = new Uint8Array([APPROVED_PREFIX, ...U256.toBytes(id)]);
-    const forAll = new Uint8Array([OPERATOR_PREFIX, ...text.encode(owner), ...text.encode(operator)]);
+    const forAll = new Uint8Array([
+      OPERATOR_PREFIX,
+      ...text.encode(owner),
+      ...text.encode(operator),
+    ]);
     const [approved, operatorFlag] = await this.storage(address, [single, forAll]);
     if (approved && new TextDecoder().decode(approved) === operator) return true;
     return !!operatorFlag && operatorFlag[0] === 1;

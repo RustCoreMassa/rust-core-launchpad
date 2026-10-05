@@ -89,7 +89,7 @@ import {
   _ownerOf,
 } from '../lib/launchpad/common';
 
-export const VERSION = '0.3.0';
+export const VERSION = '0.4.1';
 /** Delay between proposing and executing an upgrade of this contract: 72 hours. */
 export const UPGRADE_DELAY_MS: u64 = 72 * 60 * 60 * 1000;
 export const MAX_DECIMALS: u8 = 18;
@@ -585,6 +585,22 @@ export {
   getSales,
   getStats,
 } from '../lib/launchpad/marketplace';
+
+// Presale (phase 6), in lib/launchpad/presale.ts.
+export {
+  createPresale,
+  contribute,
+  finalize,
+  claim,
+  refund,
+  withdrawRaised,
+  cancelPresale,
+  getPresale,
+  getPresales,
+  presaleOf,
+  getContribution,
+  getContributionsOf,
+} from '../lib/launchpad/presale';
 
 // ==================================================== //
 // ====                   READS                    ==== //

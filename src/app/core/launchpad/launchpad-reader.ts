@@ -6,11 +6,13 @@ import {
   LaunchpadConfig,
   Listing,
   MarketStats,
+  Presale,
   Project,
   ProjectKind,
   Sale,
   readConfig,
   readListing,
+  readPresale,
   readPage,
   readProject,
   readProjectPage,
@@ -163,7 +165,11 @@ export class LaunchpadReader {
     return readListing(new Args(await this.read('getListing', new Args().addU64(id))));
   }
 
-  async sales(collectionId: bigint, offset = 0, limit = PAGE_SIZE): Promise<{ total: number; items: Sale[] }> {
+  async sales(
+    collectionId: bigint,
+    offset = 0,
+    limit = PAGE_SIZE,
+  ): Promise<{ total: number; items: Sale[] }> {
     const bytes = await this.read(
       'getSales',
       new Args().addU64(collectionId).addU64(BigInt(offset)).addU32(BigInt(limit)),
@@ -173,6 +179,49 @@ export class LaunchpadReader {
 
   async stats(collectionId: bigint): Promise<MarketStats> {
     return readStats(new Args(await this.read('getStats', new Args().addU64(collectionId))));
+  }
+
+  // ---- presale -------------------------------------------------------------------------------
+
+  /** Every presale, newest first (page after page). */
+  async allPresales(max = 1_000): Promise<Presale[]> {
+    const all: Presale[] = [];
+    for (;;) {
+      const page = readPage(
+        await this.read(
+          'getPresales',
+          new Args().addU64(BigInt(all.length)).addU32(BigInt(PAGE_SIZE)),
+        ),
+        readPresale,
+      );
+      all.push(...page.items);
+      if (!page.items.length || all.length >= Math.min(page.total, max)) return all;
+    }
+  }
+
+  async presale(id: bigint): Promise<Presale> {
+    return readPresale(new Args(await this.read('getPresale', new Args().addU64(id))));
+  }
+
+  /** The open presale of a token, or null. */
+  async presaleOf(token: string): Promise<Presale | null> {
+    const id = new Args(await this.read('presaleOf', new Args().addString(token))).nextU64();
+    return id === 0n ? null : this.presale(id);
+  }
+
+  /** MAS (nanoMAS) a wallet contributed and hasn't taken back or claimed yet. */
+  async contribution(presaleId: bigint, contributor: string): Promise<bigint> {
+    const bytes = await this.read(
+      'getContribution',
+      new Args().addU64(presaleId).addString(contributor),
+    );
+    return new Args(bytes).nextU64();
+  }
+
+  /** Presales where the wallet still has a contribution to claim or refund. */
+  async contributionsOf(contributor: string): Promise<bigint[]> {
+    const bytes = await this.read('getContributionsOf', new Args().addString(contributor));
+    return new Args(bytes).nextArray<bigint>(ArrayTypes.U64);
   }
 
   private async read(func: string, parameter: Args = new Args()): Promise<Uint8Array> {

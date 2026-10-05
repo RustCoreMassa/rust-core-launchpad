@@ -48,18 +48,16 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/marketplace/marketplace-page').then((m) => m.MarketplacePage),
   },
-  plannedRoute('presales', 'Presales', {
-    label: 'Presales',
-    heading: 'Token presales',
-    text: 'Contribute MAS to upcoming tokens; claim your tokens on success, or get refunded.',
-    phase: 6,
-  }),
-  plannedRoute('presales/:id', 'Presale', {
-    label: 'Presales',
-    heading: 'Presale',
-    text: 'Progress, terms, your contribution, claim and refund.',
-    phase: 6,
-  }),
+  {
+    path: 'presales',
+    title: 'Presales · RustCore Launchpad',
+    loadComponent: () => import('./features/presales/presales-page').then((m) => m.PresalesPage),
+  },
+  {
+    path: 'presales/:id',
+    title: 'Presale · RustCore Launchpad',
+    loadComponent: () => import('./features/presales/presale-page').then((m) => m.PresalePage),
+  },
   {
     path: 'create/token',
     title: 'Create a token · RustCore Launchpad',
@@ -72,12 +70,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/create/create-collection-page').then((m) => m.CreateCollectionPage),
   },
-  plannedRoute('create/presale/:token', 'Create a presale', {
-    label: 'Create',
-    heading: 'Start a presale',
-    text: 'Rate, caps, limits and dates for a token you own.',
-    phase: 6,
-  }),
+  {
+    path: 'create/presale/:token',
+    title: 'Start a presale · RustCore Launchpad',
+    loadComponent: () =>
+      import('./features/create/create-presale-page').then((m) => m.CreatePresalePage),
+  },
   {
     path: 'me',
     title: 'My launches · RustCore Launchpad',

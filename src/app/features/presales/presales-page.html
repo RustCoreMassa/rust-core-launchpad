@@ -1,0 +1,66 @@
+<section class="page container">
+  <header class="page-head">
+    <span class="label">Presales</span>
+    <h1>Token presales</h1>
+    <p>
+      Contribute MAS to a token's presale. If it reaches its soft cap you claim the tokens; if not,
+      you take your MAS back. Nobody can touch the MAS before that.
+    </p>
+  </header>
+
+  @if (!launchpad.address()) {
+    <div class="notice">The Launchpad isn't deployed on {{ network.config().label }} yet.</div>
+  } @else {
+    <div class="chips filters">
+      @for (f of filters; track f.id) {
+        <button
+          type="button"
+          class="chip"
+          [class.selected]="filter() === f.id"
+          (click)="filter.set(f.id)"
+        >
+          {{ f.label }}
+        </button>
+      }
+    </div>
+
+    @if (error(); as message) {
+      <div class="notice notice-error" role="alert">{{ message }}</div>
+    }
+
+    @if (presales() === null) {
+      <div class="grid">
+        @for (row of [1, 2, 3]; track row) {
+          <div class="card"><span class="skeleton" style="width: 70%"></span></div>
+        }
+      </div>
+    } @else if (visible().length === 0) {
+      <div class="card empty">
+        <p class="muted">
+          {{ presales()!.length ? 'No presale matches this filter.' : 'No presale yet.' }}
+        </p>
+        <p class="hint">Own a Launchpad token? Start its presale from the token's page.</p>
+      </div>
+    } @else {
+      <div class="grid">
+        @for (item of visible(); track item.presale.id) {
+          @let p = item.presale;
+          @let t = token(p);
+          <a class="card presale" [routerLink]="['/presales', p.id.toString()]">
+            <div class="top">
+              <app-project-logo [url]="t?.info?.logoUrl ?? ''" [symbol]="t?.symbol ?? '?'" />
+              <div class="names">
+                <strong>{{ t?.name ?? 'Token' }}</strong>
+                <span class="muted">{{ t?.symbol }}</span>
+              </div>
+              <span class="phase" [attr.data-phase]="item.phase">{{
+                countdown(p, item.phase)
+              }}</span>
+            </div>
+            <app-presale-progress [presale]="p" />
+          </a>
+        }
+      </div>
+    }
+  }
+</section>

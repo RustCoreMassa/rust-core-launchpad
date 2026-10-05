@@ -1,0 +1,242 @@
+<section class="page container narrow">
+  <header class="page-head">
+    <span class="label">Presale</span>
+    <h1>Start a presale</h1>
+    <p>
+      Raise MAS for your token. The tokens wait in the Launchpad; contributors claim them on
+      success, or get their MAS back if the soft cap isn't reached.
+    </p>
+  </header>
+
+  @if (project() === undefined) {
+    <div class="card"><span class="skeleton" style="width: 50%"></span></div>
+  } @else if (project() === null) {
+    <div class="card">
+      <p class="muted">
+        This address is not a token in the Launchpad on {{ network.config().label }}.
+      </p>
+      <a class="btn btn-ghost btn-sm" routerLink="/tokens">Explore tokens</a>
+    </div>
+  } @else {
+    @let p = project()!;
+    <div class="card step">
+      <div class="review-head">
+        <app-project-logo [url]="p.info.logoUrl" [symbol]="p.symbol" />
+        <div>
+          <strong>{{ p.name }}</strong>
+          <span class="muted"> · {{ p.symbol }}</span>
+          @if (balance() !== null) {
+            <div class="hint">You hold {{ balance() | units: p.decimals }} {{ p.symbol }}</div>
+          }
+        </div>
+      </div>
+
+      @if (open(); as o) {
+        <div class="notice">
+          This token already has an open presale.
+          <a class="btn btn-ghost btn-sm" [routerLink]="['/presales', o.id.toString()]">View it</a>
+        </div>
+      } @else if (!wallet.connected()) {
+        <div class="notice">
+          Connect the wallet that owns {{ p.symbol }}.
+          <button class="btn btn-ghost btn-sm" type="button" (click)="connect()">
+            Connect wallet
+          </button>
+        </div>
+      } @else if (!isOwner()) {
+        <div class="notice">
+          Only the token's owner can start its presale. Connect the owner wallet.
+        </div>
+      } @else {
+        @let d = draft();
+        @let e = errors();
+        <label class="field">
+          <span>Tokens per 1 MAS</span>
+          <input
+            class="input"
+            inputmode="decimal"
+            placeholder="1000"
+            [value]="d.rate"
+            (input)="set('rate', text($event))"
+          />
+          @if (touched() && e.rate) {
+            <span class="error">{{ e.rate }}</span>
+          } @else {
+            <span class="hint"
+              >The price: a contributor sending 1 MAS gets this many {{ p.symbol }}.</span
+            >
+          }
+        </label>
+
+        <div class="form-grid">
+          <label class="field">
+            <span>Soft cap (MAS)</span>
+            <input
+              class="input"
+              inputmode="decimal"
+              placeholder="50"
+              [value]="d.softCap"
+              (input)="set('softCap', text($event))"
+            />
+            @if (touched() && e.softCap) {
+              <span class="error">{{ e.softCap }}</span>
+            } @else {
+              <span class="hint">Below this, the presale fails and everyone is refunded.</span>
+            }
+          </label>
+          <label class="field">
+            <span>Hard cap (MAS)</span>
+            <input
+              class="input"
+              inputmode="decimal"
+              placeholder="100"
+              [value]="d.hardCap"
+              (input)="set('hardCap', text($event))"
+            />
+            @if (touched() && e.hardCap) {
+              <span class="error">{{ e.hardCap }}</span>
+            } @else {
+              <span class="hint">The most you raise; reaching it closes the presale.</span>
+            }
+          </label>
+          <label class="field">
+            <span>Minimum per wallet (MAS)</span>
+            <input
+              class="input"
+              inputmode="decimal"
+              placeholder="0"
+              [value]="d.minBuy"
+              (input)="set('minBuy', text($event))"
+            />
+            @if (touched() && e.minBuy) {
+              <span class="error">{{ e.minBuy }}</span>
+            }
+          </label>
+          <label class="field">
+            <span>Maximum per wallet (MAS)</span>
+            <input
+              class="input"
+              inputmode="decimal"
+              placeholder="empty = no limit"
+              [value]="d.maxBuy"
+              (input)="set('maxBuy', text($event))"
+            />
+            @if (touched() && e.maxBuy) {
+              <span class="error">{{ e.maxBuy }}</span>
+            }
+          </label>
+        </div>
+
+        <div class="field">
+          <span class="field-label">Start</span>
+          <div class="chips">
+            <button
+              type="button"
+              class="chip"
+              [class.selected]="d.start === 'now'"
+              (click)="set('start', 'now')"
+            >
+              Now
+            </button>
+            <button
+              type="button"
+              class="chip"
+              [class.selected]="d.start !== 'now'"
+              (click)="set('start', '')"
+            >
+              Later
+            </button>
+          </div>
+          @if (d.start !== 'now') {
+            <input
+              class="input"
+              type="datetime-local"
+              [value]="d.start"
+              (input)="set('start', text($event))"
+            />
+            @if (touched() && e.start) {
+              <span class="error">{{ e.start }}</span>
+            }
+          }
+        </div>
+
+        <div class="field">
+          <span class="field-label">Duration</span>
+          <div class="chips">
+            @for (option of durations; track option.hours) {
+              <button
+                type="button"
+                class="chip"
+                [class.selected]="d.hours === option.hours"
+                (click)="set('hours', option.hours)"
+              >
+                {{ option.label }}
+              </button>
+            }
+          </div>
+        </div>
+
+        @if (terms(); as t) {
+          <h3>Summary</h3>
+          <dl class="rows">
+            <div>
+              <dt>Tokens moved to escrow now</dt>
+              <dd>{{ units(t.tokensForSale) }} {{ p.symbol }}</dd>
+            </div>
+            <div>
+              <dt>Raise</dt>
+              <dd>{{ t.softCap | mas }} to {{ t.hardCap | mas }}</dd>
+            </div>
+            <div>
+              <dt>Presale fee (on the MAS raised, at withdrawal)</dt>
+              <dd>{{ feeBps() / 100 }}%</dd>
+            </div>
+            <div>
+              <dt>If the soft cap is reached</dt>
+              <dd>you withdraw the MAS; unsold tokens come back</dd>
+            </div>
+            <div>
+              <dt>If not</dt>
+              <dd>contributors are refunded; all tokens come back</dd>
+            </div>
+          </dl>
+          @if (!enoughTokens()) {
+            <div class="notice notice-error">
+              You don't hold enough {{ p.symbol }} for this hard cap.
+            </div>
+          }
+          <p class="hint">
+            Two signatures if needed: allow the Launchpad to take the tokens, then create the
+            presale (≈ 0.2 MAS for storage, the unused part comes back).
+          </p>
+        }
+
+        @if (error(); as message) {
+          <div class="notice notice-error" role="alert">{{ message }}</div>
+        }
+        <div class="nav">
+          <a class="btn btn-ghost" [routerLink]="['/tokens', p.address]">Cancel</a>
+          <button
+            class="btn btn-red"
+            type="button"
+            [disabled]="!!busy() || (touched() && !canCreate())"
+            (click)="create()"
+          >
+            @switch (busy()) {
+              @case ('approve') {
+                Step 1 of 2: approve in your wallet…
+              }
+              @case ('create') {
+                Confirm the presale in your wallet…
+              }
+              @default {
+                Start presale
+              }
+            }
+          </button>
+        </div>
+      }
+    </div>
+  }
+  <app-connect-wallet-dialog />
+</section>

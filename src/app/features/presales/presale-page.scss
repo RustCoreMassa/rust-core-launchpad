@@ -1,0 +1,97 @@
+.back {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+.main,
+.side {
+  display: grid;
+  gap: 16px;
+}
+
+.head {
+  display: grid;
+  gap: 16px;
+  --logo-size: 64px;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.names {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+h1 {
+  font-size: clamp(24px, 3.6vw, 32px);
+  overflow-wrap: anywhere;
+}
+
+h2 {
+  margin-bottom: 4px;
+  font-size: 18px;
+}
+
+.phase[data-phase='live'],
+.phase[data-phase='success'] {
+  color: #7ee2a8;
+}
+
+.token-link {
+  margin-top: 12px;
+}
+
+.action {
+  display: grid;
+  gap: 12px;
+  border-color: rgba(255, 45, 66, 0.35);
+}
+
+.action p {
+  margin: 0;
+}
+
+.mine {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.mine strong {
+  font: 700 24px/1.2 var(--font-display);
+}
+
+.mine span {
+  font-size: 13px;
+}
+
+.with-max {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .side {
+    order: -1;
+  }
+}

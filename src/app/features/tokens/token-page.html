@@ -173,7 +173,21 @@
 
         <div class="card">
           <h2>Presale</h2>
-          <p class="muted small">Token presales arrive in phase 6.</p>
+          @if (presale() === undefined) {
+            <span class="skeleton"></span>
+          } @else if (presale(); as sale) {
+            <p class="muted small">This token has an open presale.</p>
+            <a class="btn btn-red btn-sm" [routerLink]="['/presales', sale.id.toString()]"
+              >View presale</a
+            >
+          } @else if (isOwner()) {
+            <p class="muted small">Raise MAS by selling part of your supply.</p>
+            <a class="btn btn-ghost btn-sm" [routerLink]="['/create/presale', p.address]"
+              >Start a presale</a
+            >
+          } @else {
+            <p class="muted small">No open presale.</p>
+          }
         </div>
       </div>
     </div>

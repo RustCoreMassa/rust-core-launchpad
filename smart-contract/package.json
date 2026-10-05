@@ -10,7 +10,7 @@
     "build": "massa-as-compile",
     "test": "asp --summary",
     "clean": "rimraf build",
-    "deploy": "npm run build && tsx src/deploy.ts"
+    "deploy": "npm run build && node --stack-size=16000 --import tsx src/deploy.ts"
   },
   "devDependencies": {
     "@as-pect/cli": "^8.1.0",

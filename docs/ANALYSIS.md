@@ -317,33 +317,36 @@ Pe pagina colecției: floor price (cel mai mic preț activ, calculat în browser
 
 ## Presale token
 
-Presale-ul e opțional, pentru tokenuri lansate sau importate prin noi: owner-ul pune tokenurile în escrow la Launchpad SC, publicul contribuie cu MAS, iar la final fie toți își iau tokenurile (succes), fie își iau banii înapoi (eșec). Nimeni, nici noi, nu poate lua banii contributorilor înainte de succes.
+Presale-ul e opțional, pentru tokenuri lansate sau importate prin noi. Owner-ul pune tokenurile în escrow la Launchpad SC, publicul contribuie cu MAS, iar la final fie toți își iau tokenurile (succes), fie își iau banii înapoi (eșec). Nimeni, nici noi, nu poate lua banii contributorilor înainte de succes. Implementat în faza 6 (`lib/launchpad/presale.ts`).
 
 ### Parametri
 
 | Parametru | Regulă |
 | --- | --- |
-| Token | lansat sau importat prin Launchpad, apelantul e owner-ul lui; un singur presale activ per token; escrow-ul se verifică prin diferența de sold după transferFrom |
-| Tokenuri de vânzare | > 0; transferate în escrow la creare (`increaseAllowance` înainte) |
-| Rată | tokenuri per 1 MAS (u256) |
-| Soft cap / hard cap | în MAS; soft cap ≤ hard cap; hard cap × rată ≤ tokenuri de vânzare |
-| Contribuție minimă / maximă per wallet | în MAS |
-| Start, end | timestamp-uri; start ≥ acum, durată între 1 oră și 30 de zile (de stabilit) |
-| Tokenuri nevândute | returnate owner-ului sau arse (alegere la creare) |
-| Whitelist | v2 (rădăcină Merkle) |
+| Token | lansat sau importat prin Launchpad, neascuns; apelantul e owner-ul lui (cheia `OWNER`); un singur presale deschis per token |
+| Tokenuri de vânzare | > 0 și cel puțin cât cumpără hard cap-ul; owner-ul face `increaseAllowance` înainte, iar Launchpad-ul le ia cu `transferFrom` și verifică apoi că deține cel puțin tot ce datorează pentru acel token |
+| Rată | unități de token per 1 MAS (u256); aplicația o cere ca „tokenuri per 1 MAS” și o înmulțește cu 10^zecimale |
+| Soft cap / hard cap | în MAS; soft cap ≤ hard cap, hard cap > 0 |
+| Minim / maxim per wallet | în MAS; maxim 0 = fără limită; ultimul cumpărător poate lua ce a rămas chiar sub minim |
+| Start | în următoarele 90 de zile; un start deja trecut (sau „acum”) înseamnă că începe în momentul tranzacției. Motivul: între alegere și execuție trec zeci de secunde, iar un start fix ar fi picat pe buildnet. |
+| Durată | între 1 oră și 30 de zile |
+| Tokenuri nevândute | se întorc mereu la owner (varianta „arse” a fost scoasă: nu toate tokenurile sunt burnable) |
+| Comision | `presaleFeeBps` din config, luat din MAS-ul strâns la `withdrawRaised` |
+| Whitelist, vesting, lichiditate pe Dusa | v2 |
 
 ### Stări
 
-Starea se calculează din timestamp și sume la fiecare apel, nu printr-un job programat:
+Contractul păstrează doar `open / success / failed / cancelled`; restul fazelor (Upcoming, Live, „Ended, aștepți finalizarea”) le calculează aplicația din timp și sume:
 
 - **Upcoming** (înainte de start): owner-ul poate anula → **Cancelled**.
-- **Active** (între start și end, sub hard cap): `contribute` cu `coins`; contribuția se adaugă la `ctb:` și la totalul strâns.
-- **Atingerea hard cap-ului** închide presale-ul imediat.
-- **După end:** oricine poate apela `finalize`. Strâns ≥ soft cap → **Success**; altfel → **Failed**.
-- **Success:** fiecare contributor face `claim` (tokenuri = contribuție × rată); owner-ul face `withdrawRaised` (MAS strânși minus comisionul de presale) și primește tokenurile nevândute (sau acestea se ard).
-- **Failed / Cancelled:** fiecare contributor face `refund`; owner-ul își recuperează toate tokenurile din escrow.
+- **Live** (între start și end, sub hard cap): `contribute(id, amount)` cu `coins = amount + ~0,025 MAS` storage la prima contribuție; surplusul se întoarce.
+- **Atingerea hard cap-ului** închide presale-ul imediat: se poate finaliza fără să aștepți end-ul.
+- **După end:** oricine poate apela `finalize`. Strâns ≥ soft cap (și > 0) → **Success**, altfel **Failed**.
+- **Success:** fiecare contributor face `claim` (tokenuri = contribuție × rată / 1 MAS, rotunjit în jos); owner-ul face `withdrawRaised` (MAS strânși minus comisionul), iar tokenurile nevândute i se întorc la finalizare.
+- **Failed / Cancelled:** fiecare contributor face `refund`; owner-ul primește toate tokenurile înapoi la finalizare sau anulare.
+- **Admin-ul** poate anula un presale deschis oricând (urgențe); contributorii își iau banii cu `refund`.
 
-Pull, nu push: fiecare își ia singur tokenurile sau banii, ca să nu existe un apel cu bucle peste toți contributorii (gaz nelimitat). În v2 putem adăuga lichiditate automată pe Dusa la succes.
+Pull, nu push: fiecare își ia singur tokenurile sau banii, ca să nu existe un apel cu bucle peste toți contributorii. Transferurile de tokenuri rulează sub aceeași blocare împotriva reapelării ca marketplace-ul.
 
 ## Indexare, filtre și paginare fără backend
 
@@ -462,6 +465,9 @@ Măsurat pe buildnet pe 4 octombrie 2026 (cu taxele de test: 1 MAS la lansare, 0
 | Import colecție | 0,8 MAS | 0,5458 MAS | 0,2542 MAS |
 | Listare NFT (după aprobare, 0,02 MAS) | 0,1 MAS | ≈ 0,035 MAS storage | restul; storage-ul revine vânzătorului la vânzare sau anulare |
 | Cumpărare NFT la 5 MAS | 5,15 MAS | 5,0556 MAS (preț + vânzare, statistici, intrările cumpărătorului) | 0,0944 MAS |
+| Contribuție presale de 5 MAS (prima) | 5,05 MAS | 5,0245 MAS (5 + storage) | 0,0255 MAS |
+| Retragere presale de 5 MAS (comision 2%) | 0,02 MAS | — | owner-ul primește 4,9 MAS; 0,1 MAS rămân ca taxă |
+| Deploy Launchpad v0.4.1 (138 KB, cu presale) + șabloane | — | 22,4 MAS | — |
 | Deploy Launchpad v0.3.0 (108 KB) + șabloane | — | 19,47 MAS | — |
 | Tranzacție refuzată de contract | 6 MAS | 0,01 MAS (taxa de rețea) | 6 MAS | O listare costă sub 0,05 MAS storage, care revine vânzătorului la anulare sau vânzare.
 
@@ -485,7 +491,7 @@ Lucrăm în 8 faze, fiecare încheiată cu ceva care merge pe buildnet; contract
 
 - [x] Config, admin, `setTemplate`, contoare, recorduri Serializable
 - [x] `createToken`, `createCollection`, `importToken`, `importCollection`, `updateInfo`, citiri paginate, indexuri; upgrade cu timelock
-- [x] Contabilitate storage + taxe, teste, deploy pe buildnet (v0.2.0: `AS12oApf4eeQLR76DKadC5oGQvq7LKTGngTFXjXUDojJqbeyTDSzx`; din faza 5, v0.3.0: `AS1KWwW421JfEoW6GBcWyHovjAJ199a63BwGc2XJy6DdJL2rsST8`), măsurarea costurilor reale
+- [x] Contabilitate storage + taxe, teste, deploy pe buildnet (v0.2.0: `AS12oApf4eeQLR76DKadC5oGQvq7LKTGngTFXjXUDojJqbeyTDSzx`; faza 5, v0.3.0: `AS1KWwW421JfEoW6GBcWyHovjAJ199a63BwGc2XJy6DdJL2rsST8`; din faza 6, v0.4.1: `AS1GfoubCGA45tZLPLBzQc6jbMC1WzcKB7T1xKtLE8Aemjb41puK`), măsurarea costurilor reale
 
 **Faza 3 — Tokenuri în UI**
 
@@ -509,8 +515,9 @@ Lucrăm în 8 faze, fiecare încheiată cu ceva care merge pe buildnet; contract
 
 **Faza 6 — Presale**
 
-- [ ] `createPresale`, `contribute`, `finalize`, `claim`, `refund`, `cancelPresale`, `withdrawRaised`, cu teste pe toate stările
-- [ ] UI: creare, pagina presale-ului cu progres, contribuțiile mele
+- [x] `createPresale`, `contribute`, `finalize`, `claim`, `refund`, `cancelPresale`, `withdrawRaised`, cu teste pe toate stările
+- [x] UI: creare, pagina presale-ului cu progres, contribuțiile mele
+- [x] Probă pe buildnet (`smart-contract/src/e2e-presale.ts`): escrow, contribuție până la hard cap, finalizare, claim, retragere cu comision, anulare; contract v0.4.1
 
 **Faza 7 — Lansare**
 

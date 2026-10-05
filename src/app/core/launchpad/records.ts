@@ -246,11 +246,73 @@ export function readStats(args: Args): MarketStats {
 }
 
 /** A page of records: total (u64), then a length-prefixed run of records. */
-export function readPage<T>(bytes: Uint8Array, read: (args: Args) => T): { total: number; items: T[] } {
+export function readPage<T>(
+  bytes: Uint8Array,
+  read: (args: Args) => T,
+): { total: number; items: T[] } {
   const args = new Args(bytes);
   const total = Number(args.nextU64());
   const array = new Args(args.nextUint8Array());
   const items: T[] = [];
   while (array.getOffset() < array.serialize().length) items.push(read(array));
   return { total, items };
+}
+
+// ---- presale (phase 6) ----------------------------------------------------------------------
+
+export const PRESALE_OPEN = 0;
+export const PRESALE_SUCCESS = 1;
+export const PRESALE_FAILED = 2;
+export const PRESALE_CANCELLED = 3;
+
+export interface Presale {
+  id: bigint;
+  /** Registry id of the token. */
+  tokenId: bigint;
+  token: string;
+  creator: string;
+  /** Token units escrowed for sale. */
+  tokensForSale: bigint;
+  /** Token units per 1 MAS. */
+  rate: bigint;
+  /** nanoMAS */
+  softCap: bigint;
+  hardCap: bigint;
+  minBuy: bigint;
+  /** 0 = no limit. */
+  maxBuy: bigint;
+  /** ms since the epoch */
+  start: number;
+  end: number;
+  /** nanoMAS */
+  raised: bigint;
+  contributors: number;
+  status: number;
+  withdrawn: boolean;
+}
+
+export function readPresale(args: Args): Presale {
+  return {
+    id: args.nextU64(),
+    tokenId: args.nextU64(),
+    token: args.nextString(),
+    creator: args.nextString(),
+    tokensForSale: args.nextU256(),
+    rate: args.nextU256(),
+    softCap: args.nextU64(),
+    hardCap: args.nextU64(),
+    minBuy: args.nextU64(),
+    maxBuy: args.nextU64(),
+    start: Number(args.nextU64()),
+    end: Number(args.nextU64()),
+    raised: args.nextU64(),
+    contributors: Number(args.nextU32()),
+    status: Number(args.nextU8()),
+    withdrawn: args.nextBool(),
+  };
+}
+
+/** Token units a contribution buys: amount (nanoMAS) × rate / 1 MAS, rounded down. */
+export function tokensFor(amount: bigint, rate: bigint): bigint {
+  return (amount * rate) / 1_000_000_000n;
 }
