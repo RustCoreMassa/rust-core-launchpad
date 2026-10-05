@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import type { Network, Provider, PublicProvider } from '@massalabs/massa-web3';
 import type { Wallet } from '@massalabs/wallet-provider';
 import { PUBLIC_PROVIDER_FACTORY } from '../massa/massa-reader';
-import { NetworkStore } from '../network/network-store';
+import { ENABLED_NETWORKS, NetworkStore } from '../network/network-store';
 import { NETWORKS } from '../network/networks';
 import { KeyValueStore, LOCAL_STORE, memoryStore } from '../platform/storage';
 import { WALLET_DISCOVERY, WalletId } from './wallet-options';
@@ -68,6 +68,7 @@ function setup(wallets: Wallet[], store: KeyValueStore = memoryStore()) {
   TestBed.configureTestingModule({
     providers: [
       { provide: LOCAL_STORE, useValue: store },
+      { provide: ENABLED_NETWORKS, useValue: ['mainnet', 'buildnet'] },
       { provide: WALLET_DISCOVERY, useValue: async () => wallets },
       {
         provide: PUBLIC_PROVIDER_FACTORY,

@@ -8,7 +8,7 @@ Launchpad contract version it works with.
 
 ## [1.0.0] — 2026-10-05
 
-The first release, on Massa **mainnet** (the default) and buildnet. It works with the Launchpad
+The first release, on Massa **mainnet** (buildnet only in development builds). It works with the Launchpad
 contract **v1.0.0** at `AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP` (mainnet). Fees on
 mainnet: token launch 100 MAS, collection launch 200 MAS, import 50 MAS, presale 2% of the MAS
 raised, marketplace 1% of each sale. Not independently audited yet.

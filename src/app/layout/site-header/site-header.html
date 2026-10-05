@@ -13,15 +13,17 @@
     </nav>
 
     <div class="header-actions">
-      <button
-        class="btn btn-ghost btn-sm network-btn"
-        type="button"
-        popovertarget="network-menu"
-        [attr.aria-label]="'Network: ' + networks.config().label"
-      >
-        <span class="dot" [class.dot-warn]="networks.network() !== 'mainnet'"></span>
-        <span class="network-label">{{ networks.config().label }}</span>
-      </button>
+      @if (networkList.length > 1) {
+        <button
+          class="btn btn-ghost btn-sm network-btn"
+          type="button"
+          popovertarget="network-menu"
+          [attr.aria-label]="'Network: ' + networks.config().label"
+        >
+          <span class="dot" [class.dot-warn]="networks.network() !== 'mainnet'"></span>
+          <span class="network-label">{{ networks.config().label }}</span>
+        </button>
+      }
 
       @if (wallet.connected()) {
         <button class="btn btn-ghost btn-sm wallet-btn" type="button" popovertarget="wallet-menu">

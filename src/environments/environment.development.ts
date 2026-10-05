@@ -7,4 +7,6 @@ export const environment = {
   ipfsGateway: 'https://ipfs.io/ipfs/',
   /** Load http://localhost… metadata and images, e.g. from `npx http-server ./metadata --cors`. */
   allowLocalUrls: true,
+  /** Networks the app offers: buildnet (the test network) only while developing. */
+  networks: ['mainnet', 'buildnet'],
 };

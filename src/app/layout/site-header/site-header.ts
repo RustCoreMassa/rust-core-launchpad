@@ -13,7 +13,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
 import { UpgradeProposal } from '../../core/launchpad/records';
 import { NetworkStore } from '../../core/network/network-store';
-import { NETWORKS, NetworkId } from '../../core/network/networks';
+import { NetworkId } from '../../core/network/networks';
 import { WalletStore } from '../../core/wallet/wallet-store';
 import { AmountPipe } from '../../shared/pipes/amount-pipe';
 import { ShortAddressPipe } from '../../shared/pipes/short-address-pipe';
@@ -44,7 +44,7 @@ export class SiteHeader {
   protected readonly wallet = inject(WalletStore);
   protected readonly networks = inject(NetworkStore);
   protected readonly links = NAV_LINKS;
-  protected readonly networkList = Object.values(NETWORKS);
+  protected readonly networkList = this.networks.available;
   /** The wallet is the Launchpad admin (or was offered the role): show the Admin link. */
   protected readonly showAdmin = signal(false);
   private readonly launchpad = inject(LaunchpadReader);

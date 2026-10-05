@@ -43,8 +43,10 @@ npm ci
 npm start            # http://localhost:4200
 ```
 
-The app talks to the Launchpad contract already deployed on buildnet
-(`src/app/core/network/networks.ts`), so `npm start` is all you need to work on the app.
+The app talks to the Launchpad contracts already deployed (`src/app/core/network/networks.ts`),
+so `npm start` is all you need to work on the app. The development build offers **mainnet and
+buildnet** in the network menu; the published build has mainnet only (`networks` in
+`src/environments/`). Work on buildnet with test MAS.
 
 | Command | What it does |
 |---|---|
@@ -56,9 +58,9 @@ The app talks to the Launchpad contract already deployed on buildnet
 | `npm run format` | Format the code (Prettier) |
 
 **Local files while developing.** `npm start` uses
-`src/environments/environment.development.ts`: links may then point to this machine over http
-(`http://localhost`, `http://127.0.0.1`, `http://[::1]`, any port) — NFT metadata, images, logo,
-banner, website — and the IPFS gateway can be your own node. The Launchpad contract accepts
+`src/environments/environment.development.ts`: buildnet is in the network menu, links may point
+to this machine over http (`http://localhost`, `http://127.0.0.1`, `http://[::1]`, any port) —
+NFT metadata, images, logo, banner, website — and the IPFS gateway can be your own node. The Launchpad contract accepts
 exactly these local http hosts besides `https://` and `ipfs://`; the production build
 (`environment.ts`) neither accepts nor loads them.
 
