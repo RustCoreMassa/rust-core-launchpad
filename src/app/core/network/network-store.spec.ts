@@ -17,15 +17,15 @@ describe('NetworkStore', () => {
   });
 
   it('restores a saved network and ignores unknown values', () => {
-    expect(setup('mainnet').networks.network()).toBe('mainnet');
+    expect(setup('buildnet').networks.network()).toBe('buildnet');
     TestBed.resetTestingModule();
     expect(setup('testnet').networks.network()).toBe(DEFAULT_NETWORK);
   });
 
   it('saves the selection and exposes its config', () => {
     const { networks, store } = setup();
-    networks.select('mainnet');
-    expect(store.getItem('launchpad.network')).toBe('mainnet');
-    expect(networks.config()).toBe(NETWORKS.mainnet);
+    networks.select('buildnet');
+    expect(store.getItem('launchpad.network')).toBe('buildnet');
+    expect(networks.config()).toBe(NETWORKS.buildnet);
   });
 });

@@ -60,6 +60,8 @@ function fakeWallet(id: WalletId, options: FakeWalletOptions = {}) {
 }
 
 function setup(wallets: Wallet[], store: KeyValueStore = memoryStore()) {
+  // These tests run with the app on buildnet, whatever the default network is.
+  if (store.getItem('launchpad.network') === null) store.setItem('launchpad.network', 'buildnet');
   const balanceOf = vi.fn(async (addresses: string[]) =>
     addresses.map((address) => ({ address, balance: address === ALICE ? 12_345_000_000n : 0n })),
   );

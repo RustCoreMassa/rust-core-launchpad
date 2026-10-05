@@ -22,6 +22,24 @@ Every app version has a section in [CHANGELOG.md](../CHANGELOG.md)
 ([Keep a Changelog](https://keepachangelog.com) format) that names the Launchpad contract
 version it works with.
 
+## The order of a release
+
+Everything users get comes from one tagged commit, in this order:
+
+1. **Tag the release** (below). GitHub Actions builds the app and the contracts from that
+   commit, in public, and publishes them with their checksums.
+2. **Deploy or upgrade the contract** only from that same commit: check out the tag, build the
+   contracts and compare their sha256 with the release's `SHA256SUMS-contracts` before sending
+   anything ([Deploying the contracts](#deploying-the-contracts)). After it, `npm run verify`
+   checks the chain against the source.
+3. **Publish the app on DeWeb** from the release's zip, checked against `SHA256SUMS`
+   ([Deploying to DeWeb](#deploying-to-deweb)).
+
+Anyone can then follow the chain: public source → release → contract on-chain → site.
+
+(v1.0.0 was the exception: its contract was deployed from the commit that was then tagged, and
+the release's `SHA256SUMS-contracts` was checked against the chain afterwards.)
+
 ## Publishing a release
 
 1. Bump the version: `npm version 0.2.0 --no-git-tag-version`
@@ -116,14 +134,16 @@ A fresh buildnet deployment starts with an empty registry; that's fine for the t
 
 ### Mainnet
 
+0. Check out the release tag, `npm ci`, `npm run build`, and compare
+   `shasum -a 256 build/*.wasm` with the release's `SHA256SUMS-contracts`.
 1. Set the mainnet fees in `.env` (`TOKEN_FEE_MAS`, `COLLECTION_FEE_MAS`, `IMPORT_FEE_MAS`,
    `PRESALE_FEE_BPS` — at most 1000 —, `MARKET_FEE_BPS` — at most 500 — and
    `DEPLOY_DEPOSIT_MAS`) and the admin account's `PRIVATE_KEY`.
 2. `NETWORK=mainnet npm run deploy` — the only transaction sent for real; everything else was
    checked on buildnet first.
 3. `NETWORK=mainnet npm run verify`.
-4. Put the address in `NETWORKS.mainnet.launchpadAddress`, commit `deployments/mainnet.json`,
-   and publish an app release.
+4. Put the address in `NETWORKS.mainnet.launchpadAddress` and commit
+   `deployments/mainnet.json`; the app release that carries the address goes out next.
 
 ### Upgrading the Launchpad
 

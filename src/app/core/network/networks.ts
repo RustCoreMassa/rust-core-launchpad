@@ -6,15 +6,18 @@ export interface NetworkConfig {
   readonly id: NetworkId;
   readonly label: string;
   readonly chainId: bigint;
-  /**
-   * Launchpad SC address on this network; null until it is deployed there. Phase 2 deploys to
-   * buildnet, phase 7 to mainnet.
-   */
+  /** Launchpad SC address on this network (smart-contract/deployments/<network>.json). */
   readonly launchpadAddress: string | null;
 }
 
 export const NETWORKS: Readonly<Record<NetworkId, NetworkConfig>> = {
-  mainnet: { id: 'mainnet', label: 'Mainnet', chainId: CHAIN_ID.Mainnet, launchpadAddress: null },
+  mainnet: {
+    id: 'mainnet',
+    label: 'Mainnet',
+    chainId: CHAIN_ID.Mainnet,
+    // smart-contract/deployments/mainnet.json — Launchpad v1.0.0
+    launchpadAddress: 'AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP',
+  },
   buildnet: {
     id: 'buildnet',
     label: 'Buildnet',
@@ -24,8 +27,8 @@ export const NETWORKS: Readonly<Record<NetworkId, NetworkConfig>> = {
   },
 };
 
-/** Development happens on buildnet until the Launchpad SC is live on mainnet. */
-export const DEFAULT_NETWORK: NetworkId = 'buildnet';
+/** The Launchpad is live on mainnet (v1.0.0); buildnet stays one click away for testing. */
+export const DEFAULT_NETWORK: NetworkId = 'mainnet';
 
 export function networkByChainId(chainId: bigint): NetworkConfig | undefined {
   return Object.values(NETWORKS).find((n) => n.chainId === chainId);

@@ -6,10 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each release names the
 Launchpad contract version it works with.
 
-## [Unreleased]
+## [1.0.0] — 2026-10-05
 
-The first version, on Massa **buildnet** only, with the Launchpad contract **v0.6.0**. Not on
-mainnet yet; not independently audited.
+The first release, on Massa **mainnet** (the default) and buildnet. It works with the Launchpad
+contract **v1.0.0** at `AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP` (mainnet). Fees on
+mainnet: token launch 100 MAS, collection launch 200 MAS, import 50 MAS, presale 2% of the MAS
+raised, marketplace 1% of each sale. Not independently audited yet.
 
 ### Added
 
@@ -26,7 +28,7 @@ mainnet yet; not independently audited.
 - **Explore** tokens and collections with filters, categories and search, read straight from
   the Launchpad contract — no backend.
 - **NFT marketplace**: list, change the price, cancel, buy. No custody. Each sale pays the
-  creator's royalty and a marketplace fee (1% on buildnet, at most 5%), fixed when the NFT is
+  creator's royalty and a marketplace fee (1%, capped at 5%), fixed when the NFT is
   listed; the seller sees what they'll receive before listing. Stale listings can be cleaned up by anyone, their
   storage going back to the seller. A purchase carries the price the buyer saw.
 - **Token presales**: soft and hard cap, per-wallet limits, start and end; contributions held in
@@ -53,7 +55,10 @@ mainnet yet; not independently audited.
 
 ### Security
 
-- Internal security review of the Launchpad and the templates. Fixed before release: a reentrancy path through imported contracts into the
-  payment accounting, a presale fee the admin could change after contributions, a price a
-  seller could raise under a buyer, a one-step admin transfer, and upgrade storage paid from
-  escrow. The app launches only from templates whose source it ships, checked by hash.
+- Internal security review of the Launchpad and the templates. Fixed before release: a
+  reentrancy path through imported contracts into the payment accounting, a presale fee the
+  admin could change after contributions, a price a seller could raise under a buyer, a
+  one-step admin transfer, and upgrade storage paid from escrow. The app launches only from
+  templates whose source it ships, checked by hash.
+
+[1.0.0]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.0.0

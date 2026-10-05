@@ -11,8 +11,8 @@
 </p>
 
 <p align="center">
-  <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-orange" />
-  <img alt="Network: Massa buildnet" src="https://img.shields.io/badge/network-Massa%20buildnet-red" />
+  <img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-brightgreen" />
+  <img alt="Network: Massa" src="https://img.shields.io/badge/network-Massa-red" />
   <img alt="License: FSL-1.1-ALv2" src="https://img.shields.io/badge/license-FSL--1.1--ALv2-blue" />
 </p>
 
@@ -36,8 +36,9 @@ your money. RustCore Launchpad is built on four principles:
   The Launchpad's own code can only change after a **72-hour public delay**, and its admin can
   never touch presale funds — only the fees collected.
 
-> **Version 0.1.0 — in development, on Massa buildnet (the test network) only.** It is not on
-> mainnet yet and has not had an independent security audit: don't use it with real funds.
+> **Version 1.0.0** — first release ([what's new](CHANGELOG.md)). The Launchpad contract is live
+> on Massa **mainnet** at `AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP`. It has not had
+> an independent security audit yet: start with small amounts.
 
 ## What you can do
 
@@ -57,31 +58,34 @@ your money. RustCore Launchpad is built on four principles:
    [Massa Station](https://station.massa.net/) or MetaMask with the
    [Massa Snap](https://snaps.metamask.io/snap/npm/massalabs/metamask-snap/). RustCore Wallet
    joins the list once its browser extension can connect to dApps.
-2. **Switch it to buildnet** and get test MAS from the Massa faucet.
+2. **Have some MAS** on Massa mainnet for the fees and storage. To try things first, switch the
+   wallet and the Launchpad (network menu, top right) to **buildnet** and use test MAS from the
+   Massa faucet.
 3. **Open the Launchpad**, click **Connect wallet** and pick your wallet.
 4. **Create** a token or a collection from the menu, or browse **Tokens**, **Collections**,
    **Marketplace** and **Presales**. Your launches, NFTs and contributions are under
    **My dashboard**.
 
-The Launchpad will be published on [DeWeb](https://docs.massa.net/docs/deweb/home), Massa's
-decentralized web, with its mainnet release; its official address will be listed here.
+The Launchpad is being published on [DeWeb](https://docs.massa.net/docs/deweb/home), Massa's
+decentralized web; its official address will be listed here.
 
 ## Fees
 
 The Launchpad charges only five operations; everything else costs only the Massa network fee
 and the storage your transaction uses (shown before you sign, the unused part refunded).
 
-| Operation | Fee |
+| Operation | Fee on mainnet |
 |---|---|
-| Launch a token | fixed, in MAS |
-| Launch a collection | fixed, in MAS |
-| Import a token or collection | fixed, in MAS |
-| Presale | a percentage of the MAS raised (at most 10%), fixed when the presale is created |
-| Marketplace sale | a percentage of the price (1% on buildnet, at most 5%), fixed when the NFT is listed and paid from the price; plus the creator's royalty, at most 10% |
+| Launch a token | 100 MAS |
+| Launch a collection | 200 MAS |
+| Import a token or collection | 50 MAS |
+| Presale | 2% of the MAS raised, fixed when the presale is created (the contract caps it at 10%) |
+| Marketplace sale | 1% of the price, fixed when the NFT is listed and paid from the price (capped at 5%); plus the creator's royalty, at most 10% |
 
-The current values are stored in the Launchpad contract (its `config`, readable by anyone), and
-each launch shows its cost before you sign. Mainnet values will be set
-before the mainnet release.
+On top of the fee, a launch pays the storage of its new contract (about 4–5 MAS). The values
+live in the Launchpad contract (its `config`, readable by anyone) and may change; each
+operation shows its cost before you sign, and a change never reaches presales or listings
+already created.
 
 ## Your security & privacy
 
@@ -161,7 +165,7 @@ the links. Pin your files so they stay online.
 
 ## Roadmap
 
-**Phase 1 — Launchpad on buildnet** *(current)*
+**Phase 1 — Launchpad** *(done)*
 - [x] Token launch (MRC20 template) and collection launch (MRC721 template)
 - [x] Import of existing tokens and collections
 - [x] Registry with filters, search and categories — no backend
@@ -169,10 +173,9 @@ the links. Pin your files so they stay online.
 - [x] Token presales with escrow, claims and refunds
 - [x] Owner dashboard, edits, original-code download
 - [x] Admin page, upgrade timelock, internal security review
-- [ ] Independent security audit
 
-**Phase 2 — Mainnet**
-- [ ] Mainnet deployment and fee values
+**Phase 2 — Mainnet** *(current)*
+- [x] Mainnet deployment (Launchpad v1.0.0) and fee values
 - [ ] Published on DeWeb
 - [ ] Links from the RustCore website
 
@@ -180,6 +183,7 @@ the links. Pin your files so they stay online.
 - [ ] Presale extras: whitelist, vesting, liquidity on Dusa
 - [ ] Token payments on the marketplace
 - [ ] An indexer for very large collections
+- [ ] Independent security audit
 - [ ] RustCore Wallet connection
 
 ## Community

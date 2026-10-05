@@ -92,7 +92,7 @@ import {
   _ownerOf,
 } from '../lib/launchpad/common';
 
-export const VERSION = '0.6.0';
+export const VERSION = '1.0.0';
 /** Delay between proposing and executing an upgrade of this contract: 72 hours. */
 export const UPGRADE_DELAY_MS: u64 = 72 * 60 * 60 * 1000;
 export const MAX_DECIMALS: u8 = 18;
