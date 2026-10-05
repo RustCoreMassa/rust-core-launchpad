@@ -16,6 +16,12 @@
   <img alt="License: FSL-1.1-ALv2" src="https://img.shields.io/badge/license-FSL--1.1--ALv2-blue" />
 </p>
 
+<p align="center">
+  <b>Open it:</b>
+  <a href="https://lrustcore.deweb.half-red.net"><b>lrustcore.massa</b></a>
+  — live on DeWeb
+</p>
+
 ---
 
 ## Why RustCore Launchpad
@@ -61,13 +67,17 @@ your money. RustCore Launchpad is built on four principles:
 2. **Have some MAS** on Massa mainnet for the fees and storage, and keep your wallet on
    mainnet. (Developers can run the app locally against buildnet, the test network — see
    [CONTRIBUTING.md](CONTRIBUTING.md).)
-3. **Open the Launchpad**, click **Connect wallet** and pick your wallet.
+3. **Open the Launchpad** at **`lrustcore.massa`** — click
+   [lrustcore.deweb.half-red.net](https://lrustcore.deweb.half-red.net) or open `lrustcore.massa`
+   through any DeWeb gateway or [Massa Station](https://station.massa.net/) — then click
+   **Connect wallet** and pick your wallet.
 4. **Create** a token or a collection from the menu, or browse **Tokens**, **Collections**,
    **Marketplace** and **Presales**. Your launches, NFTs and contributions are under
    **My dashboard**.
 
-The Launchpad is being published on [DeWeb](https://docs.massa.net/docs/deweb/home), Massa's
-decentralized web; its official address will be listed here.
+The Launchpad is hosted on [DeWeb](https://docs.massa.net/docs/deweb/home), Massa's
+decentralized web: its files are stored on-chain, so there is no RustCore web server to take
+down or tamper with.
 
 ## Fees
 
@@ -107,7 +117,7 @@ already created.
 
 | Destination | Why |
 |---|---|
-| The site you open the Launchpad from (a DeWeb gateway) | Delivers the app itself. |
+| The DeWeb gateway you open the Launchpad from | Delivers the app itself. Gateways may add their own small "hosted on chain" label to the page, which loads a font from Google Fonts — that's the gateway, not the app. |
 | `mainnet.massa.net` / `buildnet.massa.net` | Massa's public nodes: every read, and the transactions you sign. |
 | Your wallet | Only after you click **Connect wallet**: the Bearby / MetaMask extensions inside your browser, and Massa Station's local server (`station.massa`, `localhost:8080`). Nothing connects on its own. |
 | `ipfs.io` | Public IPFS gateway for `ipfs://` images and NFT metadata. |
@@ -129,6 +139,9 @@ code" is built in your browser from files the app ships and the code stored on-c
 
 **Good to know**
 
+- **`lrustcore.massa` is the only official address of the Launchpad.** A copy on any other
+  address could ask you to sign something else — check the address before connecting your
+  wallet. (`rustcore.massa` is the RustCore website, `wrustcore.massa` the RustCore Wallet.)
 - **Anyone can launch or import anything.** A token named after a famous project may be a copy:
   check the address, the **Verified** badge and whether the code is **Imported** or
   **Mutable**. A mutable or imported contract can be changed by its owner.
@@ -174,10 +187,10 @@ the links. Pin your files so they stay online.
 - [x] Owner dashboard, edits, original-code download
 - [x] Admin page, upgrade timelock, internal security review
 
-**Phase 2 — Mainnet** *(current)*
+**Phase 2 — Mainnet** *(done)*
 - [x] Mainnet deployment (Launchpad v1.0.0) and fee values
-- [ ] Published on DeWeb
-- [ ] Links from the RustCore website
+- [x] Published on DeWeb (`lrustcore.massa`)
+- [x] Links from the RustCore website
 
 **Later**
 - [ ] Presale extras: whitelist, vesting, liquidity on Dusa

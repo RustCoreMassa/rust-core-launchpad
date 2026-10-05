@@ -172,9 +172,9 @@ it's a new deployment and a migration plan, discussed in an issue first.
 
 ## Deploying to DeWeb
 
-The Launchpad will be hosted on [DeWeb](https://docs.massa.net/docs/deweb/home), Massa's
-decentralized web; its address is chosen with the mainnet release and will be listed in the
-README. Each release replaces the site's files there. What gets uploaded is the **folder** with
+The Launchpad is hosted on [DeWeb](https://docs.massa.net/docs/deweb/home), Massa's
+decentralized web, as **`lrustcore.massa`** (public gateway: https://lrustcore.deweb.half-red.net).
+Each release replaces the site's files there. What gets uploaded is the **folder** with
 the built app — `index.html` at its root plus the scripts, styles, assets and template sources
 next to it.
 
@@ -195,6 +195,10 @@ inside the folder). Then upload this folder to the site.
 
 After uploading, open the site, check that the home page loads with the latest launches, and
 connect a wallet.
+
+Comparing the live site with `SHA256SUMS` through a gateway: every file matches except
+`index.html`, because gateways inject their own "hosted on chain" label (a style, a small box and
+a script) into it when they serve it. The rest of `index.html` is unchanged.
 
 Nothing in the app needs changing for DeWeb:
 

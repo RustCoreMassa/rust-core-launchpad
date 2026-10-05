@@ -8,6 +8,11 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
+### Changed
+
+- The Launchpad is live on DeWeb at **`lrustcore.massa`**
+  (https://lrustcore.deweb.half-red.net), its only official address; the README lists it.
+
 ## [1.0.0] — 2026-10-05
 
 The first release, on Massa **mainnet** (buildnet only in development builds). It works with the Launchpad
