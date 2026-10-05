@@ -19,6 +19,7 @@ import { KEEP_ONLY_ORIGINAL, OriginalCode } from '../../core/launchpad/original-
 import { ProjectStore } from '../../core/launchpad/project-store';
 import {
   KIND_COLLECTION,
+  MarketStats,
   Project,
   SOURCE_LAUNCHED,
   categoryLabel,
@@ -77,6 +78,15 @@ export class CollectionPage {
   protected readonly project = signal<Project | null | undefined>(undefined);
   protected readonly state = signal<CollectionState | null>(null);
   protected readonly items = signal<NftItem[] | null>(null);
+  /** Valid marketplace prices by token id; empty until loaded. */
+  protected readonly prices = signal<ReadonlyMap<bigint, bigint>>(new Map());
+  protected readonly market = signal<MarketStats | null>(null);
+  /** Lowest valid listing price, nanoMAS; null when nothing is for sale. */
+  protected readonly floor = computed(() => {
+    let floor: bigint | null = null;
+    for (const price of this.prices().values()) if (floor === null || price < floor) floor = price;
+    return floor;
+  });
   protected readonly codeModified = signal<boolean | null>(null);
   protected readonly error = signal<string | null>(null);
 
@@ -211,6 +221,7 @@ export class CollectionPage {
     if (project) this.onSaved(project);
     this.state.set(state);
     this.items.set(items);
+    if (project) await this.loadMarket(project);
     await this.loadMintedByMe(this.wallet.address(), state.mint !== null);
   }
 
@@ -239,6 +250,8 @@ export class CollectionPage {
     this.project.set(undefined);
     this.state.set(null);
     this.items.set(null);
+    this.prices.set(new Map());
+    this.market.set(null);
     this.codeModified.set(null);
     this.error.set(null);
     try {
@@ -253,10 +266,28 @@ export class CollectionPage {
       const items = await this.collections.items(address);
       if (run !== this.run) return;
       this.items.set(items);
+      await this.loadMarket(project);
+      if (run !== this.run) return;
       const current = await this.tokens.codeHash(address);
       if (run === this.run) this.codeModified.set(current !== hex(project.codeHash));
     } catch (err) {
       if (run === this.run) this.error.set(toUserMessage(err));
+    }
+  }
+
+  /** Marketplace totals and the listings that can really be bought. */
+  private async loadMarket(project: Project): Promise<void> {
+    const launchpad = this.launchpad.address();
+    if (!launchpad) return;
+    try {
+      this.market.set(await this.launchpad.stats(project.id));
+      const listings = await this.launchpad.allListings(project.id);
+      const valid = await this.collections.validListings(listings, launchpad);
+      this.prices.set(
+        new Map(listings.filter((l) => valid.has(l.id)).map((l) => [l.tokenId, l.price])),
+      );
+    } catch (err) {
+      console.error('[market]', err);
     }
   }
 

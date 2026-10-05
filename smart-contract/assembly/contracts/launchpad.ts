@@ -79,8 +79,17 @@ import {
   assertSymbol,
 } from '../lib/launchpad/rules';
 import { accruedFees, settle } from '../lib/launchpad/settlement';
+import {
+  _activeConfig,
+  _config,
+  _count,
+  _load,
+  _nextId,
+  _onlyAdmin,
+  _ownerOf,
+} from '../lib/launchpad/common';
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';
 /** Delay between proposing and executing an upgrade of this contract: 72 hours. */
 export const UPGRADE_DELAY_MS: u64 = 72 * 60 * 60 * 1000;
 export const MAX_DECIMALS: u8 = 18;
@@ -561,6 +570,22 @@ export function executeUpgrade(binaryArgs: StaticArray<u8>): void {
   generateEvent('UPGRADE_EXECUTED');
 }
 
+// Marketplace (phase 5), in lib/launchpad/marketplace.ts.
+export {
+  list,
+  updatePrice,
+  cancel,
+  buy,
+  getListing,
+  getListings,
+  getListingsBySeller,
+  listingOf,
+  isListingValid,
+  buyProblem,
+  getSales,
+  getStats,
+} from '../lib/launchpad/marketplace';
+
 // ==================================================== //
 // ====                   READS                    ==== //
 // ==================================================== //
@@ -664,23 +689,6 @@ export function pendingUpgrade(_: StaticArray<u8>): StaticArray<u8> {
 // ====                  INTERNALS                 ==== //
 // ==================================================== //
 
-function _config(): Config {
-  return new Args(Storage.get(CONFIG_KEY)).nextSerializable<Config>().unwrap();
-}
-
-function _activeConfig(): Config {
-  const config = _config();
-  assert(!config.paused, 'The Launchpad is paused');
-  return config;
-}
-
-function _onlyAdmin(): void {
-  assert(
-    Context.caller().toString() == bytesToString(Storage.get(ADMIN_KEY)),
-    'Caller is not the admin',
-  );
-}
-
 function _templateVersion(kind: u8): u32 {
   const key = templateVersionKey(kind);
   return Storage.has(key) ? bytesToU32(Storage.get(key)) : 0;
@@ -692,17 +700,6 @@ function _currentTemplate(kind: u8): u32 {
   return version;
 }
 
-function _count(kind: u8): u64 {
-  const key = countKey(kind);
-  return Storage.has(key) ? bytesToU64(Storage.get(key)) : 0;
-}
-
-function _nextId(kind: u8): u64 {
-  const id = _count(kind) + 1;
-  Storage.set(countKey(kind), u64ToBytes(id));
-  return id;
-}
-
 /** Writes the record and its indexes (address, creator, category). */
 function _record(project: Project): void {
   assert(!Storage.has(addressKey(project.address)), 'Already in the Launchpad');
@@ -710,19 +707,6 @@ function _record(project: Project): void {
   Storage.set(addressKey(project.address), projectRef(project.kind, project.id));
   Storage.set(creatorKey(project.creator, project.kind, project.id), new StaticArray<u8>(0));
   Storage.set(categoryKey(project.kind, project.category, project.id), new StaticArray<u8>(0));
-}
-
-function _load(kind: u8, id: u64): Project {
-  const key = projectKey(kind, id);
-  assert(Storage.has(key), 'Unknown project');
-  return new Args(Storage.get(key)).nextSerializable<Project>().unwrap();
-}
-
-/** The contract's current owner, read from the standard OWNER key; empty if none. */
-function _ownerOf(contract: Address): string {
-  return Storage.hasOf(contract, STD_OWNER_KEY)
-    ? bytesToString(Storage.getOf(contract, STD_OWNER_KEY))
-    : '';
 }
 
 function _onlyProjectOwner(project: Project): void {

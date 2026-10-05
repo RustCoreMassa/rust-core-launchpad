@@ -1,0 +1,106 @@
+<section class="page container">
+  <header class="page-head">
+    <span class="label">Marketplace</span>
+    <h1>NFTs for sale</h1>
+    <p>
+      From Launchpad collections. No platform fee — only the creator's royalty. NFTs stay with their
+      owner until sold.
+    </p>
+  </header>
+
+  @if (!launchpad.address()) {
+    <div class="notice">The Launchpad isn't deployed on {{ network.config().label }} yet.</div>
+  } @else {
+    <div class="filters card">
+      <input
+        class="input"
+        type="search"
+        placeholder="Search a collection"
+        aria-label="Search a collection"
+        [value]="query()"
+        (input)="query.set(text($event))"
+      />
+      <div class="row">
+        <input
+          class="input price"
+          inputmode="decimal"
+          placeholder="Min MAS"
+          aria-label="Minimum price"
+          [value]="min()"
+          (input)="min.set(text($event))"
+        />
+        <input
+          class="input price"
+          inputmode="decimal"
+          placeholder="Max MAS"
+          aria-label="Maximum price"
+          [value]="max()"
+          (input)="max.set(text($event))"
+        />
+        <div class="chips sort">
+          <button
+            type="button"
+            class="chip"
+            [class.selected]="sort() === 'low'"
+            (click)="sort.set('low')"
+          >
+            Lowest price
+          </button>
+          <button
+            type="button"
+            class="chip"
+            [class.selected]="sort() === 'high'"
+            (click)="sort.set('high')"
+          >
+            Highest price
+          </button>
+          <button
+            type="button"
+            class="chip"
+            [class.selected]="sort() === 'newest'"
+            (click)="sort.set('newest')"
+          >
+            Newest
+          </button>
+        </div>
+      </div>
+    </div>
+
+    @if (error(); as message) {
+      <div class="notice notice-error" role="alert">
+        {{ message }}
+        <button class="btn btn-ghost btn-sm" type="button" (click)="reload()">Try again</button>
+      </div>
+    }
+
+    @if (listings() === null) {
+      <div class="grid">
+        @for (row of [1, 2, 3, 4]; track row) {
+          <div class="card">
+            <span class="skeleton" style="width: 100%; aspect-ratio: 1"></span>
+          </div>
+        }
+      </div>
+    } @else if (filtered().length === 0) {
+      <div class="card empty">
+        <p class="muted">
+          {{ listings()!.length ? 'Nothing matches these filters.' : 'No NFT is for sale yet.' }}
+        </p>
+      </div>
+    } @else {
+      <p class="muted count">{{ filtered().length }} for sale</p>
+      <div class="grid">
+        @for (l of visible(); track l.id) {
+          <app-listing-card [listing]="l" [collectionName]="name(l)" />
+        }
+      </div>
+      @if (visible().length < filtered().length) {
+        <div class="more">
+          <button class="btn btn-ghost" type="button" (click)="shown.set(shown() + 24)">
+            Show more
+          </button>
+        </div>
+      }
+    }
+  }
+</section>

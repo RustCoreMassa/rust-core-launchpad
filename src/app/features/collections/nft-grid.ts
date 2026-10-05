@@ -9,6 +9,7 @@ import {
   untracked,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { MasPipe } from '../../shared/pipes/units-pipe';
 import { CollectionReader, NftItem } from '../../core/launchpad/collection-reader';
 import { NftMetadata, NftMetadataLoader } from '../../core/launchpad/nft-metadata';
 
@@ -27,7 +28,7 @@ type MetaState = NftMetadata | null | undefined;
  */
 @Component({
   selector: 'app-nft-grid',
-  imports: [RouterLink],
+  imports: [RouterLink, MasPipe],
   templateUrl: './nft-grid.html',
   styleUrl: './nft-grid.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,9 +41,13 @@ export class NftGrid {
   readonly items = input.required<readonly NftItem[]>();
   /** The connected wallet, for "Only mine". */
   readonly me = input<string | null>(null);
+  /** Valid marketplace prices by token id (nanoMAS). */
+  readonly prices = input<ReadonlyMap<bigint, bigint>>(new Map());
 
   protected readonly metas = signal(new Map<bigint, MetaState>());
   protected readonly mineOnly = signal(false);
+  protected readonly listedOnly = signal(false);
+  protected readonly byPrice = signal(false);
   /** Selected value per trait. */
   protected readonly selected = signal(new Map<string, string>());
   protected readonly shown = signal(STEP);
@@ -68,13 +73,24 @@ export class NftGrid {
     const me = this.me();
     const selected = this.selected();
     const metas = this.metas();
-    return this.items().filter((item) => {
+    const prices = this.prices();
+    const result = this.items().filter((item) => {
       if (this.mineOnly() && item.owner !== me) return false;
+      if (this.listedOnly() && !prices.has(item.id)) return false;
       if (!selected.size) return true;
       const meta = metas.get(item.id);
       return [...selected].every(([trait, value]) =>
         meta?.attributes.some((a) => a.trait === trait && a.value === value),
       );
+    });
+    if (!this.byPrice()) return result;
+    // Listed ones first, cheapest first; the rest keep their order.
+    return [...result].sort((a, b) => {
+      const pa = prices.get(a.id);
+      const pb = prices.get(b.id);
+      if (pa === undefined || pb === undefined)
+        return pa === undefined ? (pb === undefined ? 0 : 1) : -1;
+      return pa < pb ? -1 : pa > pb ? 1 : 0;
     });
   });
   protected readonly visible = computed(() => this.filtered().slice(0, this.shown()));
@@ -119,6 +135,20 @@ export class NftGrid {
         .slice(0, MAX_FOR_TRAITS)
         .map((item) => item.id),
     );
+  }
+
+  protected toggleListed(): void {
+    this.listedOnly.update((v) => !v);
+    this.shown.set(STEP);
+  }
+
+  protected toggleByPrice(): void {
+    this.byPrice.update((v) => !v);
+    this.shown.set(STEP);
+  }
+
+  protected price(id: bigint): bigint | undefined {
+    return this.prices().get(id);
   }
 
   protected toggleMine(): void {

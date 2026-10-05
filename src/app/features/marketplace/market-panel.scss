@@ -1,0 +1,29 @@
+.market {
+  display: grid;
+  gap: 12px;
+  border-color: rgba(255, 45, 66, 0.35);
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.price {
+  font: 700 28px/1.1 var(--font-display);
+}
+
+h2 {
+  font-size: 18px;
+}
+
+h3 {
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.hint {
+  margin: 0;
+}

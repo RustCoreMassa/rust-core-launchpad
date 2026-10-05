@@ -103,3 +103,63 @@ export const MRC20_DECIMALS_KEY = stringToBytes('DECIMALS');
 export const MRC20_TOTAL_SUPPLY_KEY = stringToBytes('TOTAL_SUPPLY');
 export const MRC721_NAME_KEY: StaticArray<u8> = [0x01];
 export const MRC721_SYMBOL_KEY: StaticArray<u8> = [0x02];
+
+// ---- marketplace (phase 5) ----------------------------------------------------------------
+/** Counters share `n:<kind>` with projects: kinds 2 and 3 count listings and sales. */
+export const COUNTER_LISTING: u8 = 2;
+export const COUNTER_SALE: u8 = 3;
+export const LOCK_KEY = stringToBytes('lock');
+
+const LISTING = stringToBytes('l:');
+const LISTING_BY_COLLECTION = stringToBytes('lc:');
+const LISTING_BY_SELLER = stringToBytes('ls:');
+const LISTING_BY_TOKEN = stringToBytes('lt:');
+const SALE = stringToBytes('sa:');
+const STATS = stringToBytes('st:');
+
+export function listingPrefix(): StaticArray<u8> {
+  return LISTING;
+}
+
+export function listingKey(id: u64): StaticArray<u8> {
+  return LISTING.concat(u64BE(id));
+}
+
+export function listingByCollectionPrefix(collectionId: u64): StaticArray<u8> {
+  return LISTING_BY_COLLECTION.concat(u64BE(collectionId));
+}
+
+export function listingByCollectionKey(collectionId: u64, id: u64): StaticArray<u8> {
+  return listingByCollectionPrefix(collectionId).concat(u64BE(id));
+}
+
+export function listingBySellerPrefix(seller: string): StaticArray<u8> {
+  return LISTING_BY_SELLER.concat(stringToBytes(seller + ':'));
+}
+
+export function listingBySellerKey(seller: string, id: u64): StaticArray<u8> {
+  return listingBySellerPrefix(seller).concat(u64BE(id));
+}
+
+/** One active listing per NFT: collection id + token id (32 bytes LE) → listing id. */
+export function listingByTokenKey(collectionId: u64, tokenId: StaticArray<u8>): StaticArray<u8> {
+  return LISTING_BY_TOKEN.concat(u64BE(collectionId)).concat(tokenId);
+}
+
+export function salePrefix(collectionId: u64): StaticArray<u8> {
+  return SALE.concat(u64BE(collectionId));
+}
+
+export function saleKey(collectionId: u64, id: u64): StaticArray<u8> {
+  return salePrefix(collectionId).concat(u64BE(id));
+}
+
+export function statsKey(collectionId: u64): StaticArray<u8> {
+  return STATS.concat(u64BE(collectionId));
+}
+
+// Standard MRC721 storage of the collection, read directly (no code runs): owner of a token,
+// its single approval, and operator approvals.
+export const MRC721_OWNER_PREFIX: u8 = 0x04;
+export const MRC721_APPROVED_PREFIX: u8 = 0x05;
+export const MRC721_OPERATOR_PREFIX: u8 = 0x06;

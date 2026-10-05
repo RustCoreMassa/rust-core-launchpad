@@ -75,6 +75,20 @@
         </strong>
       </div>
       <div class="card stat">
+        <span class="muted">Floor</span>
+        <strong>{{ floor() !== null ? (floor() | mas) : '—' }}</strong>
+      </div>
+      <div class="card stat">
+        <span class="muted">Volume</span>
+        <strong>
+          @if (market(); as m) {
+            {{ m.volume ? (m.volume | mas) : '—' }}
+          } @else {
+            <span class="skeleton"></span>
+          }
+        </strong>
+      </div>
+      <div class="card stat">
         <span class="muted">Royalty</span>
         <strong>{{ p.royaltyBps / 100 }}%</strong>
       </div>
@@ -94,7 +108,12 @@
       <div class="main">
         <h2>NFTs</h2>
         @if (items(); as list) {
-          <app-nft-grid [collection]="p.address" [items]="list" [me]="wallet.address()" />
+          <app-nft-grid
+            [collection]="p.address"
+            [items]="list"
+            [me]="wallet.address()"
+            [prices]="prices()"
+          />
         } @else {
           <div class="card"><span class="skeleton" style="width: 40%"></span></div>
         }

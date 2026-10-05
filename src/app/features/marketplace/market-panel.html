@@ -1,0 +1,146 @@
+<div class="card market">
+  @if (listing() === undefined) {
+    <span class="skeleton" style="width: 50%"></span>
+  } @else if (listing(); as l) {
+    <div class="price-row">
+      <span class="muted">Price</span>
+      <strong class="price">{{ l.price | mas }}</strong>
+    </div>
+    @if (l.expiresAt) {
+      <p class="hint">Listed until {{ l.expiresAt | date: 'medium' }}</p>
+    }
+
+    @if (isSeller()) {
+      <p class="hint">You listed this NFT. It stays in your wallet until someone buys it.</p>
+      <label class="field">
+        <span>New price (MAS)</span>
+        <input
+          class="input"
+          inputmode="decimal"
+          [value]="priceText()"
+          (input)="priceText.set(text($event))"
+        />
+      </label>
+      <div class="actions">
+        <button
+          class="btn btn-ghost btn-sm"
+          type="button"
+          [disabled]="!priceValid() || !!busy()"
+          (click)="updatePrice()"
+        >
+          {{ busy() === 'price' ? 'Confirm in your wallet…' : 'Change price' }}
+        </button>
+        <button class="btn btn-ghost btn-sm" type="button" [disabled]="!!busy()" (click)="cancel()">
+          {{ busy() === 'cancel' ? 'Confirm in your wallet…' : 'Cancel listing' }}
+        </button>
+      </div>
+    } @else if (!wallet.connected()) {
+      <button class="btn btn-red btn-block" type="button" (click)="connect()">
+        Connect wallet to buy
+      </button>
+    } @else if (problem()) {
+      <div class="notice">{{ problem() }}</div>
+    } @else if (breakdown(); as b) {
+      <dl class="rows">
+        <div>
+          <dt>To the seller</dt>
+          <dd>{{ b.seller | mas }}</dd>
+        </div>
+        <div>
+          <dt>Creator royalty ({{ royaltyPercent() }}%)</dt>
+          <dd>{{ b.royalty | mas }}</dd>
+        </div>
+        <div>
+          <dt>Platform fee</dt>
+          <dd>none</dd>
+        </div>
+      </dl>
+      <p class="hint">Sends {{ b.sent | mas }} (price + storage); what isn't used comes back.</p>
+      <button
+        class="btn btn-red btn-block"
+        type="button"
+        [disabled]="!!busy() || wallet.networkMismatch()"
+        (click)="buy()"
+      >
+        {{ busy() === 'buy' ? 'Confirm in your wallet…' : 'Buy for ' + (l.price | mas) }}
+      </button>
+    }
+  } @else if (isOwner()) {
+    <h2>Sell this NFT</h2>
+    <p class="hint">
+      It stays in your wallet; the Launchpad may move it only when someone pays. No platform fee.
+    </p>
+    <label class="field">
+      <span>Price (MAS)</span>
+      <input
+        class="input"
+        inputmode="decimal"
+        placeholder="10"
+        [value]="priceText()"
+        (input)="priceText.set(text($event))"
+      />
+    </label>
+    <div class="field">
+      <span class="field-label">Listing ends</span>
+      <div class="chips">
+        @for (e of expiries; track e.days) {
+          <button
+            type="button"
+            class="chip"
+            [class.selected]="expiryDays() === e.days"
+            (click)="expiryDays.set(e.days)"
+          >
+            {{ e.label }}
+          </button>
+        }
+      </div>
+    </div>
+    @if (preview(); as p) {
+      <p class="hint">
+        You get {{ p.you | mas }}; {{ p.royalty | mas }} goes to the creator ({{
+          royaltyPercent()
+        }}%).
+      </p>
+    }
+    <button
+      class="btn btn-red btn-block"
+      type="button"
+      [disabled]="!priceValid() || !!busy()"
+      (click)="list()"
+    >
+      @switch (busy()) {
+        @case ('approve') {
+          Step 1 of 2: approve in your wallet…
+        }
+        @case ('list') {
+          Confirm the listing in your wallet…
+        }
+        @default {
+          List for sale
+        }
+      }
+    </button>
+  } @else {
+    <p class="muted">Not for sale.</p>
+  }
+
+  @if (error(); as message) {
+    <div class="notice notice-error" role="alert">{{ message }}</div>
+  }
+
+  @if (sales().length) {
+    <h3>Sales</h3>
+    <dl class="rows">
+      @for (s of sales(); track s.id) {
+        <div>
+          <dt>
+            {{ s.soldAt | date: 'mediumDate' }} ·
+            <span class="mono">{{ s.buyer | shortAddress }}</span>
+          </dt>
+          <dd>{{ s.price | mas }}</dd>
+        </div>
+      }
+    </dl>
+  }
+</div>
+<app-connect-wallet-dialog />

@@ -4,7 +4,8 @@
 //   npm run deploy         # buildnet; NETWORK=mainnet npm run deploy for mainnet
 //
 // Fees come from .env (in MAS; buildnet defaults below). The result is written to
-// deployments/<network>.json; copy the address into src/app/core/network/networks.ts.
+// deployments/<network>.json (move the previous one to deployments/history/ first); copy the
+// address into src/app/core/network/networks.ts.
 import 'dotenv/config';
 import { mkdirSync, writeFileSync } from 'fs';
 import { createHash } from 'crypto';
@@ -105,9 +106,11 @@ if (adminOnChain !== admin) throw new Error(`Admin on-chain is ${adminOnChain}`)
 console.log(`Admin ✓, balance after: ${Mas.toString(await provider.balance(false))} MAS`);
 
 mkdirSync('deployments', { recursive: true });
+const contractVersion = new TextDecoder().decode((await launchpad.read('version')).value);
 const record = {
   network,
   address: launchpad.address,
+  version: contractVersion,
   admin,
   deployedAt: new Date().toISOString(),
   launchpadBytes: launchpadCode.length,

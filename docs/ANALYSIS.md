@@ -289,21 +289,23 @@ Contractul nostru se poate actualiza doar în doi pași: `proposeUpgrade(hash)` 
 
 Marketplace-ul nu ia NFT-ul în custodie: vânzătorul îl păstrează în wallet și dă doar aprobare Launchpad SC-ului, care îl mută la cumpărător în momentul plății. Plățile sunt în MAS în v1.
 
-### Operații
+### Operații (implementate în faza 5)
 
-1. **Listare:** vânzătorul apelează `approve(Launchpad, tokenId)` (sau `setApprovalForAll` o singură dată pe colecție), apoi `list(colId, tokenId, preț, expiresAt)`. Launchpad SC verifică `ownerOf(tokenId) == caller`, aprobarea, că nu există deja o listare activă (`lstT:`), și scrie `lst:`, `lstC:`, `lstS:`, `lstT:`.
-2. **Schimbare preț:** `updatePrice(listingId, prețNou)`, doar vânzătorul.
-3. **Anulare:** `cancel(listingId)`, vânzătorul; admin-ul poate anula listările ascunse. Cheile de index se șterg, iar storage-ul eliberat se returnează vânzătorului.
-4. **Cumpărare:** `buy(listingId)` cu `coins = preț`. Ordinea în contract (checks-effects-interactions):
-   1. verifică listarea activă și neexpirată, `coins ≥ preț`, cumpărător ≠ vânzător, `ownerOf == seller`, aprobare validă;
-   2. marchează listarea ca vândută și șterge indexurile;
-   3. `transferFrom(seller, buyer, tokenId)` pe colecție;
-   4. împarte banii: royalty către receiver, restul către vânzător (fără comision de platformă); surplusul înapoi la cumpărător;
-   5. scrie `sale:` și actualizează `stat:` (volum, număr vânzări, ultimul preț).
+1. **Listare:** vânzătorul aprobă Launchpad-ul pe colecție (`approve(Launchpad, tokenId)` sau `setApprovalForAll`), apoi apelează `list(collection, tokenId, preț, expiresAt)`. Expirarea e 0 (niciodată) sau în următoarele 365 de zile. Contractul verifică owner-ul și aprobarea **citind direct stocarea standard a colecției** (cheile `0x04`, `0x05`, `0x06`), fără să ruleze codul ei, apoi scrie `l:`, `lc:`, `ls:`, `lt:`. Un NFT are o singură listare activă. O listare rămasă de la un owner anterior se șterge automat, iar storage-ul ei se întoarce la vechiul vânzător.
+2. **Schimbare preț:** `updatePrice(listingId, preț)`, doar vânzătorul.
+3. **Anulare și curățare:** `cancel(listingId)`. Vânzătorul o poate face oricând. Admin-ul, sau oricine dacă listarea nu mai e valabilă (NFT mutat, aprobare retrasă, expirată, colecție ascunsă), o poate curăța. Storage-ul eliberat merge **mereu la vânzător**. Merge și cu Launchpad-ul în pauză.
+4. **Cumpărare:** `buy(listingId)` cu `coins = preț + ~0,06 MAS storage`, iar surplusul se returnează. Ordinea în contract:
+   1. regulile din `buyProblem` (aceleași, expuse și ca citire, ca aplicația să explice de ce nu se poate cumpăra): nu e listarea ta, nu e expirată, colecția e în Launchpad și nu e ascunsă, vânzătorul încă are NFT-ul, aprobarea există;
+   2. o blocare împotriva reapelării (`lock`) pe durata cumpărării;
+   3. starea proprie întâi: listarea se șterge, vânzarea se scrie în `sa:`, statisticile în `st:` (volum, număr de vânzări, ultimul preț);
+   4. `transferFrom(seller, buyer, tokenId)` pe colecție, cu 0,03 MAS pentru intrările noi ale cumpărătorului în colecție; apoi contractul **verifică că NFT-ul chiar a ajuns la cumpărător**;
+   5. royalty către destinatar, restul prețului plus storage-ul listării către vânzător. Nu există comision de platformă.
 
 ### Listări care nu mai sunt valabile
 
-Dacă vânzătorul transferă NFT-ul în altă parte sau retrage aprobarea, listarea rămâne în storage, dar nu mai poate fi cumpărată. Frontendul verifică `ownerOf` și aprobarea înainte să afișeze o listare și o ascunde pe cele invalide. Oricine poate apela `cleanup(listingId)` pentru o listare invalidă sau expirată; storage-ul eliberat merge la vânzător.
+Dacă vânzătorul mută NFT-ul sau retrage aprobarea, listarea rămâne în stocare, dar nu mai poate fi cumpărată. Aplicația citește în loturi owner-ul și aprobarea fiecărei listări, cu aceleași chei ca contractul, și le ascunde pe cele invalide. Oricine o poate curăța cu `cancel`.
+
+Notă: la o primă plată către o adresă complet nouă, Massa reține 0,001 MAS pentru contul nou (10 octeți). Un destinatar de royalty nou primește deci 0,001 MAS mai puțin la prima vânzare.
 
 ### Exemplu de împărțire
 
@@ -458,6 +460,9 @@ Măsurat pe buildnet pe 4 octombrie 2026 (cu taxele de test: 1 MAS la lansare, 0
 | Mint public de 2 NFT (prețul revine owner-ului) | preț + 0,06 MAS | 0,054 MAS storage | restul |
 | Mint de owner, per NFT | 0,02 MAS | ≈ 0,019 MAS storage | rămâne în colecție ca rezervă |
 | Import colecție | 0,8 MAS | 0,5458 MAS | 0,2542 MAS |
+| Listare NFT (după aprobare, 0,02 MAS) | 0,1 MAS | ≈ 0,035 MAS storage | restul; storage-ul revine vânzătorului la vânzare sau anulare |
+| Cumpărare NFT la 5 MAS | 5,15 MAS | 5,0556 MAS (preț + vânzare, statistici, intrările cumpărătorului) | 0,0944 MAS |
+| Deploy Launchpad v0.3.0 (108 KB) + șabloane | — | 19,47 MAS | — |
 | Tranzacție refuzată de contract | 6 MAS | 0,01 MAS (taxa de rețea) | 6 MAS | O listare costă sub 0,05 MAS storage, care revine vânzătorului la anulare sau vânzare.
 
 ## Plan de dezvoltare
@@ -480,7 +485,7 @@ Lucrăm în 8 faze, fiecare încheiată cu ceva care merge pe buildnet; contract
 
 - [x] Config, admin, `setTemplate`, contoare, recorduri Serializable
 - [x] `createToken`, `createCollection`, `importToken`, `importCollection`, `updateInfo`, citiri paginate, indexuri; upgrade cu timelock
-- [x] Contabilitate storage + taxe, teste, deploy pe buildnet (`AS12oApf4eeQLR76DKadC5oGQvq7LKTGngTFXjXUDojJqbeyTDSzx`), măsurarea costurilor reale
+- [x] Contabilitate storage + taxe, teste, deploy pe buildnet (v0.2.0: `AS12oApf4eeQLR76DKadC5oGQvq7LKTGngTFXjXUDojJqbeyTDSzx`; din faza 5, v0.3.0: `AS1KWwW421JfEoW6GBcWyHovjAJ199a63BwGc2XJy6DdJL2rsST8`), măsurarea costurilor reale
 
 **Faza 3 — Tokenuri în UI**
 
@@ -498,8 +503,9 @@ Lucrăm în 8 faze, fiecare încheiată cu ceva care merge pe buildnet; contract
 
 **Faza 5 — Marketplace**
 
-- [ ] `list`, `updatePrice`, `cancel`, `buy`, `cleanup`, vânzări și statistici, cu teste
-- [ ] UI: listare din pagina NFT-ului, cumpărare, `/marketplace`, floor și volum
+- [x] `list`, `updatePrice`, `cancel` (și curățarea listărilor invalide), `buy`, `buyProblem`, vânzări și statistici, cu teste
+- [x] UI: listare din pagina NFT-ului, cumpărare, `/marketplace`, floor și volum
+- [x] Probă pe buildnet (`smart-contract/src/e2e-marketplace.ts`): listare, cumpărare cu royalty, anulare, curățare; contract redeployat ca v0.3.0
 
 **Faza 6 — Presale**
 

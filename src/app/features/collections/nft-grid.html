@@ -1,10 +1,20 @@
 <div class="toolbar">
   <span class="muted count">{{ filtered().length }} of {{ items().length }} NFTs</span>
-  @if (me()) {
-    <button type="button" class="chip" [class.selected]="mineOnly()" (click)="toggleMine()">
-      Only mine
-    </button>
-  }
+  <span class="toggles">
+    @if (prices().size) {
+      <button type="button" class="chip" [class.selected]="listedOnly()" (click)="toggleListed()">
+        Listed only
+      </button>
+      <button type="button" class="chip" [class.selected]="byPrice()" (click)="toggleByPrice()">
+        Lowest price
+      </button>
+    }
+    @if (me()) {
+      <button type="button" class="chip" [class.selected]="mineOnly()" (click)="toggleMine()">
+        Only mine
+      </button>
+    }
+  </span>
 </div>
 
 @if (traits().length) {
@@ -50,7 +60,9 @@
         </div>
         <div class="caption">
           <strong>{{ m?.name || '#' + item.id }}</strong>
-          @if (item.owner === me()) {
+          @if (price(item.id); as p) {
+            <span class="tag">{{ p | mas }}</span>
+          } @else if (item.owner === me()) {
             <span class="mine">Yours</span>
           }
         </div>

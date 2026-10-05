@@ -42,12 +42,12 @@ export const routes: Routes = [
     title: 'NFT · RustCore Launchpad',
     loadComponent: () => import('./features/collections/nft-page').then((m) => m.NftPage),
   },
-  plannedRoute('marketplace', 'Marketplace', {
-    label: 'Marketplace',
-    heading: 'NFT marketplace',
-    text: 'Buy and sell NFTs with no platform fee — only the creator’s royalty.',
-    phase: 5,
-  }),
+  {
+    path: 'marketplace',
+    title: 'Marketplace · RustCore Launchpad',
+    loadComponent: () =>
+      import('./features/marketplace/marketplace-page').then((m) => m.MarketplacePage),
+  },
   plannedRoute('presales', 'Presales', {
     label: 'Presales',
     heading: 'Token presales',

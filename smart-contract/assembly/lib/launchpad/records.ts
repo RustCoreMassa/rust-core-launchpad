@@ -1,6 +1,7 @@
 // Records the Launchpad SC stores and returns, serialized with Args. The app mirrors each class
 // field by field, in the same order (src/app/core/launchpad/records.ts from phase 3).
 import { Args, Result, Serializable } from '@massalabs/as-types';
+import { u256 } from 'as-bignum/assembly';
 
 /** Presentation data the owner can edit. Empty strings mean "not set". */
 export class ProjectInfo implements Serializable {
@@ -170,6 +171,115 @@ export class UpgradeProposal implements Serializable {
     const args = new Args(data, offset);
     this.codeHash = args.nextBytes().expect('codeHash is missing or invalid');
     this.executableAt = args.nextU64().expect('executableAt is missing or invalid');
+    return new Result(args.offset);
+  }
+}
+
+/** An NFT for sale. Exists only while active: a sale or a cancel deletes it. */
+export class Listing implements Serializable {
+  constructor(
+    public id: u64 = 0,
+    /** Registry id of the collection. */
+    public collectionId: u64 = 0,
+    public collection: string = '',
+    public tokenId: u256 = u256.Zero,
+    public seller: string = '',
+    /** nanoMAS. */
+    public price: u64 = 0,
+    public createdAt: u64 = 0,
+    /** Milliseconds since the epoch; 0 = never expires. */
+    public expiresAt: u64 = 0,
+  ) {}
+
+  serialize(): StaticArray<u8> {
+    return new Args()
+      .add(this.id)
+      .add(this.collectionId)
+      .add(this.collection)
+      .add(this.tokenId)
+      .add(this.seller)
+      .add(this.price)
+      .add(this.createdAt)
+      .add(this.expiresAt)
+      .serialize();
+  }
+
+  deserialize(data: StaticArray<u8>, offset: i32): Result<i32> {
+    const args = new Args(data, offset);
+    this.id = args.nextU64().expect('id');
+    this.collectionId = args.nextU64().expect('collectionId');
+    this.collection = args.nextString().expect('collection');
+    this.tokenId = args.nextU256().expect('tokenId');
+    this.seller = args.nextString().expect('seller');
+    this.price = args.nextU64().expect('price');
+    this.createdAt = args.nextU64().expect('createdAt');
+    this.expiresAt = args.nextU64().expect('expiresAt');
+    return new Result(args.offset);
+  }
+}
+
+/** A completed marketplace sale (history, kept for good). */
+export class Sale implements Serializable {
+  constructor(
+    public id: u64 = 0,
+    public listingId: u64 = 0,
+    public collectionId: u64 = 0,
+    public tokenId: u256 = u256.Zero,
+    public seller: string = '',
+    public buyer: string = '',
+    /** nanoMAS, royalty included. */
+    public price: u64 = 0,
+    public royalty: u64 = 0,
+    public soldAt: u64 = 0,
+  ) {}
+
+  serialize(): StaticArray<u8> {
+    return new Args()
+      .add(this.id)
+      .add(this.listingId)
+      .add(this.collectionId)
+      .add(this.tokenId)
+      .add(this.seller)
+      .add(this.buyer)
+      .add(this.price)
+      .add(this.royalty)
+      .add(this.soldAt)
+      .serialize();
+  }
+
+  deserialize(data: StaticArray<u8>, offset: i32): Result<i32> {
+    const args = new Args(data, offset);
+    this.id = args.nextU64().expect('id');
+    this.listingId = args.nextU64().expect('listingId');
+    this.collectionId = args.nextU64().expect('collectionId');
+    this.tokenId = args.nextU256().expect('tokenId');
+    this.seller = args.nextString().expect('seller');
+    this.buyer = args.nextString().expect('buyer');
+    this.price = args.nextU64().expect('price');
+    this.royalty = args.nextU64().expect('royalty');
+    this.soldAt = args.nextU64().expect('soldAt');
+    return new Result(args.offset);
+  }
+}
+
+/** Marketplace totals per collection (the floor price is computed by the app). */
+export class MarketStats implements Serializable {
+  constructor(
+    /** nanoMAS. */
+    public volume: u64 = 0,
+    public sales: u64 = 0,
+    public lastPrice: u64 = 0,
+  ) {}
+
+  serialize(): StaticArray<u8> {
+    return new Args().add(this.volume).add(this.sales).add(this.lastPrice).serialize();
+  }
+
+  deserialize(data: StaticArray<u8>, offset: i32): Result<i32> {
+    const args = new Args(data, offset);
+    this.volume = args.nextU64().expect('volume');
+    this.sales = args.nextU64().expect('sales');
+    this.lastPrice = args.nextU64().expect('lastPrice');
     return new Result(args.offset);
   }
 }

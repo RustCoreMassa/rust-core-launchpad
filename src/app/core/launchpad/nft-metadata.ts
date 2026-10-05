@@ -1,4 +1,5 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { CollectionReader } from './collection-reader';
 import { httpUrl } from '../utils/ipfs';
 
 export interface NftAttribute {
@@ -75,4 +76,47 @@ function text(value: unknown): string {
   if (typeof value === 'string') return value.slice(0, MAX_TEXT);
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   return '';
+}
+
+/** Reads at most this many NFTs (uri + metadata) at once — the public RPC rejects bursts. */
+const QUEUE_CONCURRENCY = 4;
+
+/**
+ * Metadata of one NFT by collection and id, through a shared queue so that a page full of cards
+ * never fires dozens of RPC calls at once. Results are cached for the session.
+ */
+@Injectable({ providedIn: 'root' })
+export class NftMetadataQueue {
+  private readonly collections = inject(CollectionReader);
+  private readonly loader = inject(NftMetadataLoader);
+  private readonly cache = new Map<string, Promise<NftMetadata | null>>();
+  private readonly waiting: (() => void)[] = [];
+  private running = 0;
+
+  get(collection: string, id: bigint): Promise<NftMetadata | null> {
+    const key = `${collection}/${id}`;
+    let entry = this.cache.get(key);
+    if (!entry) {
+      entry = this.throttled(async () => {
+        try {
+          return await this.loader.load(await this.collections.uri(collection, id));
+        } catch {
+          return null;
+        }
+      });
+      this.cache.set(key, entry);
+    }
+    return entry;
+  }
+
+  private async throttled<T>(task: () => Promise<T>): Promise<T> {
+    if (this.running >= QUEUE_CONCURRENCY) await new Promise<void>((r) => this.waiting.push(r));
+    this.running++;
+    try {
+      return await task();
+    } finally {
+      this.running--;
+      this.waiting.shift()?.();
+    }
+  }
 }

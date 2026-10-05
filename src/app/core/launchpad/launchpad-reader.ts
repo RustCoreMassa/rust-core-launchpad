@@ -4,11 +4,18 @@ import { MassaReader } from '../massa/massa-reader';
 import { NetworkStore } from '../network/network-store';
 import {
   LaunchpadConfig,
+  Listing,
+  MarketStats,
   Project,
   ProjectKind,
+  Sale,
   readConfig,
+  readListing,
+  readPage,
   readProject,
   readProjectPage,
+  readSale,
+  readStats,
 } from './records';
 
 /** Most records one `getProjects` call returns (the contract's MAX_PAGE). */
@@ -105,6 +112,67 @@ export class LaunchpadReader {
     const [value] = await this.reader.provider().readStorage(this.requireAddress(), [key], true);
     if (!value) throw new Error(`Template ${kind} v${version} not found`);
     return value;
+  }
+
+  // ---- marketplace ---------------------------------------------------------------------------
+
+  /** Active listings, newest first; collectionId 0 = every collection. May include stale ones. */
+  async listings(
+    collectionId: bigint,
+    offset: number,
+    limit = PAGE_SIZE,
+  ): Promise<{ total: number; items: Listing[] }> {
+    const bytes = await this.read(
+      'getListings',
+      new Args().addU64(collectionId).addU64(BigInt(offset)).addU32(BigInt(limit)),
+    );
+    return readPage(bytes, readListing);
+  }
+
+  /** Every active listing of a collection (or of all with 0), page after page. */
+  async allListings(collectionId: bigint, max = 1_000): Promise<Listing[]> {
+    const all: Listing[] = [];
+    for (;;) {
+      const page = await this.listings(collectionId, all.length);
+      all.push(...page.items);
+      if (!page.items.length || all.length >= Math.min(page.total, max)) return all;
+    }
+  }
+
+  /** The active listing of an NFT, or null. */
+  async listingOf(collection: string, tokenId: bigint): Promise<Listing | null> {
+    const id = new Args(
+      await this.read('listingOf', new Args().addString(collection).addU256(tokenId)),
+    ).nextU64();
+    if (id === 0n) return null;
+    return readListing(new Args(await this.read('getListing', new Args().addU64(id))));
+  }
+
+  /** Why `buyer` can't buy this listing now; '' when they can. */
+  async buyProblem(listingId: bigint, buyer: string): Promise<string> {
+    const bytes = await this.read('buyProblem', new Args().addU64(listingId).addString(buyer));
+    return new TextDecoder().decode(bytes);
+  }
+
+  async listingsBySeller(seller: string): Promise<bigint[]> {
+    const bytes = await this.read('getListingsBySeller', new Args().addString(seller));
+    return new Args(bytes).nextArray<bigint>(ArrayTypes.U64);
+  }
+
+  async listing(id: bigint): Promise<Listing> {
+    return readListing(new Args(await this.read('getListing', new Args().addU64(id))));
+  }
+
+  async sales(collectionId: bigint, offset = 0, limit = PAGE_SIZE): Promise<{ total: number; items: Sale[] }> {
+    const bytes = await this.read(
+      'getSales',
+      new Args().addU64(collectionId).addU64(BigInt(offset)).addU32(BigInt(limit)),
+    );
+    return readPage(bytes, readSale);
+  }
+
+  async stats(collectionId: bigint): Promise<MarketStats> {
+    return readStats(new Args(await this.read('getStats', new Args().addU64(collectionId))));
   }
 
   private async read(func: string, parameter: Args = new Args()): Promise<Uint8Array> {

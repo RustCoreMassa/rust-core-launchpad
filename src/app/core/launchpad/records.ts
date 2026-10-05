@@ -177,3 +177,80 @@ export function readProjectPage(bytes: Uint8Array): { total: bigint; projects: P
 export function hex(bytes: Uint8Array): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+// ---- marketplace (phase 5) ------------------------------------------------------------------
+
+/** An active marketplace listing (it disappears when sold or cancelled). */
+export interface Listing {
+  id: bigint;
+  collectionId: bigint;
+  collection: string;
+  tokenId: bigint;
+  seller: string;
+  /** nanoMAS */
+  price: bigint;
+  createdAt: number;
+  /** ms since the epoch; 0 = never expires. */
+  expiresAt: number;
+}
+
+export interface Sale {
+  id: bigint;
+  listingId: bigint;
+  collectionId: bigint;
+  tokenId: bigint;
+  seller: string;
+  buyer: string;
+  /** nanoMAS, royalty included. */
+  price: bigint;
+  royalty: bigint;
+  soldAt: number;
+}
+
+export interface MarketStats {
+  /** nanoMAS */
+  volume: bigint;
+  sales: bigint;
+  lastPrice: bigint;
+}
+
+export function readListing(args: Args): Listing {
+  return {
+    id: args.nextU64(),
+    collectionId: args.nextU64(),
+    collection: args.nextString(),
+    tokenId: args.nextU256(),
+    seller: args.nextString(),
+    price: args.nextU64(),
+    createdAt: Number(args.nextU64()),
+    expiresAt: Number(args.nextU64()),
+  };
+}
+
+export function readSale(args: Args): Sale {
+  return {
+    id: args.nextU64(),
+    listingId: args.nextU64(),
+    collectionId: args.nextU64(),
+    tokenId: args.nextU256(),
+    seller: args.nextString(),
+    buyer: args.nextString(),
+    price: args.nextU64(),
+    royalty: args.nextU64(),
+    soldAt: Number(args.nextU64()),
+  };
+}
+
+export function readStats(args: Args): MarketStats {
+  return { volume: args.nextU64(), sales: args.nextU64(), lastPrice: args.nextU64() };
+}
+
+/** A page of records: total (u64), then a length-prefixed run of records. */
+export function readPage<T>(bytes: Uint8Array, read: (args: Args) => T): { total: number; items: T[] } {
+  const args = new Args(bytes);
+  const total = Number(args.nextU64());
+  const array = new Args(args.nextUint8Array());
+  const items: T[] = [];
+  while (array.getOffset() < array.serialize().length) items.push(read(array));
+  return { total, items };
+}

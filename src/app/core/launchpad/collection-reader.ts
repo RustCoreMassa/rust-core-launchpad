@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Args, U256 } from '@massalabs/massa-web3';
 import { MassaReader } from '../massa/massa-reader';
+import { Listing } from './records';
 
 /** RC-Collection's mintInfo(); absent on imported collections. */
 export interface MintInfo {
@@ -34,6 +35,8 @@ export interface NftItem {
 // Storage keys of the standard MRC721 (sc-standards MRC721-internals.ts). Token ids are u256,
 // 32 bytes little-endian.
 const OWNER_PREFIX = 0x04;
+const APPROVED_PREFIX = 0x05;
+const OPERATOR_PREFIX = 0x06;
 const OWNER_KEY_LENGTH = 33;
 const OWNED_TOKENS = 'ownedTokens';
 const STD_OWNER = 'OWNER';
@@ -96,6 +99,58 @@ export class CollectionReader {
       .filter((key) => key.length === prefix.length + 32)
       .map((key) => U256.fromBytes(key.slice(prefix.length)))
       .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  }
+
+  /**
+   * Is `operator` approved to move this NFT for `owner` — its single approval, or an operator
+   * approval for the owner? Read from the standard storage, like the Launchpad does.
+   */
+  async isApproved(address: string, owner: string, id: bigint, operator: string): Promise<boolean> {
+    const text = new TextEncoder();
+    const single = new Uint8Array([APPROVED_PREFIX, ...U256.toBytes(id)]);
+    const forAll = new Uint8Array([OPERATOR_PREFIX, ...text.encode(owner), ...text.encode(operator)]);
+    const [approved, operatorFlag] = await this.storage(address, [single, forAll]);
+    if (approved && new TextDecoder().decode(approved) === operator) return true;
+    return !!operatorFlag && operatorFlag[0] === 1;
+  }
+
+  /**
+   * Which listings can really be bought: the seller still holds the NFT and the Launchpad is
+   * still approved, read in batches from each collection's storage (like `buyProblem`). Expired
+   * listings are left out too. Returns the ids of the valid ones.
+   */
+  async validListings(listings: readonly Listing[], launchpad: string): Promise<Set<bigint>> {
+    const valid = new Set<bigint>();
+    const now = Date.now();
+    const text = new TextEncoder();
+    const byCollection = new Map<string, Listing[]>();
+    for (const l of listings) {
+      if (l.expiresAt && l.expiresAt <= now) continue;
+      byCollection.set(l.collection, [...(byCollection.get(l.collection) ?? []), l]);
+    }
+    for (const [collection, list] of byCollection) {
+      for (let i = 0; i < list.length; i += BATCH / 4) {
+        const slice = list.slice(i, i + BATCH / 4);
+        const keys = slice.flatMap((l) => {
+          const id = U256.toBytes(l.tokenId);
+          return [
+            new Uint8Array([OWNER_PREFIX, ...id]),
+            new Uint8Array([APPROVED_PREFIX, ...id]),
+            new Uint8Array([OPERATOR_PREFIX, ...text.encode(l.seller), ...text.encode(launchpad)]),
+          ];
+        });
+        const values = await this.storage(collection, keys);
+        slice.forEach((l, j) => {
+          const [owner, approved, operator] = values.slice(j * 3, j * 3 + 3);
+          const holds = !!owner && new TextDecoder().decode(owner) === l.seller;
+          const allowed =
+            (!!approved && new TextDecoder().decode(approved) === launchpad) ||
+            (!!operator && operator[0] === 1);
+          if (holds && allowed) valid.add(l.id);
+        });
+      }
+    }
+    return valid;
   }
 
   async uri(address: string, id: bigint): Promise<string> {

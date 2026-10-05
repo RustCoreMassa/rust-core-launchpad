@@ -19,11 +19,12 @@ import { toUserMessage } from '../../core/utils/user-error';
 import { WalletStore } from '../../core/wallet/wallet-store';
 import { ShortAddressPipe } from '../../shared/pipes/short-address-pipe';
 import { ProjectBadges } from '../../shared/ui/project-badges/project-badges';
+import { MarketPanel } from '../marketplace/market-panel';
 
 /** One NFT: its metadata (from the creator's link), its holder and its collection. */
 @Component({
   selector: 'app-nft-page',
-  imports: [RouterLink, ShortAddressPipe, ProjectBadges],
+  imports: [RouterLink, ShortAddressPipe, ProjectBadges, MarketPanel],
   template: `
     <section class="page container">
       <a class="back muted" [routerLink]="['/collections', address()]"
@@ -108,7 +109,14 @@ import { ProjectBadges } from '../../shared/ui/project-badges/project-badges';
             } @else if (meta() === null) {
               <p class="muted">The metadata couldn't be loaded from the creator's link.</p>
             }
-            <p class="hint">Buying and selling arrive with the marketplace (phase 5).</p>
+            @if (project(); as p) {
+              <app-market-panel
+                [collection]="p"
+                [tokenId]="id()"
+                [owner]="owner()!"
+                (changed)="reload()"
+              />
+            }
           </div>
         </div>
       }
@@ -220,6 +228,9 @@ export class NftPage {
   protected readonly meta = signal<NftMetadata | null | undefined>(undefined);
   protected readonly error = signal<string | null>(null);
   protected readonly uriLink = computed(() => httpUrl(this.uri()));
+  protected readonly id = computed(() =>
+    /^\d{1,77}$/.test(this.tokenId()) ? BigInt(this.tokenId()) : 0n,
+  );
   private run = 0;
 
   constructor() {
@@ -229,6 +240,11 @@ export class NftPage {
       this.networks.network();
       untracked(() => void this.load(address, tokenId));
     });
+  }
+
+  /** After a sale or a listing change: the holder may have changed. */
+  protected reload(): void {
+    void this.load(this.address(), this.tokenId());
   }
 
   private async load(address: string, tokenId: string): Promise<void> {

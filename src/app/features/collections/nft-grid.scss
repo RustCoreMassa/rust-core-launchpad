@@ -118,3 +118,14 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  flex: none;
+  font: 700 13px/1 var(--font-display);
+}
