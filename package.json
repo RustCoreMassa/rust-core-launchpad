@@ -12,6 +12,8 @@
     "format": "prettier --write \"src/**/*.{ts,html,scss}\" scripts/*.mjs"
   },
   "private": true,
+  "license": "SEE LICENSE IN LICENSE.md",
+  "author": "Whisky098",
   "packageManager": "npm@11.12.1",
   "dependencies": {
     "@angular/common": "^22.1.0",
@@ -36,7 +38,5 @@
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
     "vitest": "^4.0.8"
-  },
-  "license": "SEE LICENSE IN LICENSE.md",
-  "author": "Whisky098"
+  }
 }

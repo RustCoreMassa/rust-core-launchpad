@@ -1,0 +1,172 @@
+# Publishes a GitHub Release when a version tag is pushed:
+#
+#   git tag v1.2.3 && git push origin v1.2.3
+#
+# The release gets the notes for that version from CHANGELOG.md, the production
+# build of the app as a zip with a SHA256SUMS file, and the compiled contracts
+# (Launchpad + both templates) as a zip with SHA256SUMS-contracts — built here, in
+# public CI, from exactly the tagged commit, so anyone can check that what they run
+# and what is on-chain matches the source (see docs/RELEASING.md).
+#
+# A release never deploys a contract: deploys and upgrades are separate steps.
+#
+# Only first-party actions are used (actions/checkout, actions/setup-node) plus
+# the GitHub CLI preinstalled on the runner — nothing third-party touches the
+# build of an app that moves people's funds.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write # create the release and upload its files
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TAG: ${{ github.ref_name }}
+
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # all tags, to compare with earlier releases
+
+      - name: Set up Node.js (version pinned in .nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            smart-contract/package-lock.json
+
+      - name: Tag must match package.json version
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::Tag $TAG does not match package.json version $VERSION (expected v$VERSION)."
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Release must not exist yet
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "::error::A release for $TAG already exists. Bump the version for a new release."
+            exit 1
+          fi
+
+      - name: Version must be higher than every earlier release
+        run: |
+          # Numeric semver comparison (as text, v1.10.0 would sort below v1.9.0).
+          git tag --list 'v*' | node -e '
+            const current = process.env.TAG;
+            const parse = (t) => t.slice(1).split(".").map(Number);
+            const newer = (a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+            const earlier = require("fs").readFileSync(0, "utf8").split("\n")
+              .filter((t) => /^v\d+\.\d+\.\d+$/.test(t) && t !== current);
+            const latest = earlier.sort((a, b) => newer(parse(a), parse(b))).at(-1);
+            if (latest && newer(parse(current), parse(latest)) <= 0) {
+              console.log(`::error::${current} is not higher than the latest release ${latest}.`);
+              process.exit(1);
+            }
+            console.log(`${current} > ${latest ?? "(first release)"} — ok`);
+          '
+
+      - name: Contract version must match the Launchpad's VERSION
+        run: |
+          PACKAGE="$(node -p "require('./smart-contract/package.json').version")"
+          CODE="$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" smart-contract/assembly/contracts/launchpad.ts)"
+          if [ "$PACKAGE" != "$CODE" ]; then
+            echo "::error::smart-contract/package.json is $PACKAGE but launchpad.ts VERSION is $CODE."
+            exit 1
+          fi
+          echo "CONTRACT_VERSION=$CODE" >> "$GITHUB_ENV"
+          echo "Launchpad contract $CODE"
+
+      - name: Release notes must exist in CHANGELOG.md
+        run: |
+          # The section from "## [X.Y.Z]" up to the next "## [" heading.
+          awk -v v="$VERSION" '
+            index($0, "## [" v "]") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::CHANGELOG.md has no \"## [$VERSION]\" section."
+            exit 1
+          fi
+          # Drop link-reference lines ("[1.0.0]: https://…") that belong to the file, not the notes.
+          sed -i '/^\[[0-9][^]]*\]: /d' release-notes.md
+          cat release-notes.md
+
+      - name: Install exact dependencies
+        run: |
+          npm ci
+          npm ci --prefix smart-contract
+
+      - name: Run the app tests
+        run: npx ng test --watch=false
+
+      - name: Production build
+        run: npx ng build
+
+      - name: The built app must boot
+        # Loads the production bundle in a simulated browser and checks the app renders —
+        # catches bundle-order bugs that type-checks and unit tests can't see.
+        run: npm run smoke
+
+      - name: Build the contracts
+        run: npm run build --prefix smart-contract
+
+      - name: Run the contract tests
+        run: npm test --prefix smart-contract
+
+      - name: Templates must be the ones the app launches from
+        # The app refuses launches from templates it doesn't know (src/app/core/launchpad/templates.ts).
+        working-directory: smart-contract
+        run: npm run check:templates
+
+      - name: Package the app and checksums
+        run: |
+          BUILD=dist/rust-core-launchpad/browser
+          WEB_ZIP="rust-core-launchpad-$TAG.zip"
+          (cd "$BUILD" && find . -type f | sort | xargs sha256sum) > SHA256SUMS
+          (cd "$BUILD" && zip -qr "$GITHUB_WORKSPACE/$WEB_ZIP" .)
+          sha256sum "$WEB_ZIP" >> SHA256SUMS
+          # Not "ZIP": zip reads $ZIP as default options, so exporting it would make every
+          # later `zip` call add to this archive instead of writing its own.
+          echo "WEB_ZIP=$WEB_ZIP" >> "$GITHUB_ENV"
+          cat SHA256SUMS
+
+      - name: Package the contracts and checksums
+        run: |
+          CONTRACTS_ZIP="rust-core-launchpad-contracts-$TAG.zip"
+          (cd smart-contract/build && sha256sum launchpad.wasm rc-token.wasm rc-collection.wasm) > SHA256SUMS-contracts
+          (cd smart-contract/build && zip -q "$GITHUB_WORKSPACE/$CONTRACTS_ZIP" launchpad.wasm rc-token.wasm rc-collection.wasm)
+          sha256sum "$CONTRACTS_ZIP" >> SHA256SUMS-contracts
+          echo "CONTRACTS_ZIP=$CONTRACTS_ZIP" >> "$GITHUB_ENV"
+          cat SHA256SUMS-contracts
+
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          printf '\n---\n\nLaunchpad contract: v%s (check it on-chain with `npm run verify`, see docs/RELEASING.md).\n' \
+            "$CONTRACT_VERSION" >> release-notes.md
+          gh release create "$TAG" "$WEB_ZIP" SHA256SUMS "$CONTRACTS_ZIP" SHA256SUMS-contracts \
+            --title "RustCore Launchpad $TAG" \
+            --notes-file release-notes.md \
+            --verify-tag

@@ -387,22 +387,27 @@ Același stack ca RustCore Wallet: Angular 22 (standalone, zoneless, signals, no
 rust-core-launchpad/
   smart-contract/                AssemblyScript (@massalabs/massa-as-sdk, sc-standards)
     assembly/contracts/          puncte de intrare (fiecare fișier → build/<nume>.wasm)
-      launchpad.ts               factory + registry + marketplace + presale + admin
+      launchpad.ts               factory + registry + admin (re-exportă marketplace și presale)
       rc-token.ts                șablon MRC20
       rc-collection.ts           șablon MRC721
-    assembly/lib/                module interne, recorduri Serializable, chei
-    assembly/__tests__/          teste unitare (vm-mock)
-    src/deploy.ts                deploy + setTemplate pe buildnet/mainnet
+    assembly/lib/                ownable, mutable, validation; launchpad/ (keys, records, rules,
+                                 settlement, common, marketplace, presale, math)
+    assembly/__tests__/          teste unitare (vm-mock), inclusiv cross-check cu aplicația
+    src/                         deploy.ts, verify.ts, check-templates.ts, e2e*.ts (buildnet)
+    deployments/                 adresa, versiunea și hash-urile fiecărui deploy (+ history/)
   src/app/
-    core/
-      models/                    TokenRecord, CollectionRecord, Listing, Presale (oglinda AS)
-      contracts/                 launchpad-contract.ts, token-contract.ts, collection-contract.ts (Args)
-      services/                  massa-read.ts (readSC, storage), wallet-connect.ts, tx-runner.ts
-      utils/                     token-amount, user-error, ipfs-url, validators
-    state/                       launchpad-store, wallet-store, cache
-    features/                    home, tokens, nfts, marketplace, presales, dashboard, admin
-    shared/ui/                   card, dropdown, wizard, confirm-details, filter-bar, skeleton, toast
-    layout/                      header (conectare wallet, rețea), footer
+    core/launchpad/              citiri (launchpad, token, colecție, metadata), records (oglinda AS),
+                                 reguli, costuri, transactions, templates (hash-uri cunoscute)
+    core/                        massa (RPC), network, wallet, platform, utils
+    features/                    home, explore, tokens, collections, marketplace, presales,
+                                 create, dashboard, admin
+    shared/                      pipes, ui (info-form, badges, logo, presale-progress, edit dialog)
+    layout/                      header (conectare wallet, rețea), footer, dialog wallet
+  src/environments/              producție și dezvoltare (linkuri locale, gateway IPFS)
+  public/templates/              sursa înghețată a fiecărei versiuni de șablon
+  docs/                          ANALYSIS.md (spec), RELEASING.md (release, verificare, deploy)
+  .github/workflows/release.yml  release la tag: teste, build, boot, contracte, checksum-uri
+  README.md, CONTRIBUTING.md, CHANGELOG.md, LICENSE.md (FSL-1.1-ALv2)
 ```
 
 ### Rute

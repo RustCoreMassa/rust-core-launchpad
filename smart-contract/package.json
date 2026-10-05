@@ -1,6 +1,6 @@
 {
   "name": "rust-core-launchpad-contracts",
-  "version": "0.0.0",
+  "version": "0.5.1",
   "private": true,
   "description": "RustCore Launchpad smart contracts (AssemblyScript, Massa)",
   "license": "SEE LICENSE IN ../LICENSE.md",
@@ -10,7 +10,9 @@
     "build": "massa-as-compile",
     "test": "asp --summary",
     "clean": "rimraf build",
-    "deploy": "npm run build && node --stack-size=16000 --import tsx src/deploy.ts"
+    "deploy": "npm run build && node --stack-size=16000 --import tsx src/deploy.ts",
+    "verify": "npm run build && tsx src/verify.ts",
+    "check:templates": "tsx src/check-templates.ts"
   },
   "devDependencies": {
     "@as-pect/cli": "^8.1.0",
