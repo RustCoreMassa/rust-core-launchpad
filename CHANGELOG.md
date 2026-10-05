@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). Each release names the
 Launchpad contract version it works with.
 
+## [Unreleased]
+
 ## [1.0.0] — 2026-10-05
 
 The first release, on Massa **mainnet** (buildnet only in development builds). It works with the Launchpad

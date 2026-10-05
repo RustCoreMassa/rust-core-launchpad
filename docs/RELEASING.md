@@ -37,19 +37,19 @@ Everything users get comes from one tagged commit, in this order:
 
 Anyone can then follow the chain: public source → release → contract on-chain → site.
 
-(v1.0.0 was the exception: its contract was deployed from the commit that was then tagged, and
-the release's `SHA256SUMS-contracts` was checked against the chain afterwards.)
+(v1.0.0 was the exception: its contract was deployed from the commit that was then tagged; the
+release's `SHA256SUMS-contracts` was checked against the chain afterwards and matches.)
 
 ## Publishing a release
 
-1. Bump the version: `npm version 0.2.0 --no-git-tag-version`
+1. Bump the version: `npm version 1.1.0 --no-git-tag-version`
 2. In `CHANGELOG.md`, rename the `## [Unreleased]` section (where changes collect between
-   releases) to `## [0.2.0] — <date>` and add its link at the bottom.
+   releases) to `## [1.1.0] — <date>` and add its link at the bottom.
 3. Commit, then push a matching tag:
 
 ```bash
-git tag v0.2.0
-git push origin master v0.2.0
+git tag v1.1.0
+git push origin master v1.1.0
 ```
 
 Pushing the tag starts the [release workflow](../.github/workflows/release.yml) on GitHub
@@ -80,7 +80,7 @@ build it with the Node.js version from [`.nvmrc`](../.nvmrc) and compare the che
 release's `SHA256SUMS`:
 
 ```bash
-git checkout v0.1.0
+git checkout v1.0.0
 npm ci
 npm run build
 cd dist/rust-core-launchpad/browser
@@ -185,8 +185,8 @@ A GitHub Release can only hold files, so the release carries that folder as
 Before uploading, check every file against the release's `SHA256SUMS`, from inside the folder:
 
 ```bash
-unzip rust-core-launchpad-v0.1.0.zip -d rust-core-launchpad-v0.1.0
-cd rust-core-launchpad-v0.1.0
+unzip rust-core-launchpad-v1.0.0.zip -d rust-core-launchpad-v1.0.0
+cd rust-core-launchpad-v1.0.0
 shasum -a 256 -c ../SHA256SUMS --ignore-missing   # Linux: sha256sum -c ../SHA256SUMS --ignore-missing
 ```
 
