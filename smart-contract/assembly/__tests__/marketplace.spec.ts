@@ -27,6 +27,7 @@ import {
   isListingValid,
   list,
   listingOf,
+  setConfig,
   setHidden,
   setPaused,
   updatePrice,
@@ -101,11 +102,16 @@ function makeCollection(address: string): void {
   done();
 }
 
+/** Test fees, with a marketplace fee of `marketFeeBps`. */
+function marketConfig(marketFeeBps: u16): Config {
+  return new Config(MAS, MAS, MAS, 200, MAS / 10, false, marketFeeBps);
+}
+
 /** Launchpad + an imported collection; ALICE holds tokens 1 and 2, token 1 approved. */
 function setup(): void {
   resetStorage();
   setDeployContext(ADMIN);
-  constructor(new Args().add(new Config(MAS, MAS, MAS, 200, MAS / 10, false)).serialize());
+  constructor(new Args().add(marketConfig(100)).serialize());
   mockAdminContext(false);
   makeCollection(COLLECTION);
   setTokenOwner(COLLECTION, 1, ALICE);
@@ -151,6 +157,38 @@ function idArgs(id: u64): StaticArray<u8> {
 function buyArgs(id: u64, price: u64 = PRICE): StaticArray<u8> {
   return new Args().add(id).add(price).serialize();
 }
+
+describe('Marketplace fee', () => {
+  test('a listing keeps the fee in force when it was listed', () => {
+    setup();
+    approveLaunchpad(COLLECTION, 2);
+    const first = aliceLists(1);
+    expect(listing(first).feeBps).toBe(100);
+    changeCallStack(ADMIN + ' , ' + LAUNCHPAD);
+    setConfig(new Args().add(marketConfig(300)).serialize());
+    expect(listing(first).feeBps).toBe(100); // a fee change never reaches existing listings
+    const second = aliceLists(2);
+    expect(listing(second).feeBps).toBe(300);
+  });
+
+  test('accepts a marketplace fee up to 5%', () => {
+    setup();
+    changeCallStack(ADMIN + ' , ' + LAUNCHPAD);
+    setConfig(new Args().add(marketConfig(500)).serialize());
+  });
+
+  throws('a marketplace fee above 5%', () => {
+    setup();
+    changeCallStack(ADMIN + ' , ' + LAUNCHPAD);
+    setConfig(new Args().add(marketConfig(501)).serialize());
+  });
+
+  throws('a deploy with a marketplace fee above 5%', () => {
+    resetStorage();
+    setDeployContext(ADMIN);
+    constructor(new Args().add(marketConfig(501)).serialize());
+  });
+});
 
 describe('Marketplace listing', () => {
   test('the owner lists an approved NFT', () => {

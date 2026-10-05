@@ -6,6 +6,7 @@ const CONFIG: LaunchpadConfig = {
   collectionFee: 1_500_000_000n,
   importFee: 500_000_000n,
   presaleFeeBps: 250,
+  marketFeeBps: 100,
   deployDeposit: 100_000_000n,
   paused: true,
 };
@@ -17,6 +18,8 @@ describe('admin forms', () => {
     expect(percentToBps('0,25')).toBe(25);
     expect(percentToBps('10')).toBe(1_000);
     expect(percentToBps('10.01')).toBeNull();
+    expect(percentToBps('5', 500)).toBe(500);
+    expect(percentToBps('5.01', 500)).toBeNull();
     expect(percentToBps('1.234')).toBeNull();
     expect(percentToBps('-1')).toBeNull();
     expect(percentToBps('')).toBeNull();
@@ -28,10 +31,17 @@ describe('admin forms', () => {
   });
 
   it('reports every bad field', () => {
-    const form = { ...feeFormOf(CONFIG), tokenFee: 'abc', importFee: '', presaleFee: '20' };
+    const form = {
+      ...feeFormOf(CONFIG),
+      tokenFee: 'abc',
+      importFee: '',
+      presaleFee: '20',
+      marketFee: '5.5',
+    };
     const result = configFromForm(form, false);
     expect('errors' in result && Object.keys(result.errors).sort()).toEqual([
       'importFee',
+      'marketFee',
       'presaleFee',
       'tokenFee',
     ]);

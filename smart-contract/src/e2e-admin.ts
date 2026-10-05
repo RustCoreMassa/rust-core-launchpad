@@ -99,6 +99,14 @@ check(
   )) === 'The presale fee must be at most 10%',
 );
 check(
+  'a marketplace fee above 5% is refused',
+  (await refusal(
+    admin,
+    'setConfig',
+    writeConfig(new Args(), { ...original, marketFeeBps: 501 }),
+  )) === 'The marketplace fee must be at most 5%',
+);
+check(
   'another wallet is refused',
   (await refusal(other, 'setPaused', new Args().addBool(true))) === 'Caller is not the admin',
 );

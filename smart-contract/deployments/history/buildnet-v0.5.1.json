@@ -1,17 +1,16 @@
 {
   "network": "buildnet",
-  "address": "AS1Ngm242VSgb8MyxM4HJ9qB8fEB4QjJ7omKDMTA4dyvMpirvyo1",
-  "version": "0.6.0",
+  "address": "AS1HURhi6QmXjS8yhcJnVuZukYrF1FtJkGex8kpsrv89iqrCaAqv",
+  "version": "0.5.1",
   "admin": "AU126wtKuDT74wJmh4dwwZtRRX1Qvi6628y5berGnwtBbnUmsNhJ2",
-  "deployedAt": "2026-10-05T11:46:42.297Z",
-  "launchpadBytes": 141564,
+  "deployedAt": "2026-10-05T09:22:10.292Z",
+  "launchpadBytes": 140291,
   "config": {
     "tokenFee": "1",
     "collectionFee": "1",
     "importFee": "0.5",
     "presaleFeeBps": 200,
-    "deployDeposit": "0.1",
-    "marketFeeBps": 100
+    "deployDeposit": "0.1"
   },
   "templates": {
     "rc-token.wasm": {

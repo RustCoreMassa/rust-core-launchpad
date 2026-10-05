@@ -1,5 +1,5 @@
 import { Args } from '@massalabs/massa-web3';
-import { BUY_MARGIN, buyCoins, royaltyOf } from './market-cost';
+import { BUY_MARGIN, buyCoins, royaltyOf, saleSplit } from './market-cost';
 import { readListing, readPage, readSale, readStats } from './records';
 
 describe('marketplace cost', () => {
@@ -11,6 +11,15 @@ describe('marketplace cost', () => {
     expect(royaltyOf(5_000_000_000n, 500)).toBe(250_000_000n);
     expect(royaltyOf(9_999n, 250)).toBe(249n);
     expect(royaltyOf(1_000n, 0)).toBe(0n);
+  });
+
+  it('splits a sale into royalty, marketplace fee and the seller’s part', () => {
+    expect(saleSplit(5_000_000_000n, 500, 100)).toEqual({
+      royalty: 250_000_000n,
+      fee: 50_000_000n,
+      seller: 4_700_000_000n,
+    });
+    expect(saleSplit(999n, 0, 100)).toEqual({ royalty: 0n, fee: 9n, seller: 990n });
   });
 });
 
@@ -24,7 +33,8 @@ describe('marketplace records', () => {
       .addString('AU1alice')
       .addU64(price)
       .addU64(1_000n)
-      .addU64(0n);
+      .addU64(0n)
+      .addU16(100n);
   }
 
   it('reads a listing in the contract’s order', () => {
@@ -37,6 +47,7 @@ describe('marketplace records', () => {
       price: 10n,
       createdAt: 1_000,
       expiresAt: 0,
+      feeBps: 100,
     });
   });
 
@@ -62,11 +73,13 @@ describe('marketplace records', () => {
       .addU64(5_000n)
       .addU64(250n)
       .addU64(2_000n)
+      .addU64(50n)
       .serialize();
     expect(readSale(new Args(sale))).toMatchObject({
       listingId: 4n,
       buyer: 'AU1bob',
       royalty: 250n,
+      fee: 50n,
     });
     const stats = new Args().addU64(5_000n).addU64(1n).addU64(5_000n).serialize();
     expect(readStats(new Args(stats))).toEqual({ volume: 5_000n, sales: 1n, lastPrice: 5_000n });

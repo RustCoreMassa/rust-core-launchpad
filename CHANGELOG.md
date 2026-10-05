@@ -8,7 +8,7 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
-The first version, on Massa **buildnet** only, with the Launchpad contract **v0.5.1**. Not on
+The first version, on Massa **buildnet** only, with the Launchpad contract **v0.6.0**. Not on
 mainnet yet; not independently audited.
 
 ### Added
@@ -25,8 +25,9 @@ mainnet yet; not independently audited.
 - **Import** of tokens and collections already deployed, by their owner.
 - **Explore** tokens and collections with filters, categories and search, read straight from
   the Launchpad contract — no backend.
-- **NFT marketplace**: list, change the price, cancel, buy. No custody and no platform fee; the
-  creator's royalty is paid on every sale. Stale listings can be cleaned up by anyone, their
+- **NFT marketplace**: list, change the price, cancel, buy. No custody. Each sale pays the
+  creator's royalty and a marketplace fee (1% on buildnet, at most 5%), fixed when the NFT is
+  listed; the seller sees what they'll receive before listing. Stale listings can be cleaned up by anyone, their
   storage going back to the seller. A purchase carries the price the buyer saw.
 - **Token presales**: soft and hard cap, per-wallet limits, start and end; contributions held in
   escrow by the contract; claims on success, refunds on failure or cancel. The presale fee is
@@ -34,10 +35,12 @@ mainnet yet; not independently audited.
 - **Dashboard**: your tokens, collections, NFTs and presale contributions; edit a project's
   description, logo and links; download the original contract code as a zip that rebuilds to
   the bytecode on-chain.
-- **Admin page**, public to read: version, fees, balance, templates and any pending upgrade.
-  The admin can pause, set fees (presale fee at most 10%), withdraw the fees collected (only
-  those), verify or hide projects, reserve symbols, add template versions, upgrade the
-  Launchpad through a 72-hour public delay, and hand the role over in two steps.
+- **Admin page**, only for the admin wallet (or the one offered the role): version, fees,
+  balance, templates and any pending upgrade. A pending upgrade is announced to everyone on
+  every page. The admin can pause, set fees (presale fee at most 10%, marketplace fee at most
+  5%), withdraw the fees collected (only those), verify or hide projects, reserve symbols, add
+  template versions, upgrade the Launchpad through a 72-hour public delay, and hand the role
+  over in two steps.
 - Wallets: Bearby, Massa Station and MetaMask (Massa Snap). Nothing connects until you click
   **Connect wallet**.
 - Every write is simulated before your wallet signs it; costs are shown first and unused

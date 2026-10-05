@@ -13,6 +13,8 @@ export const MAX_COLLECTION_SUPPLY: u64 = 100_000;
 export const MAX_ROYALTY_BPS: u16 = 1_000; // 10 %
 /** Cap on the presale fee the admin may set (fixed in each presale when it's created). */
 export const MAX_PRESALE_FEE_BPS: u16 = 1_000; // 10 %
+/** Cap on the marketplace fee the admin may set (fixed in each listing when it's created). */
+export const MAX_MARKET_FEE_BPS: u16 = 500; // 5 %
 export const MAX_PAGE: u32 = 50;
 
 /** meme, utility, gaming, DeFi, community, other */

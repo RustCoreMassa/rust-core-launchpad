@@ -86,8 +86,7 @@ npm run verify                    # buildnet; NETWORK=mainnet npm run verify for
 It builds the contracts from the source you checked out, then compares the sha256 of
 `launchpad.wasm` with the Launchpad's bytecode on-chain, and the sha256 of `rc-token.wasm` and
 `rc-collection.wasm` with the template hashes the Launchpad launches from. Every line must say
-`✓`. The same hashes are in the release's `SHA256SUMS-contracts` and, for the templates, on the
-app's Admin page.
+`✓`. The same hashes are in the release's `SHA256SUMS-contracts`.
 
 A launched token or collection can be checked the same way: its page shows **Original code**
 when its bytecode still matches the template it was launched from, and **Download original
@@ -118,8 +117,8 @@ A fresh buildnet deployment starts with an empty registry; that's fine for the t
 ### Mainnet
 
 1. Set the mainnet fees in `.env` (`TOKEN_FEE_MAS`, `COLLECTION_FEE_MAS`, `IMPORT_FEE_MAS`,
-   `PRESALE_FEE_BPS` — at most 1000 — and `DEPLOY_DEPOSIT_MAS`) and the admin account's
-   `PRIVATE_KEY`.
+   `PRESALE_FEE_BPS` — at most 1000 —, `MARKET_FEE_BPS` — at most 500 — and
+   `DEPLOY_DEPOSIT_MAS`) and the admin account's `PRIVATE_KEY`.
 2. `NETWORK=mainnet npm run deploy` — the only transaction sent for real; everything else was
    checked on buildnet first.
 3. `NETWORK=mainnet npm run verify`.
@@ -132,8 +131,8 @@ On mainnet the registry, the listings and the escrowed MAS live in the Launchpad
 the contract is upgraded in place rather than redeployed:
 
 1. Build the new code and check it on buildnet first (fresh deployment + e2e).
-2. On the Admin page, **Propose** the new `launchpad.wasm`: its sha256 is recorded on-chain and
-   the page shows everyone when it can run — 72 hours later.
+2. On the Admin page, **Propose** the new `launchpad.wasm`: its sha256 is recorded on-chain, and
+   every page of the app tells everyone when it can run — 72 hours later.
 3. After 72 hours, **Run the upgrade** with the same file; the contract checks its hash. The
    admin pays the storage of the new code.
 

@@ -68,6 +68,13 @@ export class LaunchpadReader {
     return new TextDecoder().decode(await this.read('pendingAdmin')) || null;
   }
 
+  /** Is `address` the admin, or the address the admin offered the role to? */
+  async isAdminOrOffered(address: string | null): Promise<boolean> {
+    if (!address || !this.address()) return false;
+    if ((await this.admin()) === address) return true;
+    return (await this.pendingAdmin()) === address;
+  }
+
   /** The Launchpad's MAS balance (fees, escrow, storage reserve), nanoMAS. */
   async balance(): Promise<bigint> {
     const [entry] = await this.reader.provider().balanceOf([this.requireAddress()], true);

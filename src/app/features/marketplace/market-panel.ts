@@ -14,7 +14,7 @@ import { DatePipe } from '@angular/common';
 import { Args } from '@massalabs/massa-web3';
 import { CollectionReader } from '../../core/launchpad/collection-reader';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
-import { APPROVE_COINS, LIST_COINS, buyCoins, royaltyOf } from '../../core/launchpad/market-cost';
+import { APPROVE_COINS, LIST_COINS, buyCoins, saleSplit } from '../../core/launchpad/market-cost';
 import { Listing, Project, Sale } from '../../core/launchpad/records';
 import { Transactions } from '../../core/launchpad/transactions';
 import { toUserMessage } from '../../core/utils/user-error';
@@ -34,7 +34,7 @@ const EXPIRIES = [
 
 type Busy = 'approve' | 'list' | 'price' | 'cancel' | 'buy' | null;
 
-/** Buy, list, reprice or cancel one NFT. No custody, no fee. */
+/** Buy, list, reprice or cancel one NFT. No custody. */
 @Component({
   selector: 'app-market-panel',
   imports: [DatePipe, MasPipe, ShortAddressPipe, ConnectWalletDialog],
@@ -77,17 +77,20 @@ export class MarketPanel {
     return price !== null && price > 0n;
   });
   protected readonly royaltyPercent = computed(() => this.collection().royaltyBps / 100);
+  /** The marketplace fee new listings get (from the Launchpad's config), bps; null while unknown. */
+  protected readonly marketFeeBps = signal<number | null>(null);
   protected readonly breakdown = computed(() => {
     const listing = this.listing();
     if (!listing) return null;
-    const royalty = royaltyOf(listing.price, this.collection().royaltyBps);
-    return { royalty, seller: listing.price - royalty, sent: buyCoins(listing.price) };
+    const split = saleSplit(listing.price, this.collection().royaltyBps, listing.feeBps);
+    return { ...split, feePercent: listing.feeBps / 100, sent: buyCoins(listing.price) };
   });
   protected readonly preview = computed(() => {
     const price = this.price();
-    if (price === null || price <= 0n) return null;
-    const royalty = royaltyOf(price, this.collection().royaltyBps);
-    return { royalty, you: price - royalty };
+    const feeBps = this.marketFeeBps();
+    if (price === null || price <= 0n || feeBps === null) return null;
+    const split = saleSplit(price, this.collection().royaltyBps, feeBps);
+    return { ...split, feePercent: feeBps / 100 };
   });
 
   private readonly connectDialog = viewChild.required(ConnectWalletDialog);
@@ -215,6 +218,10 @@ export class MarketPanel {
       }
       const sales = await this.launchpad.sales(project.id);
       if (run === this.run) this.sales.set(sales.items.filter((s) => s.tokenId === tokenId));
+      if (this.marketFeeBps() === null) {
+        const config = await this.launchpad.config();
+        if (run === this.run) this.marketFeeBps.set(config.marketFeeBps);
+      }
     } catch (err) {
       if (run !== this.run) return;
       this.listing.set(null);

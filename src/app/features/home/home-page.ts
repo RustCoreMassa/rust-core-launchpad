@@ -23,7 +23,7 @@ export class HomePage {
     {
       path: '/marketplace',
       title: 'Trade NFTs',
-      text: 'List and buy without custody. No platform fee — only the creator’s royalty.',
+      text: 'List and buy without custody. A small marketplace fee and the creator’s royalty, nothing else.',
     },
     {
       path: '/presales',

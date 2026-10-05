@@ -23,6 +23,7 @@ import {
 } from '@massalabs/massa-web3';
 import { getScByteCode } from './utils';
 import { KNOWN_TEMPLATES } from '../../src/app/core/launchpad/templates';
+import { writeConfig } from '../../src/app/core/launchpad/records';
 
 const KIND_TOKEN = 0;
 const KIND_COLLECTION = 1;
@@ -35,6 +36,7 @@ const config = {
   importFee: mas('IMPORT_FEE_MAS', '0.5'),
   presaleFeeBps: Number(process.env['PRESALE_FEE_BPS'] ?? '200'),
   deployDeposit: mas('DEPLOY_DEPOSIT_MAS', '0.1'),
+  marketFeeBps: Number(process.env['MARKET_FEE_BPS'] ?? '100'),
 };
 
 const account = await Account.fromEnv();
@@ -46,13 +48,7 @@ console.log(`Balance before: ${Mas.toString(await provider.balance(false))} MAS`
 
 // 1. The Launchpad itself. Constructor args = the Config record, field by field.
 const launchpadCode = getScByteCode('build', 'launchpad.wasm');
-const constructorArgs = new Args()
-  .addU64(config.tokenFee)
-  .addU64(config.collectionFee)
-  .addU64(config.importFee)
-  .addU16(BigInt(config.presaleFeeBps))
-  .addU64(config.deployDeposit)
-  .addBool(false);
+const constructorArgs = writeConfig(new Args(), { ...config, paused: false });
 // The app launches only from templates it has the source of (src/app/core/launchpad/
 // templates.ts): a fresh Launchpad gets them as v1, so check before spending anything.
 for (const [kind, file] of [
@@ -136,6 +132,7 @@ const record = {
     importFee: Mas.toString(config.importFee),
     presaleFeeBps: config.presaleFeeBps,
     deployDeposit: Mas.toString(config.deployDeposit),
+    marketFeeBps: config.marketFeeBps,
   },
   templates,
 };

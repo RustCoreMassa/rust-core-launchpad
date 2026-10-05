@@ -59,6 +59,18 @@
   </div>
 </header>
 
+@if (upgrade(); as u) {
+  <div class="container mismatch" role="status">
+    <div class="notice">
+      <span>
+        <strong>The Launchpad's code is about to change.</strong> Its admin proposed an upgrade that
+        can run from {{ u.executableAt | date: 'medium' }} at the earliest; until then the current
+        rules apply.
+      </span>
+    </div>
+  </div>
+}
+
 @if (wallet.networkMismatch()) {
   <div class="container mismatch" role="status">
     <div class="notice">

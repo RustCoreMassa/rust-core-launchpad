@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { adminGuard } from './features/admin/admin-guard';
 
 export const routes: Routes = [
   {
@@ -77,6 +78,7 @@ export const routes: Routes = [
     path: 'admin',
     title: 'Admin · RustCore Launchpad',
     loadComponent: () => import('./features/admin/admin-page').then((m) => m.AdminPage),
+    canActivate: [adminGuard],
   },
   {
     path: '**',

@@ -12,7 +12,18 @@ export function buyCoins(price: bigint): bigint {
   return price + BUY_MARGIN;
 }
 
-/** Royalty in nanoMAS for a price, like the contract computes it (rounded down). */
+/** A share in basis points of a price (royalty, fee), like the contract computes it (rounded down). */
 export function royaltyOf(price: bigint, bps: number): bigint {
   return (price * BigInt(bps)) / 10_000n;
+}
+
+/** What a sale splits into: the creator's royalty, the marketplace fee, the seller's part. */
+export function saleSplit(
+  price: bigint,
+  royaltyBps: number,
+  feeBps: number,
+): { royalty: bigint; fee: bigint; seller: bigint } {
+  const royalty = royaltyOf(price, royaltyBps);
+  const fee = royaltyOf(price, feeBps);
+  return { royalty, fee, seller: price - royalty - fee };
 }

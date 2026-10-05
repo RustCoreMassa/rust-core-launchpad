@@ -51,8 +51,8 @@
           <dd>{{ b.royalty | mas }}</dd>
         </div>
         <div>
-          <dt>Platform fee</dt>
-          <dd>none</dd>
+          <dt>Marketplace fee ({{ b.feePercent }}%)</dt>
+          <dd>{{ b.fee | mas }}</dd>
         </div>
       </dl>
       <p class="hint">Sends {{ b.sent | mas }} (price + storage); what isn't used comes back.</p>
@@ -67,9 +67,7 @@
     }
   } @else if (isOwner()) {
     <h2>Sell this NFT</h2>
-    <p class="hint">
-      It stays in your wallet; the Launchpad may move it only when someone pays. No platform fee.
-    </p>
+    <p class="hint">It stays in your wallet; the Launchpad may move it only when someone pays.</p>
     <label class="field">
       <span>Price (MAS)</span>
       <input
@@ -97,9 +95,10 @@
     </div>
     @if (preview(); as p) {
       <p class="hint">
-        You get {{ p.you | mas }}; {{ p.royalty | mas }} goes to the creator ({{
+        You get {{ p.seller | mas }}; {{ p.royalty | mas }} goes to the creator ({{
           royaltyPercent()
-        }}%).
+        }}%) and {{ p.fee | mas }} is the marketplace fee ({{ p.feePercent }}%, fixed when you
+        list).
       </p>
     }
     <button

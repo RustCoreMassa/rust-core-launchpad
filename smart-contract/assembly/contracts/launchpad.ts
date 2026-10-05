@@ -71,6 +71,7 @@ import {
 } from '../lib/launchpad/records';
 import {
   MAX_COLLECTION_SUPPLY,
+  MAX_MARKET_FEE_BPS,
   MAX_PRESALE_FEE_BPS,
   MAX_PAGE,
   RESERVED_SYMBOLS,
@@ -91,7 +92,7 @@ import {
   _ownerOf,
 } from '../lib/launchpad/common';
 
-export const VERSION = '0.5.1';
+export const VERSION = '0.6.0';
 /** Delay between proposing and executing an upgrade of this contract: 72 hours. */
 export const UPGRADE_DELAY_MS: u64 = 72 * 60 * 60 * 1000;
 export const MAX_DECIMALS: u8 = 18;
@@ -743,6 +744,7 @@ export function pendingUpgrade(_: StaticArray<u8>): StaticArray<u8> {
 
 function _assertConfig(config: Config): void {
   assert(config.presaleFeeBps <= MAX_PRESALE_FEE_BPS, 'The presale fee must be at most 10%');
+  assert(config.marketFeeBps <= MAX_MARKET_FEE_BPS, 'The marketplace fee must be at most 5%');
 }
 
 function _templateVersion(kind: u8): u32 {

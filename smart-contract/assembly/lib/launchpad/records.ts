@@ -130,6 +130,8 @@ export class Config implements Serializable {
     /** MAS given to each new contract for its own storage (constructor + first holders). */
     public deployDeposit: u64 = 0,
     public paused: bool = false,
+    /** Marketplace fee on each sale, in basis points; fixed in each listing when it's created. */
+    public marketFeeBps: u16 = 0,
   ) {}
 
   serialize(): StaticArray<u8> {
@@ -140,6 +142,7 @@ export class Config implements Serializable {
       .add(this.presaleFeeBps)
       .add(this.deployDeposit)
       .add(this.paused)
+      .add(this.marketFeeBps)
       .serialize();
   }
 
@@ -151,6 +154,7 @@ export class Config implements Serializable {
     this.presaleFeeBps = args.nextU16().expect('presaleFeeBps is missing or invalid');
     this.deployDeposit = args.nextU64().expect('deployDeposit is missing or invalid');
     this.paused = args.nextBool().expect('paused is missing or invalid');
+    this.marketFeeBps = args.nextU16().expect('marketFeeBps is missing or invalid');
     return new Result(args.offset);
   }
 }
@@ -189,6 +193,8 @@ export class Listing implements Serializable {
     public createdAt: u64 = 0,
     /** Milliseconds since the epoch; 0 = never expires. */
     public expiresAt: u64 = 0,
+    /** Marketplace fee in basis points, fixed when the NFT was listed. */
+    public feeBps: u16 = 0,
   ) {}
 
   serialize(): StaticArray<u8> {
@@ -201,6 +207,7 @@ export class Listing implements Serializable {
       .add(this.price)
       .add(this.createdAt)
       .add(this.expiresAt)
+      .add(this.feeBps)
       .serialize();
   }
 
@@ -214,6 +221,7 @@ export class Listing implements Serializable {
     this.price = args.nextU64().expect('price');
     this.createdAt = args.nextU64().expect('createdAt');
     this.expiresAt = args.nextU64().expect('expiresAt');
+    this.feeBps = args.nextU16().expect('feeBps');
     return new Result(args.offset);
   }
 }
@@ -231,6 +239,8 @@ export class Sale implements Serializable {
     public price: u64 = 0,
     public royalty: u64 = 0,
     public soldAt: u64 = 0,
+    /** Marketplace fee taken from the price, nanoMAS. */
+    public fee: u64 = 0,
   ) {}
 
   serialize(): StaticArray<u8> {
@@ -244,6 +254,7 @@ export class Sale implements Serializable {
       .add(this.price)
       .add(this.royalty)
       .add(this.soldAt)
+      .add(this.fee)
       .serialize();
   }
 
@@ -258,6 +269,7 @@ export class Sale implements Serializable {
     this.price = args.nextU64().expect('price');
     this.royalty = args.nextU64().expect('royalty');
     this.soldAt = args.nextU64().expect('soldAt');
+    this.fee = args.nextU64().expect('fee');
     return new Result(args.offset);
   }
 }

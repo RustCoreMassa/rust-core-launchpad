@@ -82,6 +82,8 @@ export interface LaunchpadConfig {
   /** MAS given to each new contract for its own storage, nanoMAS. */
   deployDeposit: bigint;
   paused: boolean;
+  /** Marketplace fee in basis points, fixed in each listing when it's created. */
+  marketFeeBps: number;
 }
 
 export function writeInfo(args: Args, info: ProjectInfo): Args {
@@ -161,6 +163,7 @@ export function readConfig(args: Args): LaunchpadConfig {
     presaleFeeBps: Number(args.nextU16()),
     deployDeposit: args.nextU64(),
     paused: args.nextBool(),
+    marketFeeBps: Number(args.nextU16()),
   };
 }
 
@@ -171,7 +174,8 @@ export function writeConfig(args: Args, c: LaunchpadConfig): Args {
     .addU64(c.importFee)
     .addU16(BigInt(c.presaleFeeBps))
     .addU64(c.deployDeposit)
-    .addBool(c.paused);
+    .addBool(c.paused)
+    .addU16(BigInt(c.marketFeeBps));
 }
 
 /** A pending upgrade of the Launchpad SC (72 h timelock). */
@@ -213,6 +217,8 @@ export interface Listing {
   createdAt: number;
   /** ms since the epoch; 0 = never expires. */
   expiresAt: number;
+  /** Marketplace fee in basis points, fixed when the NFT was listed. */
+  feeBps: number;
 }
 
 export interface Sale {
@@ -226,6 +232,8 @@ export interface Sale {
   price: bigint;
   royalty: bigint;
   soldAt: number;
+  /** Marketplace fee taken from the price, nanoMAS. */
+  fee: bigint;
 }
 
 export interface MarketStats {
@@ -245,6 +253,7 @@ export function readListing(args: Args): Listing {
     price: args.nextU64(),
     createdAt: Number(args.nextU64()),
     expiresAt: Number(args.nextU64()),
+    feeBps: Number(args.nextU16()),
   };
 }
 
@@ -259,6 +268,7 @@ export function readSale(args: Args): Sale {
     price: args.nextU64(),
     royalty: args.nextU64(),
     soldAt: Number(args.nextU64()),
+    fee: args.nextU64(),
   };
 }
 

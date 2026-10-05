@@ -5,6 +5,8 @@ import { priceNano } from '../create/collection-draft';
 
 /** The contract's cap on the presale fee (rules.ts MAX_PRESALE_FEE_BPS). */
 export const MAX_PRESALE_FEE_BPS = 1_000;
+/** The contract's cap on the marketplace fee (rules.ts MAX_MARKET_FEE_BPS). */
+export const MAX_MARKET_FEE_BPS = 500;
 
 /**
  * Sent with small admin writes (a record re-written, a flag); whatever isn't used comes back
@@ -18,6 +20,8 @@ export interface FeeForm {
   importFee: string;
   /** Percent, e.g. "2" or "2.5". */
   presaleFee: string;
+  /** Percent. */
+  marketFee: string;
   deployDeposit: string;
 }
 
@@ -27,17 +31,18 @@ export function feeFormOf(c: LaunchpadConfig): FeeForm {
     collectionFee: masText(c.collectionFee),
     importFee: masText(c.importFee),
     presaleFee: String(c.presaleFeeBps / 100),
+    marketFee: String(c.marketFeeBps / 100),
     deployDeposit: masText(c.deployDeposit),
   };
 }
 
-/** "2.5" (%) → 250 bps; null when not a number with at most 2 decimals, or above the cap. */
-export function percentToBps(text: string): number | null {
+/** "2.5" (%) → 250 bps; null when not a number with at most 2 decimals, or above `max` bps. */
+export function percentToBps(text: string, max: number = MAX_PRESALE_FEE_BPS): number | null {
   const clean = text.trim().replace(',', '.');
   if (!/^\d{1,3}(\.\d{1,2})?$/.test(clean)) return null;
   const [whole, fraction = ''] = clean.split('.');
   const bps = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
-  return bps <= MAX_PRESALE_FEE_BPS ? bps : null;
+  return bps <= max ? bps : null;
 }
 
 export type FeeErrors = Partial<Record<keyof FeeForm, string>>;
@@ -59,6 +64,8 @@ export function configFromForm(
   const deployDeposit = mas('deployDeposit');
   const presaleFeeBps = percentToBps(form.presaleFee);
   if (presaleFeeBps === null) errors.presaleFee = 'A percentage from 0 to 10.';
+  const marketFeeBps = percentToBps(form.marketFee, MAX_MARKET_FEE_BPS);
+  if (marketFeeBps === null) errors.marketFee = 'A percentage from 0 to 5.';
   if (Object.keys(errors).length) return { errors };
   return {
     config: {
@@ -68,6 +75,7 @@ export function configFromForm(
       presaleFeeBps: presaleFeeBps!,
       deployDeposit,
       paused,
+      marketFeeBps: marketFeeBps!,
     },
   };
 }

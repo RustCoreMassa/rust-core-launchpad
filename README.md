@@ -46,7 +46,7 @@ your money. RustCore Launchpad is built on four principles:
 | 🪙 **Launch a token** | An MRC20 token in one transaction: name, symbol, decimals, supply, optional minting up to a cap, optional burning. You own the contract and the whole supply. |
 | 🖼️ **Launch a collection** | An MRC721 NFT collection: metadata on IPFS, owner mint, optional public mint at your price, a per-wallet limit, and a royalty on every sale. |
 | 📥 **Import** | List a token or collection you already own and deployed elsewhere. |
-| 🛒 **Trade NFTs** | List, buy and cancel on the marketplace. No custody: the NFT stays in your wallet until it's sold. No platform fee — only the creator's royalty. |
+| 🛒 **Trade NFTs** | List, buy and cancel on the marketplace. No custody: the NFT stays in your wallet until it's sold. A small marketplace fee and the creator's royalty, nothing else. |
 | 🚀 **Run a presale** | Sell your token for MAS with a soft and hard cap. Success: contributors claim their tokens. Failure: they take their MAS back. Nobody can touch the MAS in between. |
 | ✏️ **Edit & download** | Change your project's description, logo and links anytime, and download the original contract code as a zip. |
 | 🔒 **Mutable or immutable** | Choose at launch whether you can ever upgrade your contract's code. Immutable means nobody — you included — can change it. |
@@ -68,7 +68,7 @@ decentralized web, with its mainnet release; its official address will be listed
 
 ## Fees
 
-The Launchpad charges only four operations; everything else costs only the Massa network fee
+The Launchpad charges only five operations; everything else costs only the Massa network fee
 and the storage your transaction uses (shown before you sign, the unused part refunded).
 
 | Operation | Fee |
@@ -77,9 +77,10 @@ and the storage your transaction uses (shown before you sign, the unused part re
 | Launch a collection | fixed, in MAS |
 | Import a token or collection | fixed, in MAS |
 | Presale | a percentage of the MAS raised (at most 10%), fixed when the presale is created |
-| Marketplace sale | **none** (only the creator's royalty, at most 10%) |
+| Marketplace sale | a percentage of the price (1% on buildnet, at most 5%), fixed when the NFT is listed and paid from the price; plus the creator's royalty, at most 10% |
 
-The current values are public on the Launchpad's **Admin** page. Mainnet values will be set
+The current values are stored in the Launchpad contract (its `config`, readable by anyone), and
+each launch shows its cost before you sign. Mainnet values will be set
 before the mainnet release.
 
 ## Your security & privacy
@@ -90,12 +91,13 @@ before the mainnet release.
   your NFTs, change your code or take ownership.
 - It holds MAS only in escrow (open presales) and in transit (a purchase pays the seller and
   the royalty in the same transaction). Its admin can withdraw **only the fees collected**: no
-  function lets it move escrowed MAS.
+  function lets it move escrowed MAS. A presale or a listing keeps the fee in force when it was
+  created, so a fee change never reaches them.
 - Its admin can mark projects as **verified**, **hide** scams from the lists (their contracts
   keep working), reserve well-known symbols and pause new launches and trading. Refunds,
   claims and cancels keep working while paused.
 - A change of the Launchpad's code is announced on-chain and can run only 72 hours later, so
-  anyone can see it coming — the Admin page shows any pending upgrade.
+  anyone can see it coming — every page of the app shows a notice while an upgrade is pending.
 
 **What goes over the network — the complete list**
 
@@ -163,7 +165,7 @@ the links. Pin your files so they stay online.
 - [x] Token launch (MRC20 template) and collection launch (MRC721 template)
 - [x] Import of existing tokens and collections
 - [x] Registry with filters, search and categories — no backend
-- [x] NFT marketplace with royalties, no custody, no platform fee
+- [x] NFT marketplace with royalties and a small fee, no custody
 - [x] Token presales with escrow, claims and refunds
 - [x] Owner dashboard, edits, original-code download
 - [x] Admin page, upgrade timelock, internal security review

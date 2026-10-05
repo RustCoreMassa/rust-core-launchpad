@@ -8,7 +8,9 @@ import {
   hex,
   PRESALE_SUCCESS,
   readConfig,
+  readListing,
   readPresale,
+  readSale,
   readProject,
   readProjectPage,
   writeProject,
@@ -70,7 +72,59 @@ const CONTRACT_PRESALE_BYTES = new Uint8Array([
   120, 65, 203, 2, 0, 0, 0, 4, 0, 0, 0, 1, 1, 250, 0,
 ]);
 
+/** Config, Listing and Sale records serialized by the contract (cross-check.spec.ts). */
+const CONTRACT_CONFIG_BYTES = new Uint8Array([
+  5, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 200, 0, 100, 0, 0, 0, 0,
+  0, 0, 0, 1, 150, 0,
+]);
+const CONTRACT_LISTING_BYTES = new Uint8Array([
+  9, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 51, 0, 0, 0, 65, 85, 49, 50, 66, 113, 90, 69, 81,
+  54, 115, 66, 121, 104, 82, 76, 121, 69, 117, 102, 48, 89, 98, 81, 109, 99, 70, 50, 80, 115, 68,
+  100, 107, 78, 78, 71, 49, 97, 107, 66, 74, 117, 57, 88, 99, 106, 90, 65, 49, 101, 56, 42, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 51, 0, 0, 0,
+  65, 85, 49, 50, 66, 113, 90, 69, 81, 54, 115, 66, 121, 104, 82, 76, 121, 69, 117, 102, 48, 89, 98,
+  81, 109, 99, 70, 50, 80, 115, 68, 100, 107, 78, 78, 71, 49, 97, 107, 66, 74, 117, 57, 88, 99, 106,
+  90, 65, 49, 101, 56, 0, 242, 5, 42, 1, 0, 0, 0, 0, 192, 44, 200, 153, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 100, 0,
+]);
+const CONTRACT_SALE_BYTES = new Uint8Array([
+  3, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 42, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 51, 0, 0, 0, 65, 85, 49,
+  50, 66, 113, 90, 69, 81, 54, 115, 66, 121, 104, 82, 76, 121, 69, 117, 102, 48, 89, 98, 81, 109,
+  99, 70, 50, 80, 115, 68, 100, 107, 78, 78, 71, 49, 97, 107, 66, 74, 117, 57, 88, 99, 106, 90, 65,
+  49, 101, 56, 51, 0, 0, 0, 65, 85, 49, 50, 66, 113, 90, 69, 81, 54, 115, 66, 121, 104, 82, 76, 121,
+  69, 117, 102, 48, 89, 98, 81, 109, 99, 70, 50, 80, 115, 68, 100, 107, 78, 78, 71, 49, 97, 107, 66,
+  74, 117, 57, 88, 99, 106, 90, 65, 49, 101, 56, 0, 242, 5, 42, 1, 0, 0, 0, 128, 178, 230, 14, 0, 0,
+  0, 0, 160, 70, 46, 200, 153, 1, 0, 0, 128, 240, 250, 2, 0, 0, 0, 0,
+]);
+
 describe('Launchpad records', () => {
+  it('decodes a config, a listing and a sale serialized by the contract', () => {
+    expect(readConfig(new Args(CONTRACT_CONFIG_BYTES))).toEqual({
+      tokenFee: 5n,
+      collectionFee: 7n,
+      importFee: 3n,
+      presaleFeeBps: 200,
+      deployDeposit: 100n,
+      paused: true,
+      marketFeeBps: 150,
+    });
+    const listing = readListing(new Args(CONTRACT_LISTING_BYTES));
+    expect(listing.id).toBe(9n);
+    expect(listing.collectionId).toBe(2n);
+    expect(listing.tokenId).toBe(42n);
+    expect(listing.price).toBe(5_000_000_000n);
+    expect(listing.createdAt).toBe(1_760_000_000_000);
+    expect(listing.expiresAt).toBe(0);
+    expect(listing.feeBps).toBe(100);
+    const sale = readSale(new Args(CONTRACT_SALE_BYTES));
+    expect(sale.id).toBe(3n);
+    expect(sale.listingId).toBe(9n);
+    expect(sale.price).toBe(5_000_000_000n);
+    expect(sale.royalty).toBe(250_000_000n);
+    expect(sale.soldAt).toBe(1_760_000_100_000);
+    expect(sale.fee).toBe(50_000_000n);
+  });
   it('decodes a presale serialized by the contract', () => {
     const p = readPresale(new Args(CONTRACT_PRESALE_BYTES));
     expect(p.id).toBe(7n);
@@ -143,6 +197,7 @@ describe('Launchpad records', () => {
       .addU16(200n)
       .addU64(100n)
       .addBool(true)
+      .addU16(100n)
       .serialize();
     expect(readConfig(new Args(bytes))).toEqual({
       tokenFee: 5n,
@@ -151,6 +206,7 @@ describe('Launchpad records', () => {
       presaleFeeBps: 200,
       deployDeposit: 100n,
       paused: true,
+      marketFeeBps: 100,
     });
   });
 

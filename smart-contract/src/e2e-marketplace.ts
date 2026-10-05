@@ -18,7 +18,8 @@ import {
 } from '../../src/app/features/create/collection-draft';
 import { launchCost } from '../../src/app/core/launchpad/launch-cost';
 import { nftStorage } from '../../src/app/core/launchpad/mint-cost';
-import { readConfig } from '../../src/app/core/launchpad/records';
+import { readConfig, readListing } from '../../src/app/core/launchpad/records';
+import { saleSplit } from '../../src/app/core/launchpad/market-cost';
 import { contractReason, eventFields } from '../../src/app/core/launchpad/events';
 
 if (process.env['NETWORK'] === 'mainnet') throw new Error('e2e runs on buildnet only');
@@ -150,10 +151,19 @@ check(
   contractReason(stale.info.error ?? '') === 'The price changed, check it again',
   stale.info.error ?? 'no error',
 );
+const listed = readListing(new Args(await read(LAUNCHPAD, 'getListing', new Args().addU64(listing))));
+check(
+  'the listing keeps the marketplace fee in force',
+  listed.feeBps === config.marketFeeBps,
+  `${listed.feeBps / 100}%`,
+);
+const feesBefore = new Args(await read(LAUNCHPAD, 'fees')).nextU64();
 const sold = await send(buyer, LAUNCHPAD, 'buy', new Args().addU64(listing).addU64(PRICE), coins);
 check('SOLD event', eventFields(sold, 'SOLD') !== null);
 check('the NFT moved to the buyer', (await ownerOf(collection, 1n)) === BUYER);
-const royalty = (PRICE * 500n) / 10_000n;
+const { royalty, fee: marketFee } = saleSplit(PRICE, 500, listed.feeBps);
+const feesGot = new Args(await read(LAUNCHPAD, 'fees')).nextU64() - feesBefore;
+check('marketplace fee collected by the Launchpad', feesGot === marketFee, mas(feesGot));
 const receiverGot = (await balanceOf(receiver)) - receiverBefore;
 // A first payment to a brand-new address pays its ledger entry (10 bytes = 0.001 MAS).
 const newAccountCost = receiverBefore === 0n ? Mas.fromString('0.001') : 0n;
@@ -164,8 +174,9 @@ check(
 );
 const sellerGot = (await balanceOf(SELLER)) - sellerBefore;
 check(
-  'seller paid price − royalty (+ the listing’s storage back)',
-  sellerGot >= PRICE - royalty && sellerGot < PRICE - royalty + Mas.fromString('0.1'),
+  'seller paid price − royalty − fee (+ the listing’s storage back)',
+  sellerGot >= PRICE - royalty - marketFee &&
+    sellerGot < PRICE - royalty - marketFee + Mas.fromString('0.1'),
   mas(sellerGot),
 );
 const buyerPaid = buyerBefore - (await buyer.balance(true)) - fee;

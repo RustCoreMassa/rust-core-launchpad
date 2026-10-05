@@ -8,8 +8,10 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
+import { UpgradeProposal } from '../../core/launchpad/records';
 import { NetworkStore } from '../../core/network/network-store';
 import { NETWORKS, NetworkId } from '../../core/network/networks';
 import { WalletStore } from '../../core/wallet/wallet-store';
@@ -26,7 +28,14 @@ export const NAV_LINKS = [
 
 @Component({
   selector: 'app-site-header',
-  imports: [RouterLink, RouterLinkActive, AmountPipe, ShortAddressPipe, ConnectWalletDialog],
+  imports: [
+    DatePipe,
+    RouterLink,
+    RouterLinkActive,
+    AmountPipe,
+    ShortAddressPipe,
+    ConnectWalletDialog,
+  ],
   templateUrl: './site-header.html',
   styleUrl: './site-header.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,6 +49,12 @@ export class SiteHeader {
   protected readonly showAdmin = signal(false);
   private readonly launchpad = inject(LaunchpadReader);
   private adminCheck = 0;
+  /**
+   * A pending upgrade of the Launchpad's code, shown to everyone on every page during its 72 h
+   * delay; null when none.
+   */
+  protected readonly upgrade = signal<UpgradeProposal | null>(null);
+  private upgradeCheck = 0;
 
   private readonly connectDialog = viewChild.required(ConnectWalletDialog);
   private readonly navMenu = viewChild.required<ElementRef<HTMLElement>>('navMenu');
@@ -52,6 +67,11 @@ export class SiteHeader {
       this.networks.network();
       const launchpad = this.launchpad.address();
       untracked(() => void this.checkAdmin(address, launchpad));
+    });
+    effect(() => {
+      this.networks.network();
+      const launchpad = this.launchpad.address();
+      untracked(() => void this.checkUpgrade(launchpad));
     });
   }
 
@@ -93,11 +113,22 @@ export class SiteHeader {
     this.showAdmin.set(false);
     if (!address || !launchpad) return;
     try {
-      const admin = await this.launchpad.admin();
-      const pending = admin === address ? null : await this.launchpad.pendingAdmin();
-      if (check === this.adminCheck) this.showAdmin.set(admin === address || pending === address);
+      const allowed = await this.launchpad.isAdminOrOffered(address);
+      if (check === this.adminCheck) this.showAdmin.set(allowed);
     } catch {
-      // Not critical: /admin stays reachable by its address.
+      // Not critical: the link shows up on the next account or network change.
+    }
+  }
+
+  private async checkUpgrade(launchpad: string | null): Promise<void> {
+    const check = ++this.upgradeCheck;
+    this.upgrade.set(null);
+    if (!launchpad) return;
+    try {
+      const upgrade = await this.launchpad.pendingUpgrade();
+      if (check === this.upgradeCheck) this.upgrade.set(upgrade);
+    } catch {
+      // Not critical: checked again on the next network change or reload.
     }
   }
 }

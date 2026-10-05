@@ -3,8 +3,8 @@
     <span class="label">Admin</span>
     <h1>Administration</h1>
     <p>
-      The Launchpad's settings, in the open: anyone can check them here. Only the admin wallet can
-      change them, and an upgrade of the Launchpad's code waits 72 hours in public first.
+      The Launchpad's settings, for its admin wallet. An upgrade of the Launchpad's code waits 72
+      hours first, announced to everyone on every page.
     </p>
   </header>
 
@@ -51,7 +51,8 @@
           <dt>Fees</dt>
           <dd>
             token {{ s.config.tokenFee | mas }} · collection {{ s.config.collectionFee | mas }} ·
-            import {{ s.config.importFee | mas }} · presale {{ s.config.presaleFeeBps / 100 }}%
+            import {{ s.config.importFee | mas }} · presale {{ s.config.presaleFeeBps / 100 }}% ·
+            marketplace {{ s.config.marketFeeBps / 100 }}%
           </dd>
         </div>
         @for (t of s.templates; track t.kind) {
@@ -124,18 +125,13 @@
           @if (!upgradeReady()) {
             ({{ countdown(u.executableAt) }} left)
           }
-          . Until then, everyone can see it coming and take their MAS or NFTs out.
+          . Every page shows it to everyone until then.
         </p>
         <p class="mono hash">sha256 {{ hex(u.codeHash) }}</p>
       </div>
     }
 
-    @if (!wallet.connected()) {
-      <div class="card connect">
-        <p class="muted">Connect the admin wallet to manage the Launchpad.</p>
-        <button class="btn btn-red btn-sm" type="button" (click)="connect()">Connect wallet</button>
-      </div>
-    } @else if (isPendingAdmin()) {
+    @if (isPendingAdmin()) {
       <div class="card">
         <h2>Become the admin</h2>
         <p>The current admin offered you the Launchpad's admin role.</p>
@@ -153,13 +149,6 @@
         @if (doneIn('handover'); as message) {
           <div class="notice" role="status">{{ message }}</div>
         }
-      </div>
-    } @else if (!isAdmin()) {
-      <div class="card connect">
-        <p class="muted">
-          This wallet isn't the Launchpad admin: the page is read-only.
-          <a routerLink="/">Back home</a>
-        </p>
       </div>
     }
 
@@ -223,6 +212,18 @@
                 }
               </label>
               <label class="field">
+                <span>Marketplace (% of each sale)</span>
+                <input
+                  class="input"
+                  inputmode="decimal"
+                  [value]="f.marketFee"
+                  (input)="updateFee('marketFee', text($event))"
+                />
+                @if (feeErrors().marketFee; as e) {
+                  <span class="error">{{ e }}</span>
+                }
+              </label>
+              <label class="field">
                 <span>Deposit per new contract (MAS)</span>
                 <input
                   class="input"
@@ -238,8 +239,9 @@
               </label>
             </div>
             <p class="hint">
-              New fees apply to the next launches and imports. A presale keeps the fee in force when
-              it was created; the presale fee can't go above 10%.
+              New fees apply to the next launches, imports, presales and listings. A presale or a
+              listing keeps the fee in force when it was created; the presale fee can't go above
+              10%, the marketplace fee above 5%.
             </p>
             <button
               class="btn btn-red btn-sm"
@@ -621,5 +623,4 @@
       </div>
     }
   }
-  <app-connect-wallet-dialog />
 </section>

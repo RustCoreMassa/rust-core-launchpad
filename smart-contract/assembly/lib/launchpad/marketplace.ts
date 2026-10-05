@@ -1,6 +1,7 @@
 // Marketplace. No custody: the NFT stays with the seller, who approves the Launchpad for it;
 // `buy` moves it to the buyer and pays the seller and the creator's royalty in the same call.
-// No platform fee.
+// The marketplace fee (config.marketFeeBps, fixed in each listing when it's created) stays in
+// the Launchpad as collected fees.
 //
 // Checks read the collection's standard MRC721 storage directly (owner, approvals), so no
 // foreign code runs except the single transferFrom in `buy` — done after this contract's own
@@ -70,7 +71,7 @@ export const NFT_TRANSFER_DEPOSIT: u64 = 30_000_000; // 0.03 MAS
  */
 export function list(binaryArgs: StaticArray<u8>): void {
   const before = balance();
-  _activeConfig();
+  const config = _activeConfig();
   _notLocked();
   const args = new Args(binaryArgs);
   const collection = args.nextString().expect('collection is missing or invalid');
@@ -98,7 +99,17 @@ export function list(binaryArgs: StaticArray<u8>): void {
   }
 
   const id = _nextId(COUNTER_LISTING);
-  const listing = new Listing(id, project.id, collection, tokenId, seller, price, now, expiresAt);
+  const listing = new Listing(
+    id,
+    project.id,
+    collection,
+    tokenId,
+    seller,
+    price,
+    now,
+    expiresAt,
+    config.marketFeeBps,
+  );
   Storage.set(listingKey(id), listing.serialize());
   Storage.set(listingByCollectionKey(project.id, id), new StaticArray<u8>(0));
   Storage.set(listingBySellerKey(seller, id), new StaticArray<u8>(0));
@@ -171,7 +182,8 @@ export function buy(binaryArgs: StaticArray<u8>): void {
   const beforeRemove = balance();
   _remove(listing);
   const freed = balance() - beforeRemove; // the listing's storage, back to the seller
-  const royalty = _royalty(listing.price, project.royaltyBps);
+  const royalty = _share(listing.price, project.royaltyBps);
+  const fee = _share(listing.price, listing.feeBps);
   const sale = new Sale(
     _nextId(COUNTER_SALE),
     listing.id,
@@ -182,6 +194,7 @@ export function buy(binaryArgs: StaticArray<u8>): void {
     listing.price,
     royalty,
     Context.timestamp(),
+    fee,
   );
   Storage.set(saleKey(project.id, sale.id), sale.serialize());
   const stats = _stats(project.id);
@@ -200,7 +213,7 @@ export function buy(binaryArgs: StaticArray<u8>): void {
   assert(_tokenOwner(contract, listing.tokenId) == buyer, 'The NFT was not transferred');
 
   if (royalty > 0) transferCoins(new Address(project.royaltyReceiver), royalty);
-  transferCoins(new Address(seller), listing.price - royalty + freed);
+  transferCoins(new Address(seller), listing.price - royalty - fee + freed);
   Storage.del(LOCK_KEY);
   generateEvent(
     createEvent('SOLD', [
@@ -212,7 +225,8 @@ export function buy(binaryArgs: StaticArray<u8>): void {
       listing.price.toString(),
     ]),
   );
-  settle(before, 0);
+  // The fee stays in the balance: settle books it as collected fees and makes the buyer pay it.
+  settle(before, fee);
 }
 
 // ==================================================== //
@@ -395,7 +409,7 @@ function _approved(collection: Address, owner: string, tokenId: u256): bool {
 }
 
 /** price × bps / 10 000 without overflow. */
-function _royalty(price: u64, bps: u16): u64 {
+function _share(price: u64, bps: u16): u64 {
   return (price / 10_000) * u64(bps) + ((price % 10_000) * u64(bps)) / 10_000;
 }
 

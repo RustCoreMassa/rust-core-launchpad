@@ -6,10 +6,9 @@ import {
   inject,
   signal,
   untracked,
-  viewChild,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { Args } from '@massalabs/massa-web3';
 import { symbolError } from '../../core/launchpad/launch-rules';
 import { LaunchpadReader, SymbolStatus } from '../../core/launchpad/launchpad-reader';
@@ -32,7 +31,6 @@ import { NetworkStore } from '../../core/network/network-store';
 import { sha256 } from '../../core/utils/sha256';
 import { toUserMessage } from '../../core/utils/user-error';
 import { WalletStore } from '../../core/wallet/wallet-store';
-import { ConnectWalletDialog } from '../../layout/connect-wallet-dialog/connect-wallet-dialog';
 import { ShortAddressPipe } from '../../shared/pipes/short-address-pipe';
 import { MasPipe } from '../../shared/pipes/units-pipe';
 import { priceNano } from '../create/collection-draft';
@@ -86,7 +84,7 @@ const MAX_RESULTS = 20;
  */
 @Component({
   selector: 'app-admin-page',
-  imports: [DatePipe, RouterLink, MasPipe, ShortAddressPipe, ConnectWalletDialog],
+  imports: [DatePipe, RouterLink, MasPipe, ShortAddressPipe],
   templateUrl: './admin-page.html',
   styleUrl: './admin-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -97,6 +95,7 @@ export class AdminPage {
   protected readonly wallet = inject(WalletStore);
   private readonly transactions = inject(Transactions);
   private readonly store = inject(ProjectStore);
+  private readonly router = inject(Router);
 
   /** undefined while loading. */
   protected readonly status = signal<Status | undefined>(undefined);
@@ -203,7 +202,6 @@ export class AdminPage {
 
   protected readonly hex = hex;
 
-  private readonly connectDialog = viewChild.required(ConnectWalletDialog);
   private run = 0;
 
   constructor() {
@@ -223,12 +221,17 @@ export class AdminPage {
         void this.store.load(KIND_COLLECTION);
       });
     });
+    // adminGuard lets only the admin (or the offered admin) in; a disconnect or an account switch
+    // on the page sends anyone else home too.
+    effect(() => {
+      const status = this.status();
+      this.wallet.address();
+      if (status && !this.isAdmin() && !this.isPendingAdmin()) {
+        untracked(() => void this.router.navigateByUrl('/'));
+      }
+    });
     const timer = setInterval(() => this.now.set(Date.now()), 30_000);
     effect((onCleanup) => onCleanup(() => clearInterval(timer)));
-  }
-
-  protected connect(): void {
-    this.connectDialog().open();
   }
 
   protected text(event: Event): string {

@@ -21,7 +21,14 @@ import {
   setTemplate,
 } from '../contracts/launchpad';
 import { KIND_COLLECTION, KIND_TOKEN } from '../lib/launchpad/keys';
-import { Config, PRESALE_SUCCESS, Presale, Project } from '../lib/launchpad/records';
+import {
+  Config,
+  Listing,
+  PRESALE_SUCCESS,
+  Presale,
+  Project,
+  Sale,
+} from '../lib/launchpad/records';
 
 const LAUNCHPAD = 'AS12BqZEQ6sByhRLyEuf0YbQmcF2PsDdkNNG1akBJu9XcjZA1eT';
 const ADMIN = 'AU12UBnqTHDQALpocVBnkPNy7y5CndUJQTLutaVDDFgMJcq5kQiKq';
@@ -128,6 +135,36 @@ describe('app ↔ contract encoding', () => {
     presale.withdrawn = true;
     presale.feeBps = 250;
     log<string>('PRESALE_BYTES ' + presale.serialize().toString());
+  });
+
+  test('logs Config, Listing and Sale records for the app to decode (records.spec.ts)', () => {
+    const config = new Config(5, 7, 3, 200, 100, true, 150);
+    log<string>('CONFIG_BYTES ' + config.serialize().toString());
+    const listing = new Listing(
+      9,
+      2,
+      ALICE,
+      u256.fromU64(42),
+      ALICE,
+      u64(5_000_000_000),
+      u64(1_760_000_000_000),
+      0,
+      100,
+    );
+    log<string>('LISTING_BYTES ' + listing.serialize().toString());
+    const sale = new Sale(
+      3,
+      9,
+      2,
+      u256.fromU64(42),
+      ALICE,
+      ALICE,
+      u64(5_000_000_000),
+      u64(250_000_000),
+      u64(1_760_000_100_000),
+      u64(50_000_000),
+    );
+    log<string>('SALE_BYTES ' + sale.serialize().toString());
   });
 });
 
