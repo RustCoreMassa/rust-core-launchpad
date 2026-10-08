@@ -8,6 +8,10 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-10-08
+
+Works with the Launchpad contract **v1.0.0** (unchanged).
+
 ### Changed
 
 - The Launchpad is live on DeWeb at **`lrustcore.massa`**, its only official address, served by
@@ -69,4 +73,5 @@ raised, marketplace 1% of each sale. Not independently audited yet.
   one-step admin transfer, and upgrade storage paid from escrow. The app launches only from
   templates whose source it ships, checked by hash.
 
+[1.0.1]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.0.1
 [1.0.0]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.0.0

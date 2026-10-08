@@ -80,7 +80,7 @@ build it with the Node.js version from [`.nvmrc`](../.nvmrc) and compare the che
 release's `SHA256SUMS`:
 
 ```bash
-git checkout v1.0.0
+git checkout v1.0.1
 npm ci
 npm run build
 cd dist/rust-core-launchpad/browser
@@ -185,8 +185,8 @@ A GitHub Release can only hold files, so the release carries that folder as
 Before uploading, check every file against the release's `SHA256SUMS`, from inside the folder:
 
 ```bash
-unzip rust-core-launchpad-v1.0.0.zip -d rust-core-launchpad-v1.0.0
-cd rust-core-launchpad-v1.0.0
+unzip rust-core-launchpad-v1.0.1.zip -d rust-core-launchpad-v1.0.1
+cd rust-core-launchpad-v1.0.1
 shasum -a 256 -c ../SHA256SUMS --ignore-missing   # Linux: sha256sum -c ../SHA256SUMS --ignore-missing
 ```
 

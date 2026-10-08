@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-brightgreen" />
+  <img alt="Version 1.0.1" src="https://img.shields.io/badge/version-1.0.1-brightgreen" />
   <img alt="Network: Massa" src="https://img.shields.io/badge/network-Massa-red" />
   <img alt="License: FSL-1.1-ALv2" src="https://img.shields.io/badge/license-FSL--1.1--ALv2-blue" />
 </p>
@@ -42,7 +42,7 @@ your money. RustCore Launchpad is built on four principles:
   The Launchpad's own code can only change after a **72-hour public delay**, and its admin can
   never touch presale funds — only the fees collected.
 
-> **Version 1.0.0** — first release ([what's new](CHANGELOG.md)). The Launchpad contract is live
+> **Version 1.0.1** ([what's new](CHANGELOG.md)). The Launchpad contract is live
 > on Massa **mainnet** at `AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP`. It has not had
 > an independent security audit yet: start with small amounts.
 
