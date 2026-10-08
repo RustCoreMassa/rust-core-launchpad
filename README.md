@@ -18,7 +18,7 @@
 
 <p align="center">
   <b>Open it:</b>
-  <a href="https://lrustcore.deweb.half-red.net"><b>lrustcore.massa</b></a>
+  <a href="https://lrustcore.massa.network"><b>lrustcore.massa</b></a>
   — live on DeWeb
 </p>
 
@@ -68,9 +68,9 @@ your money. RustCore Launchpad is built on four principles:
    mainnet. (Developers can run the app locally against buildnet, the test network — see
    [CONTRIBUTING.md](CONTRIBUTING.md).)
 3. **Open the Launchpad** at **`lrustcore.massa`** — click
-   [lrustcore.deweb.half-red.net](https://lrustcore.deweb.half-red.net) or open `lrustcore.massa`
-   through any DeWeb gateway or [Massa Station](https://station.massa.net/) — then click
-   **Connect wallet** and pick your wallet.
+   [lrustcore.massa.network](https://lrustcore.massa.network) (Massa's official gateway) or open
+   `lrustcore.massa` through any DeWeb gateway or [Massa Station](https://station.massa.net/) —
+   then click **Connect wallet** and pick your wallet.
 4. **Create** a token or a collection from the menu, or browse **Tokens**, **Collections**,
    **Marketplace** and **Presales**. Your launches, NFTs and contributions are under
    **My dashboard**.

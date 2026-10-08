@@ -25,8 +25,8 @@ import { RouterLink } from '@angular/router';
           </div>
           <div>
             <h4>RustCore</h4>
-            <a href="https://rustcore.deweb.half-red.net">rustcore.massa</a>
-            <a href="https://wrustcore.deweb.half-red.net">RustCore Wallet</a>
+            <a href="https://rustcore.massa.network">rustcore.massa</a>
+            <a href="https://wrustcore.massa.network">RustCore Wallet</a>
             <a href="https://github.com/RustCoreMassa">GitHub</a>
             <a href="https://t.me/rustcore_massa">Telegram</a>
           </div>

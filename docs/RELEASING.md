@@ -173,8 +173,8 @@ it's a new deployment and a migration plan, discussed in an issue first.
 ## Deploying to DeWeb
 
 The Launchpad is hosted on [DeWeb](https://docs.massa.net/docs/deweb/home), Massa's
-decentralized web, as **`lrustcore.massa`** (public gateway: https://lrustcore.deweb.half-red.net).
-Each release replaces the site's files there. What gets uploaded is the **folder** with
+decentralized web, as **`lrustcore.massa`** (Massa's official gateway:
+https://lrustcore.massa.network). Each release replaces the site's files there. What gets uploaded is the **folder** with
 the built app — `index.html` at its root plus the scripts, styles, assets and template sources
 next to it.
 

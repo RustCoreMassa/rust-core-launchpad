@@ -10,8 +10,9 @@ Launchpad contract version it works with.
 
 ### Changed
 
-- The Launchpad is live on DeWeb at **`lrustcore.massa`**
-  (https://lrustcore.deweb.half-red.net), its only official address; the README lists it.
+- The Launchpad is live on DeWeb at **`lrustcore.massa`**, its only official address, served by
+  Massa's official gateway (https://lrustcore.massa.network); the README lists it. The footer's
+  links to the RustCore site and RustCore Wallet point to that gateway too.
 
 ## [1.0.0] — 2026-10-05
 
