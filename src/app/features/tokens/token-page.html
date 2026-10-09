@@ -51,6 +51,14 @@
       }
     </div>
 
+    <app-tokenomics-card
+      [project]="p"
+      [state]="state()"
+      [tokenomics]="tokenomics()"
+      [isOwner]="isOwner()"
+      (edit)="editTokenomics()"
+    />
+
     <div class="columns">
       <div class="card">
         <h2>Token</h2>
@@ -146,6 +154,11 @@
               @if (mintRoom() !== null) {
                 <button class="btn btn-ghost btn-sm" type="button" (click)="mint()">Mint</button>
               }
+              @if (tokenomics() !== undefined) {
+                <button class="btn btn-ghost btn-sm" type="button" (click)="editTokenomics()">
+                  {{ tokenomics() ? 'Edit tokenomics' : 'Add tokenomics' }}
+                </button>
+              }
             </div>
           </div>
         }
@@ -194,5 +207,6 @@
 
     <app-edit-info-dialog (saved)="onSaved($event)" />
     <app-mint-dialog (minted)="onMinted()" />
+    <app-tokenomics-dialog (saved)="onTokenomicsSaved($event)" />
   }
 </section>

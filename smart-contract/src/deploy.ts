@@ -7,10 +7,11 @@
 // push(...) call, which overflows the default stack above ~120 KB.
 //
 // Fees come from .env (in MAS; buildnet defaults below). The result is written to
-// deployments/<network>.json (move the previous one to deployments/history/ first); copy the
+// deployments/<network>.json, or deployments/<DEPLOYMENT>.json (an existing file is never
+// overwritten: move the previous one to deployments/history/ first); copy the
 // address into src/app/core/network/networks.ts.
 import 'dotenv/config';
-import { mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { createHash } from 'crypto';
 import {
   Account,
@@ -21,7 +22,7 @@ import {
   SmartContract,
   StorageCost,
 } from '@massalabs/massa-web3';
-import { getScByteCode } from './utils';
+import { deploymentFile, getScByteCode } from './utils';
 import { KNOWN_TEMPLATES } from '../../src/app/core/launchpad/templates';
 import { writeConfig } from '../../src/app/core/launchpad/records';
 
@@ -38,6 +39,10 @@ const config = {
   deployDeposit: mas('DEPLOY_DEPOSIT_MAS', '0.1'),
   marketFeeBps: Number(process.env['MARKET_FEE_BPS'] ?? '100'),
 };
+
+const file = deploymentFile(network);
+if (existsSync(file))
+  throw new Error(`${file} exists: move it to deployments/history/, or set DEPLOYMENT=<name>.`);
 
 const account = await Account.fromEnv();
 const provider =
@@ -136,5 +141,5 @@ const record = {
   },
   templates,
 };
-writeFileSync(`deployments/${network}.json`, JSON.stringify(record, null, 2) + '\n');
-console.log(`Saved deployments/${network}.json`);
+writeFileSync(file, JSON.stringify(record, null, 2) + '\n');
+console.log(`Saved ${file}`);

@@ -1,6 +1,14 @@
 import { Args } from '@massalabs/massa-web3';
-import { readInfo } from '../../core/launchpad/records';
-import { EMPTY_DRAFT, TokenDraft, createTokenArgs, draftErrors, stepValid } from './token-draft';
+import { readInfo, readTokenomics } from '../../core/launchpad/records';
+import { newRow } from '../../core/launchpad/tokenomics';
+import {
+  EMPTY_DRAFT,
+  TokenDraft,
+  createTokenArgs,
+  draftErrors,
+  stepValid,
+  tokenomicsBase,
+} from './token-draft';
 
 const valid: TokenDraft = {
   ...EMPTY_DRAFT,
@@ -62,5 +70,43 @@ describe('token draft', () => {
     args.nextU256();
     expect(args.nextBool()).toBe(false);
     expect(args.nextU256()).toBe(0n);
+  });
+
+  it('appends the tokenomics only when parts are declared', () => {
+    const plain = createTokenArgs(valid).serialize();
+    const split = {
+      ...valid,
+      allocations: [
+        newRow({ purpose: 'Team', percent: '20' }),
+        newRow({ purpose: 'Rest', amount: '800,000', source: 'amount' as const }),
+      ],
+    };
+    const bytes = createTokenArgs(split).serialize();
+    expect(bytes.slice(0, plain.length)).toEqual(plain);
+    const tail = readTokenomics(
+      new Args(new Uint8Array([...bytes.slice(plain.length), ...new Uint8Array(8)])),
+    );
+    expect(tail.allocations.map((p) => p.amount)).toEqual([200_000_000_000n, 800_000_000_000n]);
+  });
+
+  it('measures the parts against the max supply of a mintable token', () => {
+    expect(tokenomicsBase(valid)).toBe(1_000_000_000_000n);
+    expect(tokenomicsBase({ ...valid, mintable: true, maxSupply: '2000000' })).toBe(
+      2_000_000_000_000n,
+    );
+    const half = { ...valid, allocations: [newRow({ purpose: 'Half', percent: '50' })] };
+    expect(stepValid(1, half)).toBe(false);
+    expect(draftErrors(half).allocations).toBe('Allocate the whole supply: 50.00% left.');
+    const full = { ...half, allocations: [newRow({ purpose: 'All', percent: '100' })] };
+    expect(stepValid(1, full)).toBe(true);
+    expect(stepValid(1, { ...full, mintable: true, maxSupply: '2000000' })).toBe(true);
+    expect(
+      stepValid(1, {
+        ...valid,
+        mintable: true,
+        maxSupply: '2000000',
+        allocations: [newRow({ purpose: 'All', amount: '1000000', source: 'amount' })],
+      }),
+    ).toBe(false);
   });
 });

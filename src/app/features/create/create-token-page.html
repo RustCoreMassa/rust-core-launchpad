@@ -177,6 +177,25 @@
               <span>{{ keepOnlyOriginal }} I understand.</span>
             </label>
           }
+
+          @if (tokenomicsSupported()) {
+            <h3 class="section-title">Distribution <span class="muted">(optional)</span></h3>
+            <p class="hint">
+              The parts add up to the {{ d.mintable ? 'maximum' : 'initial' }} supply. You can add
+              or change them later from the token page.
+            </p>
+            <app-tokenomics-editor
+              [supply]="tokenomicsBase()"
+              [decimals]="d.decimals"
+              [symbol]="d.symbol"
+              [showErrors]="shows('allocations')"
+              [rows]="d.allocations"
+              (rowsChange)="setAllocations($event)"
+            />
+            @if (shows('allocations') && errors().allocations; as error) {
+              <span class="error">{{ error }}</span>
+            }
+          }
         }
 
         @case (2) {
@@ -221,7 +240,35 @@
               <dt>Code</dt>
               <dd>{{ d.mutable ? 'Mutable' : 'Immutable' }}</dd>
             </div>
+            <div>
+              <dt>Tokenomics</dt>
+              <dd>
+                @if (reviewParts().length) {
+                  {{ reviewParts().length }} {{ reviewParts().length === 1 ? 'part' : 'parts' }}
+                } @else {
+                  Not declared
+                }
+              </dd>
+            </div>
           </dl>
+          @if (reviewParts().length) {
+            <div class="review-tokenomics">
+              <app-tokenomics-chart
+                [slices]="reviewSlices()"
+                [centerValue]="tokenomicsBaseText()"
+                [decimals]="d.decimals"
+                [symbol]="d.symbol"
+                [summary]="reviewSummary()"
+              />
+              <ul class="review-parts">
+                @for (part of reviewParts(); track $index) {
+                  <li>
+                    <span class="tabular">{{ part.percent }}</span> {{ part.purpose }}
+                  </li>
+                }
+              </ul>
+            </div>
+          }
 
           <h3>Cost</h3>
           @if (costError(); as error) {
@@ -244,9 +291,15 @@
                 <dt>Record storage (unused part refunded)</dt>
                 <dd>up to {{ c.margin | mas }}</dd>
               </div>
+              @if (tokenomicsStorage()) {
+                <div>
+                  <dt>Tokenomics storage (unused part refunded)</dt>
+                  <dd>up to {{ tokenomicsStorage() | mas }}</dd>
+                </div>
+              }
               <div class="total">
                 <dt>Sent with the transaction</dt>
-                <dd>{{ c.total | mas }} + network fee</dd>
+                <dd>{{ sendTotal() | mas }} + network fee</dd>
               </div>
             </dl>
           } @else {

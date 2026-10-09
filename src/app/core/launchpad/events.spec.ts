@@ -34,6 +34,14 @@ describe('contractReason', () => {
     expect(contractReason(raw)).toBe('Not enough MAS for the fee and storage');
   });
 
+  it('extracts the reason from a "VM instance error" (buildnet, 2026-10-09)', () => {
+    const raw =
+      'readonly call failed: VM Error in ReadOnlyExecutionTarget::FunctionCall context: VM ' +
+      'execution error: VM instance error: error: Only the contract owner can do this at ' +
+      'assembly/lib/launchpad/common.ts:6';
+    expect(contractReason(raw)).toBe('Only the contract owner can do this');
+  });
+
   it('keeps an unknown message, shortened', () => {
     expect(contractReason('timeout')).toBe('timeout');
     expect(contractReason('')).toBe('rejected by the network');

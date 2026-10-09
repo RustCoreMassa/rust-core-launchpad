@@ -193,6 +193,7 @@ the links. Pin your files so they stay online.
 - [x] Links from the RustCore website
 
 **Later**
+- [ ] Tokenomics on token pages: the split the owner declares, as a chart, with live balances
 - [ ] Presale extras: whitelist, vesting, liquidity on Dusa
 - [ ] Token payments on the marketplace
 - [ ] An indexer for very large collections

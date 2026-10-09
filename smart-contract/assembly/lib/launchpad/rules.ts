@@ -1,7 +1,9 @@
 // Product rules the Launchpad enforces before it deploys or records anything. The templates only
 // check basic sanity themselves.
+import { validateAddress } from '@massalabs/massa-as-sdk';
+import { u256 } from 'as-bignum/assembly';
 import { KIND_COLLECTION, KIND_TOKEN } from './keys';
-import { ProjectInfo } from './records';
+import { Allocation, ProjectInfo } from './records';
 
 export const NAME_MIN = 3;
 export const NAME_MAX = 32;
@@ -16,6 +18,10 @@ export const MAX_PRESALE_FEE_BPS: u16 = 1_000; // 10 %
 /** Cap on the marketplace fee the admin may set (fixed in each listing when it's created). */
 export const MAX_MARKET_FEE_BPS: u16 = 500; // 5 %
 export const MAX_PAGE: u32 = 50;
+/** Tokenomics: a safety limit, so one call can't fill the storage or run out of gas. */
+export const MAX_ALLOCATIONS = 30;
+export const PURPOSE_MAX = 40;
+export const ALLOCATION_DESCRIPTION_MAX = 140;
 
 /** meme, utility, gaming, DeFi, community, other */
 export const TOKEN_CATEGORIES: u8 = 6;
@@ -87,6 +93,35 @@ export function assertUrl(url: string, what: string): void {
     const c = url.charCodeAt(i);
     assert(c > 32 && c != 127, what + ' URL must not contain spaces');
   }
+}
+
+/**
+ * A declared supply split: 1-30 parts, each with a purpose, an amount above zero, an optional
+ * one-line description and an optional valid address; the amounts add up exactly to `supply`.
+ */
+export function assertAllocations(allocations: Allocation[], supply: u256): void {
+  assert(allocations.length > 0 && allocations.length <= MAX_ALLOCATIONS, 'Use 1-30 parts');
+  let sum = u256.Zero;
+  for (let i = 0; i < allocations.length; i++) {
+    const part = allocations[i];
+    assert(
+      part.purpose.length > 0 && part.purpose.length <= PURPOSE_MAX,
+      'Each part needs a purpose of 1-40 characters',
+    );
+    assert(part.purpose.trim() == part.purpose, 'A purpose must not start or end with a space');
+    assertPrintable(part.purpose, false, 'A purpose');
+    assert(
+      part.description.length <= ALLOCATION_DESCRIPTION_MAX,
+      'A part description is too long (140 max)',
+    );
+    assertPrintable(part.description, false, 'A part description');
+    assert(part.holder.length == 0 || validateAddress(part.holder), 'Invalid part address');
+    assert(part.amount > u256.Zero, 'Each part needs an amount above zero');
+    // sum ≤ supply holds at every step, so the subtraction can't wrap.
+    assert(part.amount <= supply - sum, 'The parts add up to more than the supply');
+    sum = sum + part.amount;
+  }
+  assert(sum == supply, 'The parts must add up to the whole supply');
 }
 
 export function assertRoyalty(bps: u16): void {

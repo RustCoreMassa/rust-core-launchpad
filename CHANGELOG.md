@@ -8,6 +8,22 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
+Needs the Launchpad contract **v1.1.0** for tokenomics (on older versions the app hides them).
+
+### Added
+
+- **Tokenomics on token pages**: the token's owner declares how the supply is split — up to 30
+  parts, each with a purpose, a percentage or an amount, an optional one-line description
+  (vesting, lock…) and an optional address holding it. The parts must add up to 100% of the
+  supply (the max supply for mintable tokens), checked by the contract. The token page shows them
+  as a donut chart with the list of parts and the live balance of each address named, and a note
+  when the supply changed since the declaration. Declared at launch (an optional "Distribution"
+  section in the wizard, with quick-start templates) or anytime from the token page; only the
+  storage is paid, no Launchpad fee. The Launchpad doesn't enforce the locks or vesting the
+  parts describe.
+- Launchpad contract **v1.1.0**: `setTokenomics`, `getTokenomics` and an optional last argument
+  of `createToken`; existing records and calls are unchanged.
+
 ## [1.0.1] — 2026-10-08
 
 Works with the Launchpad contract **v1.0.0** (unchanged).

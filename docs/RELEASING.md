@@ -151,10 +151,13 @@ On mainnet the registry, the listings and the escrowed MAS live in the Launchpad
 the contract is upgraded in place rather than redeployed:
 
 1. Build the new code and check it on buildnet first (fresh deployment + e2e).
-2. On the Admin page, **Propose** the new `launchpad.wasm`: its sha256 is recorded on-chain, and
-   every page of the app tells everyone when it can run — 72 hours later.
-3. After 72 hours, **Run the upgrade** with the same file; the contract checks its hash. The
-   admin pays the storage of the new code.
+2. On the Admin page, **Propose** the new `launchpad.wasm` (or `npm run upgrade -- propose` in
+   `smart-contract/`, with the admin's key in `.env`): its sha256 is recorded on-chain, and every
+   page of the app tells everyone when it can run — 72 hours later. The script also saves a
+   snapshot of the whole datastore in `deployments/upgrades/<network>-<version>.json`.
+3. After 72 hours, **Run the upgrade** with the same file (or `npm run upgrade -- execute`, which
+   then checks that no storage entry was lost and updates `deployments/<network>.json`); the
+   contract checks its hash. The admin pays the storage of the new code.
 
 The new code must read every record the old one wrote: storage keys and record layouts can only
 grow at the end (new fields read with a default), never change meaning. If that's not possible,

@@ -1,6 +1,6 @@
 // RustCore Launchpad — the platform's only contract.
 // Factory: deploys RC-Token / RC-Collection from versioned templates; the caller becomes the owner.
-// Registry: records, indexes, editable presentation, imports.
+// Registry: records, indexes, editable presentation, imports, declared tokenomics.
 // Admin: fees, templates, verification, pause, upgrade timelock.
 // Marketplace and Presale live in lib/launchpad/ and are re-exported below.
 //
@@ -62,6 +62,7 @@ import {
   u64FromBE,
 } from '../lib/launchpad/keys';
 import {
+  Allocation,
   Config,
   Project,
   ProjectInfo,
@@ -75,6 +76,7 @@ import {
   MAX_PRESALE_FEE_BPS,
   MAX_PAGE,
   RESERVED_SYMBOLS,
+  assertAllocations,
   assertCategory,
   assertInfo,
   assertName,
@@ -89,10 +91,12 @@ import {
   _load,
   _nextId,
   _onlyAdmin,
+  _onlyProjectOwner,
   _ownerOf,
 } from '../lib/launchpad/common';
+import { _storeTokenomics } from '../lib/launchpad/tokenomics';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
 /** Delay between proposing and executing an upgrade of this contract: 72 hours. */
 export const UPGRADE_DELAY_MS: u64 = 72 * 60 * 60 * 1000;
 export const MAX_DECIMALS: u8 = 18;
@@ -126,7 +130,9 @@ export function constructor(binaryArgs: StaticArray<u8>): void {
  * Deploys an RC-Token owned by the caller, who also receives the initial supply.
  * Args: name, symbol (A-Z 0-9), decimals (u8), initialSupply (u256), mintable (bool),
  * maxSupply (u256, ignored unless mintable), burnable (bool), mutable (bool), category (u8),
- * info (ProjectInfo). Coins: token fee + storage (see `config` and the app's simulation).
+ * info (ProjectInfo), then optionally tokenomics (Allocation[], adding up to the max supply if
+ * mintable, else the initial supply; since v1.1.0, older calls work unchanged).
+ * Coins: token fee + storage (see `config` and the app's simulation).
  */
 export function createToken(binaryArgs: StaticArray<u8>): void {
   const before = balance();
@@ -142,6 +148,10 @@ export function createToken(binaryArgs: StaticArray<u8>): void {
   const mutable = args.nextBool().expect('mutable is missing or invalid');
   const category = args.nextU8().expect('category is missing or invalid');
   const info = args.nextSerializable<ProjectInfo>().expect('info is missing or invalid');
+  const tokenomics: Allocation[] =
+    args.offset < binaryArgs.length
+      ? args.nextSerializableObjectArray<Allocation>().expect('tokenomics is invalid')
+      : [];
 
   assertName(name);
   assertSymbol(symbol);
@@ -151,6 +161,8 @@ export function createToken(binaryArgs: StaticArray<u8>): void {
   assertCategory(KIND_TOKEN, category);
   assertInfo(info);
   assert(!Storage.has(symbolKey(symbol)), 'This symbol is already taken or reserved');
+  // The same base the template stores: its max supply if mintable, else the initial supply.
+  if (tokenomics.length > 0) assertAllocations(tokenomics, mintable ? maxSupply : initialSupply);
 
   const creator = Context.caller().toString();
   const version = _currentTemplate(KIND_TOKEN);
@@ -190,6 +202,7 @@ export function createToken(binaryArgs: StaticArray<u8>): void {
   _record(project);
   Storage.set(symbolKey(symbol), projectRef(KIND_TOKEN, project.id));
   generateEvent(createEvent('TOKEN_CREATED', [project.id.toString(), project.address, creator]));
+  if (tokenomics.length > 0) _storeTokenomics(project.id, tokenomics);
   settle(before, config.tokenFee);
 }
 
@@ -634,6 +647,9 @@ export {
   getContributionsOf,
 } from '../lib/launchpad/presale';
 
+// Tokenomics (phase 8), in lib/launchpad/tokenomics.ts.
+export { setTokenomics, getTokenomics } from '../lib/launchpad/tokenomics';
+
 // ==================================================== //
 // ====                   READS                    ==== //
 // ==================================================== //
@@ -765,14 +781,6 @@ function _record(project: Project): void {
   Storage.set(addressKey(project.address), projectRef(project.kind, project.id));
   Storage.set(creatorKey(project.creator, project.kind, project.id), new StaticArray<u8>(0));
   Storage.set(categoryKey(project.kind, project.category, project.id), new StaticArray<u8>(0));
-}
-
-function _onlyProjectOwner(project: Project): void {
-  const owner = _ownerOf(new Address(project.address));
-  assert(
-    owner != '' && owner == Context.caller().toString(),
-    'Only the contract owner can do this',
-  );
 }
 
 /** A deployed contract, not yet listed, whose owner is the caller. */

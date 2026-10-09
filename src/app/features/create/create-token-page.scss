@@ -83,6 +83,34 @@ h3 {
   font-size: 14px;
 }
 
+.section-title {
+  margin: 8px 0 -8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.review-tokenomics {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: center;
+}
+
+.review-parts {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+}
+
+.review-parts .tabular {
+  display: inline-block;
+  min-width: 64px;
+  font-weight: 700;
+}
+
 .review-head {
   display: flex;
   align-items: center;
@@ -140,5 +168,9 @@ h3 {
 @media (max-width: 600px) {
   .stepper {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .review-tokenomics {
+    grid-template-columns: 1fr;
   }
 }
