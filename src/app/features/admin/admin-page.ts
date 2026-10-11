@@ -25,7 +25,7 @@ import {
   hex,
   writeConfig,
 } from '../../core/launchpad/records';
-import { KNOWN_TEMPLATES } from '../../core/launchpad/templates';
+import { newestTemplate, templateSource } from '../../core/launchpad/templates';
 import { Transactions } from '../../core/launchpad/transactions';
 import { NetworkStore } from '../../core/network/network-store';
 import { sha256 } from '../../core/utils/sha256';
@@ -52,7 +52,10 @@ interface TemplateState {
   label: string;
   version: number;
   hash: string;
-  known: boolean;
+  /** Source version (public/templates) with this hash; null when the app doesn't know it. */
+  source: number | null;
+  /** The newest template the app knows: the only one launches go through with. */
+  newest: boolean;
 }
 
 interface Status {
@@ -179,7 +182,8 @@ export class AdminPage {
     if (!status || !code) return null;
     const kind = this.templateKind();
     const next = status.templates[kind].version + 1;
-    return { next, known: KNOWN_TEMPLATES[kind][next] === code.hash };
+    const newest = newestTemplate(kind);
+    return { next, newest: newest.version, isNewest: code.hash === newest.hash };
   });
 
   // ---- upgrade ----
@@ -475,7 +479,8 @@ export class AdminPage {
           label: TEMPLATE_LABELS[kind],
           version: t.version,
           hash,
-          known: KNOWN_TEMPLATES[kind][t.version] === hash,
+          source: templateSource(kind, hash),
+          newest: newestTemplate(kind).hash === hash,
         });
       }
       if (run !== this.run) return;

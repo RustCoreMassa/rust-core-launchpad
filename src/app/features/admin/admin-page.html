@@ -62,8 +62,10 @@
               @if (t.version) {
                 v{{ t.version }} ·
                 <span class="mono" [title]="t.hash">{{ t.hash.slice(0, 12) }}…</span>
-                @if (!t.known) {
+                @if (t.source === null) {
                   <span class="bad"> · not known to this app</span>
+                } @else if (!t.newest) {
+                  <span class="bad"> · source v{{ t.source }}, outdated: launches stopped</span>
                 }
               } @else {
                 none
@@ -531,10 +533,10 @@
         @if (templateCode(); as code) {
           <p class="mono hash">{{ code.name }} · {{ code.bytes.length }} bytes · {{ code.hash }}</p>
           @if (templateTarget(); as target) {
-            @if (!target.known) {
+            @if (!target.isNewest) {
               <div class="notice">
-                This app doesn't know this code as v{{ target.next }}: launches of this kind will
-                stop until the app is updated with its source and hash.
+                This isn't the newest template this app knows (source v{{ target.newest }}):
+                launches of this kind will stop until the app is updated with its source and hash.
               </div>
             }
             <button

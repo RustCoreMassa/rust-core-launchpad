@@ -3,6 +3,7 @@ import { sha256 } from '../utils/sha256';
 import { ZipEntry, createZip } from '../utils/zip';
 import { LaunchpadReader } from './launchpad-reader';
 import { KIND_TOKEN, Project, SOURCE_LAUNCHED, hex } from './records';
+import { templateSource } from './templates';
 
 /** Source files of each template version, served by the app from public/templates/. */
 const TEMPLATE_FILES: Record<string, string[]> = {
@@ -15,6 +16,14 @@ const TEMPLATE_FILES: Record<string, string[]> = {
     'assembly/lib/validation.ts',
   ],
   'rc-collection/v1': [
+    'package.json',
+    'asconfig.json',
+    'assembly/contracts/rc-collection.ts',
+    'assembly/lib/ownable.ts',
+    'assembly/lib/mutable.ts',
+    'assembly/lib/validation.ts',
+  ],
+  'rc-collection/v2': [
     'package.json',
     'asconfig.json',
     'assembly/contracts/rc-collection.ts',
@@ -41,9 +50,11 @@ export class OriginalCode {
     if (project.source !== SOURCE_LAUNCHED)
       throw new Error('Imported contracts were not launched from our templates.');
     const template = project.kind === KIND_TOKEN ? 'rc-token' : 'rc-collection';
-    const folder = `${template}/v${project.templateVersion}`;
-    const files = TEMPLATE_FILES[folder];
-    if (!files) throw new Error(`No source is bundled for ${folder}.`);
+    // By hash: the Launchpad's own template numbers may differ from the source versions.
+    const source = templateSource(project.kind, project.codeHash);
+    const files = source === null ? undefined : TEMPLATE_FILES[`${template}/v${source}`];
+    if (source === null || !files) throw new Error('No source is bundled for this template.');
+    const folder = `${template}/v${source}`;
 
     const wasm = await this.launchpad.templateCode(project.kind, project.templateVersion);
     const wasmHash = await sha256Hex(wasm);
@@ -61,7 +72,7 @@ export class OriginalCode {
       { name: `original/${template}.wasm`, data: wasm },
       { name: 'original/sha256.txt', data: text.encode(`${wasmHash}  ${template}.wasm\n`) },
       { name: 'project.json', data: text.encode(projectJson(project)) },
-      { name: 'README.md', data: text.encode(readme(project, template, wasmHash)) },
+      { name: 'README.md', data: text.encode(readme(project, template, source, wasmHash)) },
     );
     const bytes = createZip(entries);
     return new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'application/zip' });
@@ -92,11 +103,11 @@ function projectJson(p: Project): string {
   );
 }
 
-function readme(p: Project, template: string, wasmHash: string): string {
+function readme(p: Project, template: string, source: number, wasmHash: string): string {
   return `# ${p.name} (${p.symbol}) — original code
 
 Contract: ${p.address}
-Template: ${template} v${p.templateVersion}
+Template: ${template} v${source}
 Original bytecode sha256: ${wasmHash}
 
 ${KEEP_ONLY_ORIGINAL}

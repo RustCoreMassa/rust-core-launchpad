@@ -199,7 +199,7 @@ export class CreateCollectionPage {
     this.launchError.set(null);
     try {
       const template = await this.launchpad.template(KIND_COLLECTION);
-      assertKnownTemplate(KIND_COLLECTION, template.version, template.hash);
+      assertKnownTemplate(KIND_COLLECTION, template.hash);
       const result = await this.transactions.send({
         target,
         func: 'createCollection',
@@ -225,7 +225,7 @@ export class CreateCollectionPage {
       const config = await this.launchpad.config();
       const template = await this.launchpad.template(KIND_COLLECTION);
       if (template.version === 0) throw new Error('Collection launches are not open yet.');
-      assertKnownTemplate(KIND_COLLECTION, template.version, template.hash);
+      assertKnownTemplate(KIND_COLLECTION, template.hash);
       const code = await this.launchpad.templateCode(KIND_COLLECTION, template.version);
       this.paused.set(config.paused);
       this.cost.set(launchCost(config.collectionFee, config.deployDeposit, code.length));

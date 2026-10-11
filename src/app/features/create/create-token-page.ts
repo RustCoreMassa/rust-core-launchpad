@@ -240,7 +240,7 @@ export class CreateTokenPage {
     this.launchError.set(null);
     try {
       const template = await this.launchpad.template(KIND_TOKEN);
-      assertKnownTemplate(KIND_TOKEN, template.version, template.hash);
+      assertKnownTemplate(KIND_TOKEN, template.hash);
       const result = await this.transactions.send({
         target,
         func: 'createToken',
@@ -273,7 +273,7 @@ export class CreateTokenPage {
       const config = await this.launchpad.config();
       const template = await this.launchpad.template(KIND_TOKEN);
       if (template.version === 0) throw new Error('Token launches are not open yet.');
-      assertKnownTemplate(KIND_TOKEN, template.version, template.hash);
+      assertKnownTemplate(KIND_TOKEN, template.hash);
       const code = await this.launchpad.templateCode(KIND_TOKEN, template.version);
       this.paused.set(config.paused);
       this.cost.set(launchCost(config.tokenFee, config.deployDeposit, code.length));

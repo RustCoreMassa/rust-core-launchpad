@@ -23,7 +23,7 @@ import {
   StorageCost,
 } from '@massalabs/massa-web3';
 import { deploymentFile, getScByteCode } from './utils';
-import { KNOWN_TEMPLATES } from '../../src/app/core/launchpad/templates';
+import { newestTemplate } from '../../src/app/core/launchpad/templates';
 import { writeConfig } from '../../src/app/core/launchpad/records';
 
 const KIND_TOKEN = 0;
@@ -54,15 +54,15 @@ console.log(`Balance before: ${Mas.toString(await provider.balance(false))} MAS`
 // 1. The Launchpad itself. Constructor args = the Config record, field by field.
 const launchpadCode = getScByteCode('build', 'launchpad.wasm');
 const constructorArgs = writeConfig(new Args(), { ...config, paused: false });
-// The app launches only from templates it has the source of (src/app/core/launchpad/
-// templates.ts): a fresh Launchpad gets them as v1, so check before spending anything.
+// The app launches only from the newest templates it has the source of (src/app/core/
+// launchpad/templates.ts): a fresh Launchpad gets those (as its v1), so check before spending.
 for (const [kind, file] of [
   [KIND_TOKEN, 'rc-token.wasm'],
   [KIND_COLLECTION, 'rc-collection.wasm'],
 ] as const) {
   const hash = createHash('sha256').update(getScByteCode('build', file)).digest('hex');
-  if (KNOWN_TEMPLATES[kind][1] !== hash) {
-    throw new Error(`${file} (${hash}) is not the app's known v1 template: update templates.ts`);
+  if (newestTemplate(kind).hash !== hash) {
+    throw new Error(`${file} (${hash}) is not the app's newest template: update templates.ts`);
   }
 }
 

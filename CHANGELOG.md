@@ -24,6 +24,17 @@ Needs the Launchpad contract **v1.1.0** for tokenomics (on older versions the ap
 - Launchpad contract **v1.1.0**: `setTokenomics`, `getTokenomics` and an optional last argument
   of `createToken`; existing records and calls are unchanged.
 
+### Security
+
+- **RC-Collection v2**. In v1 (and in the MRC721 of `@massalabs/sc-standards` 1.3.0 it builds
+  on), anyone could make themselves approved for NFTs not minted yet and take each one right
+  after its mint. v2 accepts only valid addresses as operators and approved addresses, approves
+  only existing tokens, and clears any approval left on an id when it's minted. No collection
+  had been launched on mainnet with v1.
+- The app launches only from the newest template of each kind, so collection launches stay
+  paused until the Launchpad's admin adds RC-Collection v2 (`setTemplate`). "Download original
+  code" finds a template's source by its hash, whatever version number the Launchpad gave it.
+
 ## [1.0.1] — 2026-10-08
 
 Works with the Launchpad contract **v1.0.0** (unchanged).
