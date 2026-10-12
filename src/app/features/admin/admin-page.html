@@ -314,7 +314,8 @@
         <h2>Tokens and collections</h2>
         <p class="hint">
           Verified adds a badge. Hidden takes a project out of the lists and stops its trading and
-          new presales; its page and contract keep working.
+          new presales; its page and contract keep working. Remove (Launchpad v1.2.0+) deletes it
+          from the registry for good, for offensive content; its contract stays on-chain.
         </p>
         <input
           class="input"
@@ -372,7 +373,58 @@
                   >
                     {{ p.hidden ? 'Unhide' : 'Hide' }}
                   </button>
+                  @if (removalSupported()) {
+                    <button
+                      class="btn btn-ghost btn-sm danger"
+                      type="button"
+                      [disabled]="!!busy()"
+                      (click)="askRemove(p)"
+                    >
+                      Remove
+                    </button>
+                  }
                 </span>
+                @if (removing() === p.kind + '-' + p.id) {
+                  <div class="remove-confirm">
+                    <p>
+                      <strong>Remove {{ p.name }} from the Launchpad for good?</strong> Its record,
+                      indexes{{ p.kind === 0 ? ' and tokenomics' : '' }} are deleted: it disappears
+                      from every list and page, and its address can never be imported again.
+                      {{ p.kind === 0 && p.source !== imported ? 'Its symbol becomes free.' : '' }}
+                      {{
+                        p.kind === 1
+                          ? 'Its listings become invalid: nobody can buy, and anyone can clean them up (the storage goes back to the sellers).'
+                          : 'A token with an open presale can’t be removed: cancel the presale first (contributors keep their refunds).'
+                      }}
+                      The contract itself stays on-chain: the Launchpad has no power over it.
+                    </p>
+                    <label class="field">
+                      <span>Type {{ p.symbol }} to confirm</span>
+                      <input
+                        class="input mono"
+                        [value]="removeTyped()"
+                        (input)="removeTyped.set(text($event))"
+                      />
+                    </label>
+                    <span class="actions">
+                      <button
+                        class="btn btn-red btn-sm"
+                        type="button"
+                        [disabled]="!!busy() || removeTyped().trim() !== p.symbol"
+                        (click)="remove(p)"
+                      >
+                        Remove for good
+                      </button>
+                      <button
+                        class="btn btn-ghost btn-sm"
+                        type="button"
+                        (click)="removing.set(null)"
+                      >
+                        Cancel
+                      </button>
+                    </span>
+                  </div>
+                }
                 @if (busy() === 'project-' + p.kind + '-' + p.id) {
                   <span class="hint">Confirm in your wallet…</span>
                 }

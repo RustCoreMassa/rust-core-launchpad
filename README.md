@@ -108,7 +108,9 @@ already created.
   function lets it move escrowed MAS. A presale or a listing keeps the fee in force when it was
   created, so a fee change never reaches them.
 - Its admin can mark projects as **verified**, **hide** scams from the lists (their contracts
-  keep working), reserve well-known symbols and pause new launches and trading. Refunds,
+  keep working), **remove** offensive projects from the registry for good (their address can't
+  be imported again; their contracts still keep working, and a removed token's presale still
+  refunds or pays out), reserve well-known symbols and pause new launches and trading. Refunds,
   claims and cancels keep working while paused.
 - A change of the Launchpad's code is announced on-chain and can run only 72 hours later, so
   anyone can see it coming — every page of the app shows a notice while an upgrade is pending.

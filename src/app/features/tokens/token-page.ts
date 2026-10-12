@@ -70,6 +70,8 @@ export class TokenPage {
 
   /** undefined = loading, null = not in the Launchpad. */
   protected readonly project = signal<Project | null | undefined>(undefined);
+  /** The admin removed this contract from the registry (v1.2.0+). */
+  protected readonly removed = signal(false);
   protected readonly state = signal<TokenState | null>(null);
   /** The token's open presale; undefined while loading. */
   protected readonly presale = signal<Presale | null | undefined>(undefined);
@@ -195,6 +197,7 @@ export class TokenPage {
   private async load(address: string): Promise<void> {
     const run = ++this.loadRun;
     this.project.set(undefined);
+    this.removed.set(false);
     this.state.set(null);
     this.presale.set(undefined);
     this.tokenomics.set(undefined);
@@ -204,7 +207,11 @@ export class TokenPage {
       const project = await this.launchpad.projectByAddress(address);
       if (run !== this.loadRun) return;
       this.project.set(project && project.kind === KIND_TOKEN ? project : null);
-      if (!project || project.kind !== KIND_TOKEN) return;
+      if (!project || project.kind !== KIND_TOKEN) {
+        const removed = !project && (await this.launchpad.isRemoved(address).catch(() => false));
+        if (run === this.loadRun) this.removed.set(removed);
+        return;
+      }
       const state = await this.tokens.state(address);
       if (run !== this.loadRun) return;
       this.state.set(state);

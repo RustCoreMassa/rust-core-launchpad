@@ -8,7 +8,8 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
-Needs the Launchpad contract **v1.1.0** for tokenomics (on older versions the app hides them).
+Needs the Launchpad contract **v1.2.0** for tokenomics and removals (on older versions the app
+hides them; tokenomics alone work from v1.1.0).
 
 ### Added
 
@@ -21,8 +22,21 @@ Needs the Launchpad contract **v1.1.0** for tokenomics (on older versions the ap
   section in the wizard, with quick-start templates) or anytime from the token page; only the
   storage is paid, no Launchpad fee. The Launchpad doesn't enforce the locks or vesting the
   parts describe.
-- Launchpad contract **v1.1.0**: `setTokenomics`, `getTokenomics` and an optional last argument
-  of `createToken`; existing records and calls are unchanged.
+- **Removal by the admin**, for offensive tokens and collections: on the Admin page, next to
+  Hide, **Remove** deletes a project from the registry for good, after typing its symbol. Its
+  address can never be imported again and a launched token's symbol becomes free; its contract
+  stays on-chain, untouched. A token with an open presale can't be removed (cancel it first);
+  a removed collection's listings become invalid and anyone can clean them up, the storage
+  going back to the sellers. Its page says it was removed; a removed token's presale page still
+  lets contributors claim or refund.
+- Launchpad contract **v1.2.0** (from v1.0.0): `setTokenomics`, `getTokenomics`, an optional
+  last argument of `createToken`, `removeProject` and `isRemoved`. `getProjects` pages count ids
+  (removed projects leave gaps); existing records and calls are unchanged.
+
+### Fixed
+
+- Some refusals reached the app as "VM instance error: error: …" and were shown as raw
+  technical text instead of the contract's reason.
 
 ### Security
 

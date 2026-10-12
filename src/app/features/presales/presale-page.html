@@ -26,6 +26,11 @@
           </div>
           @if (t) {
             <app-project-badges [project]="t" />
+          } @else {
+            <p class="notice">
+              This token is no longer in the Launchpad. Contributors can still claim their tokens or
+              take their MAS back, as the presale's rules say.
+            </p>
           }
           <app-presale-progress [presale]="p" />
         </div>

@@ -49,7 +49,13 @@ import {
   updateInfo,
   withdrawFees,
 } from '../contracts/launchpad';
-import { KIND_COLLECTION, KIND_TOKEN, LOCK_KEY, STD_OWNER_KEY } from '../lib/launchpad/keys';
+import {
+  KIND_COLLECTION,
+  KIND_TOKEN,
+  LOCK_KEY,
+  STD_OWNER_KEY,
+  categoryKey,
+} from '../lib/launchpad/keys';
 import { isLocalHttp } from '../lib/launchpad/rules';
 import {
   Config,
@@ -580,6 +586,9 @@ describe('Launchpad owner edits', () => {
     done();
     const edited = project(KIND_TOKEN, p.id);
     expect(edited.category).toBe(3);
+    // The category index moves with it.
+    expect(Storage.has(categoryKey(KIND_TOKEN, 1, p.id))).toBe(false);
+    expect(Storage.has(categoryKey(KIND_TOKEN, 3, p.id))).toBe(true);
     expect(edited.info.website).toBe('https://new.example');
     expect(edited.name).toBe('RustCore Token'); // identity never changes
   });

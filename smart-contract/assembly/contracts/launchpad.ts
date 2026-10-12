@@ -1,7 +1,7 @@
 // RustCore Launchpad — the platform's only contract.
 // Factory: deploys RC-Token / RC-Collection from versioned templates; the caller becomes the owner.
 // Registry: records, indexes, editable presentation, imports, declared tokenomics.
-// Admin: fees, templates, verification, pause, upgrade timelock.
+// Admin: fees, templates, verification, hiding and removal, pause, upgrade timelock.
 // Marketplace and Presale live in lib/launchpad/ and are re-exported below.
 //
 // Every write settles its own cost (lib/launchpad/settlement.ts): the caller's MAS pay the
@@ -54,11 +54,14 @@ import {
   creatorKey,
   creatorPrefix,
   projectKey,
+  presaleActiveKey,
   projectRef,
+  removedKey,
   symbolKey,
   templateCodeKey,
   templateHashKey,
   templateVersionKey,
+  tokenomicsKey,
   u64FromBE,
 } from '../lib/launchpad/keys';
 import {
@@ -96,7 +99,7 @@ import {
 } from '../lib/launchpad/common';
 import { _storeTokenomics } from '../lib/launchpad/tokenomics';
 
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.0';
 /** Delay between proposing and executing an upgrade of this contract: 72 hours. */
 export const UPGRADE_DELAY_MS: u64 = 72 * 60 * 60 * 1000;
 export const MAX_DECIMALS: u8 = 18;
@@ -500,6 +503,39 @@ export function setHidden(binaryArgs: StaticArray<u8>): void {
   settle(before, 0);
 }
 
+/**
+ * Takes a token or collection out of the registry for good, for offensive content. Admin only.
+ * Its record, indexes and tokenomics are deleted, its address can never be imported again and
+ * a launched token's symbol becomes free. The contract itself stays on-chain, untouched: the
+ * Launchpad has no power over it. Refused for a token with an open presale (cancel it first;
+ * contributors keep their refunds and claims). A collection's listings become invalid: nobody
+ * can buy, anyone can clean them up and the storage goes back to the sellers.
+ * Args: kind (u8), id (u64). Coins: the removal marker's storage; freed storage is refunded.
+ */
+export function removeProject(binaryArgs: StaticArray<u8>): void {
+  const before = balance();
+  _onlyAdmin();
+  const args = new Args(binaryArgs);
+  const kind = args.nextU8().expect('kind is missing or invalid');
+  const id = args.nextU64().expect('id is missing or invalid');
+  const project = _load(kind, id);
+  if (kind == KIND_TOKEN) {
+    assert(!Storage.has(presaleActiveKey(project.address)), 'Cancel its presale first');
+    const tokenomics = tokenomicsKey(id);
+    if (Storage.has(tokenomics)) Storage.del(tokenomics);
+    const symbol = symbolKey(project.symbol);
+    if (Storage.has(symbol) && _equal(Storage.get(symbol), projectRef(kind, id)))
+      Storage.del(symbol);
+  }
+  Storage.del(projectKey(kind, id));
+  Storage.del(addressKey(project.address));
+  Storage.del(creatorKey(project.creator, kind, id));
+  Storage.del(categoryKey(kind, project.category, id));
+  Storage.set(removedKey(project.address), new StaticArray<u8>(0));
+  generateEvent(createEvent('PROJECT_REMOVED', [kind.toString(), id.toString(), project.address]));
+  settle(before, 0);
+}
+
 /** Args: symbol (string), reserved (bool). Reserves a symbol, or frees a reserved one. */
 export function reserveSymbol(binaryArgs: StaticArray<u8>): void {
   const before = balance();
@@ -707,7 +743,8 @@ export function getProjectByAddress(binaryArgs: StaticArray<u8>): StaticArray<u8
 
 /**
  * Newest first. Args: kind (u8), offset (u64, from the newest), limit (u32, ≤ 50).
- * Returns Args: total (u64), projects (Project[]).
+ * Returns Args: total (u64), projects (Project[]). Offset and limit count ids: removed projects
+ * leave gaps, so a page can hold fewer than `limit` records (the next page is offset + limit).
  */
 export function getProjects(binaryArgs: StaticArray<u8>): StaticArray<u8> {
   const args = new Args(binaryArgs);
@@ -719,8 +756,10 @@ export function getProjects(binaryArgs: StaticArray<u8>): StaticArray<u8> {
   const page: Project[] = [];
   if (offset < total) {
     let id = total - offset;
-    while (id >= 1 && page.length < i32(limit)) {
-      page.push(new Args(Storage.get(projectKey(kind, id))).nextSerializable<Project>().unwrap());
+    for (let seen: u32 = 0; id >= 1 && seen < limit; seen++) {
+      const key = projectKey(kind, id);
+      if (Storage.has(key))
+        page.push(new Args(Storage.get(key)).nextSerializable<Project>().unwrap());
       id--;
     }
   }
@@ -742,6 +781,12 @@ export function getCreatedBy(binaryArgs: StaticArray<u8>): StaticArray<u8> {
 export function isSymbolAvailable(binaryArgs: StaticArray<u8>): StaticArray<u8> {
   const symbol = new Args(binaryArgs).nextString().expect('symbol is missing or invalid');
   return boolToByte(!Storage.has(symbolKey(symbol)));
+}
+
+/** Args: address (string). Returns a bool byte: true if the admin removed it from the registry. */
+export function isRemoved(binaryArgs: StaticArray<u8>): StaticArray<u8> {
+  const address = new Args(binaryArgs).nextString().expect('address is missing or invalid');
+  return boolToByte(Storage.has(removedKey(address)));
 }
 
 /** Returns the address named by transferAdmin (string), empty when none. */
@@ -787,6 +832,7 @@ function _record(project: Project): void {
 function _importable(address: string): Address {
   assertIsSmartContract(address);
   assert(!Storage.has(addressKey(address)), 'Already in the Launchpad');
+  assert(!Storage.has(removedKey(address)), 'This contract was removed from the Launchpad');
   const contract = new Address(address);
   const owner = _ownerOf(contract);
   assert(

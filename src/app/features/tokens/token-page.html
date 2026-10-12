@@ -12,11 +12,19 @@
     </div>
   } @else if (project() === null) {
     <div class="card">
-      <h1 class="title">Not in the Launchpad</h1>
-      <p class="muted">
-        No token with this address was launched or imported here on
-        {{ networks.config().label }}.
-      </p>
+      @if (removed()) {
+        <h1 class="title">Removed from the Launchpad</h1>
+        <p class="muted">
+          The Launchpad admin removed this token from the registry. Its contract still exists
+          on-chain — the Launchpad has no power over it — but it isn't listed or traded here.
+        </p>
+      } @else {
+        <h1 class="title">Not in the Launchpad</h1>
+        <p class="muted">
+          No token with this address was launched or imported here on
+          {{ networks.config().label }}.
+        </p>
+      }
       <a class="btn btn-ghost btn-sm" routerLink="/tokens">Explore tokens</a>
     </div>
   } @else {
