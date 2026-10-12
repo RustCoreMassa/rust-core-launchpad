@@ -8,8 +8,11 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
-Needs the Launchpad contract **v1.2.0** for tokenomics and removals (on older versions the app
-hides them; tokenomics alone work from v1.1.0).
+## [1.2.0] — 2026-10-12
+
+Works with the Launchpad contract **v1.2.0** (mainnet: upgrade from v1.0.0 through the 72-hour
+delay). On older contracts the app hides tokenomics and removals (tokenomics alone work from
+v1.1.0). The app's version now follows the contract's.
 
 ### Added
 
@@ -114,5 +117,6 @@ raised, marketplace 1% of each sale. Not independently audited yet.
   one-step admin transfer, and upgrade storage paid from escrow. The app launches only from
   templates whose source it ships, checked by hash.
 
+[1.2.0]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.2.0
 [1.0.1]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.0.1
 [1.0.0]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.0.0

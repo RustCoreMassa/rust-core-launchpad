@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 1.0.1" src="https://img.shields.io/badge/version-1.0.1-brightgreen" />
+  <img alt="Version 1.2.0" src="https://img.shields.io/badge/version-1.2.0-brightgreen" />
   <img alt="Network: Massa" src="https://img.shields.io/badge/network-Massa-red" />
   <img alt="License: FSL-1.1-ALv2" src="https://img.shields.io/badge/license-FSL--1.1--ALv2-blue" />
 </p>
@@ -42,9 +42,11 @@ your money. RustCore Launchpad is built on four principles:
   The Launchpad's own code can only change after a **72-hour public delay**, and its admin can
   never touch presale funds — only the fees collected.
 
-> **Version 1.0.1** ([what's new](CHANGELOG.md)). The Launchpad contract is live
-> on Massa **mainnet** at `AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP`. It has not had
-> an independent security audit yet: start with small amounts.
+> **Version 1.2.0** ([what's new](CHANGELOG.md)). The Launchpad contract is live
+> on Massa **mainnet** at `AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP` (v1.0.0; its
+> upgrade to v1.2.0, which brings tokenomics and removals, follows this release after the
+> 72-hour public delay). It has not had an independent security audit yet: start with small
+> amounts.
 
 ## What you can do
 
@@ -55,6 +57,7 @@ your money. RustCore Launchpad is built on four principles:
 | 📥 **Import** | List a token or collection you already own and deployed elsewhere. |
 | 🛒 **Trade NFTs** | List, buy and cancel on the marketplace. No custody: the NFT stays in your wallet until it's sold. A small marketplace fee and the creator's royalty, nothing else. |
 | 🚀 **Run a presale** | Sell your token for MAS with a soft and hard cap. Success: contributors claim their tokens. Failure: they take their MAS back. Nobody can touch the MAS in between. |
+| 📊 **Tokenomics** | Show how your token's supply is split — team, liquidity, community… — as a chart on its page, with the live balance of each address you name. Declared at launch or anytime later; checked to add up to the supply. |
 | ✏️ **Edit & download** | Change your project's description, logo and links anytime, and download the original contract code as a zip. |
 | 🔒 **Mutable or immutable** | Choose at launch whether you can ever upgrade your contract's code. Immutable means nobody — you included — can change it. |
 
@@ -195,7 +198,7 @@ the links. Pin your files so they stay online.
 - [x] Links from the RustCore website
 
 **Later**
-- [ ] Tokenomics on token pages: the split the owner declares, as a chart, with live balances
+- [x] Tokenomics on token pages: the split the owner declares, as a chart, with live balances (v1.2.0)
 - [ ] Presale extras: whitelist, vesting, liquidity on Dusa
 - [ ] Token payments on the marketplace
 - [ ] An indexer for very large collections
