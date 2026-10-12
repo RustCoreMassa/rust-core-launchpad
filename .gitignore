@@ -47,3 +47,6 @@ Thumbs.db
 /smart-contract/node_modules
 /smart-contract/build
 /smart-contract/.env
+
+# Local release notes (not published)
+/deploy.md

@@ -10,6 +10,7 @@ import {
   Project,
   ProjectKind,
   Sale,
+  Tokenomics,
   UpgradeProposal,
   readConfig,
   readListing,
@@ -19,8 +20,25 @@ import {
   readProjectPage,
   readSale,
   readStats,
+  readTokenomics,
   readUpgradeProposal,
 } from './records';
+
+/** First Launchpad version with setTokenomics / getTokenomics and createToken's last argument. */
+export const TOKENOMICS_VERSION = '1.1.0';
+
+/** First Launchpad version where the admin can remove a project from the registry. */
+export const REMOVAL_VERSION = '1.2.0';
+
+/** "1.10.0" ≥ "1.9.2": compares x.y.z numerically. */
+export function atLeast(version: string, minimum: string): boolean {
+  const a = version.split('.').map(Number);
+  const b = minimum.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0);
+  }
+  return true;
+}
 
 /** A symbol in the registry: free, kept aside by the admin, or used by a launched token. */
 export type SymbolStatus = 'free' | 'reserved' | 'taken';
@@ -56,6 +74,14 @@ export class LaunchpadReader {
 
   async version(): Promise<string> {
     return new TextDecoder().decode(await this.read('version'));
+  }
+
+  /**
+   * Whether this Launchpad stores tokenomics (v1.1.0+). Older versions would accept a launch
+   * with tokenomics and silently drop them, so the app offers them only when this is true.
+   */
+  async supportsTokenomics(): Promise<boolean> {
+    return atLeast(await this.version(), TOKENOMICS_VERSION);
   }
 
   /** Platform fees collected and not withdrawn yet, nanoMAS. */
@@ -271,6 +297,26 @@ export class LaunchpadReader {
   async contributionsOf(contributor: string): Promise<bigint[]> {
     const bytes = await this.read('getContributionsOf', new Args().addString(contributor));
     return new Args(bytes).nextArray<bigint>(ArrayTypes.U64);
+  }
+
+  async supportsRemoval(): Promise<boolean> {
+    return atLeast(await this.version(), REMOVAL_VERSION);
+  }
+
+  /**
+   * Whether the admin removed this contract from the registry (v1.2.0+; reads the `x:<address>:`
+   * marker directly, so it's simply false on older versions).
+   */
+  async isRemoved(address: string): Promise<boolean> {
+    const key = new TextEncoder().encode(`x:${address}:`);
+    const [value] = await this.reader.provider().readStorage(this.requireAddress(), [key], true);
+    return value != null;
+  }
+
+  /** The token's declared tokenomics, or null when its owner declared none. */
+  async tokenomics(tokenId: bigint): Promise<Tokenomics | null> {
+    const bytes = await this.read('getTokenomics', new Args().addU64(tokenId));
+    return bytes.length ? readTokenomics(new Args(bytes)) : null;
   }
 
   private async read(func: string, parameter: Args = new Args()): Promise<Uint8Array> {

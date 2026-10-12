@@ -1,4 +1,4 @@
-// RC-Collection v1 — the MRC721 template the Launchpad deploys (docs/ANALYSIS.md, "Șabloanele").
+// RC-Collection v2 — the MRC721 template the Launchpad deploys (docs/ANALYSIS.md, "Șabloanele").
 //
 // Built on @massalabs/sc-standards 1.3.0, MRC721 Enumerable (balances, owners, approvals, the
 // per-owner token index, totalSupply). Differences from the standard and its example:
@@ -9,6 +9,11 @@
 //   setBaseURI until freezeMetadata (irreversible);
 // - the standard Enumerable `burn` has no authorization check, so it is NOT exported;
 // - name()/symbol() take the usual args parameter, like every other exported function;
+// - approvals (v2): the standard lets `setApprovalForAll('', true)` make the caller an operator
+//   of every token not minted yet (owner '' + caller = caller + operator ''), and a minted token
+//   kept an approval given before it existed — so anyone could take NFTs right after their mint.
+//   Here operators and approved addresses must be valid addresses, `approve` needs an existing
+//   token, and a mint clears any approval left on the new id;
 // - optional "mutable code", safe ownership transfer and renouncing.
 //
 // Storage writes are paid from this contract's balance: callers send MAS with calls that create
@@ -38,14 +43,18 @@ import {
 } from '@massalabs/massa-as-sdk';
 import { u256 } from 'as-bignum/assembly';
 import {
+  _approve,
   _constructor,
+  _isApprovedForAll,
   _name,
   _ownerOf,
+  _setApprovalForAll,
   _symbol,
   _totalSupply,
   _transferFrom,
   _update,
 } from '@massalabs/sc-standards/assembly/contracts/MRC721/enumerable/MRC721Enumerable-internals';
+import { ALLOWANCE_KEY_PREFIX } from '@massalabs/sc-standards/assembly/contracts/MRC721/MRC721-internals';
 import {
   _initOwner,
   _onlyOwner,
@@ -62,7 +71,7 @@ import {
 } from '../lib/validation';
 
 export const TEMPLATE_NAME = 'RC-Collection';
-export const TEMPLATE_VERSION = '1.0.0';
+export const TEMPLATE_VERSION = '2.0.0';
 /** Most tokens one mint call may create (keeps a call's gas bounded). */
 export const MAX_MINT_BATCH: u32 = 50;
 
@@ -186,6 +195,10 @@ function _mintBatch(to: string, count: u32): u256 {
   let id = minted;
   for (let i: u32 = 0; i < count; i++) {
     id = id + u256.One;
+    // An approval can't be given before a token exists, but one written by older code (a v1
+    // collection upgraded to this code) must not survive the mint.
+    const approval = ALLOWANCE_KEY_PREFIX.concat(u256ToBytes(id));
+    if (Storage.has(approval)) Storage.del(approval);
     _update(to, id, '');
   }
   Storage.set(MINTED_KEY, u256ToBytes(id));
@@ -312,6 +325,31 @@ export function templateInfo(_: StaticArray<u8>): StaticArray<u8> {
   return new Args().add(TEMPLATE_NAME).add(TEMPLATE_VERSION).add(_isMutable()).serialize();
 }
 
+/**
+ * Args: to (string; empty = remove the approval), tokenId (u256). The token must exist; its
+ * holder or one of their operators may call.
+ */
+export function approve(binaryArgs: StaticArray<u8>): void {
+  const args = new Args(binaryArgs);
+  const to = args.nextString().expect('to argument is missing or invalid');
+  const tokenId = args.nextU256().expect('tokenId argument is missing or invalid');
+  assert(_ownerOf(tokenId) != '', 'Nonexistent token');
+  if (to != '') assertValidAddress(to, 'approved');
+  _approve(to, tokenId);
+}
+
+/** Args: operator (string), approved (bool). The operator manages all of the caller's tokens. */
+export function setApprovalForAll(binaryArgs: StaticArray<u8>): void {
+  const args = new Args(binaryArgs);
+  const operator = args.nextString().expect('operator argument is missing or invalid');
+  const approved = args.nextBool().expect('approved argument is missing or invalid');
+  assertValidAddress(operator, 'operator');
+  const caller = Context.caller().toString();
+  assert(operator != caller, 'You cannot be your own operator');
+  // Revoking an operator that isn't one changes nothing (the standard would fail on the delete).
+  if (approved || _isApprovedForAll(caller, operator)) _setApprovalForAll(operator, approved);
+}
+
 /** Args: from (string), to (string), tokenId (u256). Owner of the token or an approved address. */
 export function transferFrom(binaryArgs: StaticArray<u8>): void {
   const args = new Args(binaryArgs);
@@ -352,7 +390,5 @@ export {
   ownerOf,
   getApproved,
   isApprovedForAll,
-  approve,
-  setApprovalForAll,
 } from '@massalabs/sc-standards/assembly/contracts/MRC721/MRC721';
 export { setOwner, ownerAddress, isOwner } from '../lib/ownable';

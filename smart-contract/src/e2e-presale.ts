@@ -23,9 +23,10 @@ import {
   tokensFor,
 } from '../../src/app/core/launchpad/records';
 import { contractReason, eventFields } from '../../src/app/core/launchpad/events';
+import { deploymentFile } from './utils';
 
 if (process.env['NETWORK'] === 'mainnet') throw new Error('e2e runs on buildnet only');
-const LAUNCHPAD: string = JSON.parse(readFileSync('deployments/buildnet.json', 'utf8')).address;
+const LAUNCHPAD: string = JSON.parse(readFileSync(deploymentFile('buildnet'), 'utf8')).address;
 const ownerAccount = await Account.fromEnv();
 const owner = JsonRpcProvider.buildnet(ownerAccount);
 const buyerAccount = await Account.generate();

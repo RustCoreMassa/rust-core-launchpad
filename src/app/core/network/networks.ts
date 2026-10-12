@@ -22,8 +22,9 @@ export const NETWORKS: Readonly<Record<NetworkId, NetworkConfig>> = {
     id: 'buildnet',
     label: 'Buildnet',
     chainId: CHAIN_ID.Buildnet,
-    // smart-contract/deployments/buildnet.json
-    launchpadAddress: 'AS1Ngm242VSgb8MyxM4HJ9qB8fEB4QjJ7omKDMTA4dyvMpirvyo1',
+    // smart-contract/deployments/buildnet-1.2.0.json (v1.2.0: tokenomics + removal by the admin).
+    // The older Launchpad in deployments/buildnet.json was upgraded in place to v1.1.0.
+    launchpadAddress: 'AS12qtY6289wWKz19dXn2GtPuKKAt8KnkG9XZAjotaWEVRjMhrN3e',
   },
 };
 

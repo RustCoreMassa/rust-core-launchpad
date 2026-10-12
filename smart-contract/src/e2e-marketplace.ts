@@ -21,9 +21,10 @@ import { nftStorage } from '../../src/app/core/launchpad/mint-cost';
 import { readConfig, readListing } from '../../src/app/core/launchpad/records';
 import { saleSplit } from '../../src/app/core/launchpad/market-cost';
 import { contractReason, eventFields } from '../../src/app/core/launchpad/events';
+import { deploymentFile } from './utils';
 
 if (process.env['NETWORK'] === 'mainnet') throw new Error('e2e runs on buildnet only');
-const LAUNCHPAD: string = JSON.parse(readFileSync('deployments/buildnet.json', 'utf8')).address;
+const LAUNCHPAD: string = JSON.parse(readFileSync(deploymentFile('buildnet'), 'utf8')).address;
 const sellerAccount = await Account.fromEnv();
 const seller = JsonRpcProvider.buildnet(sellerAccount);
 const buyerAccount = await Account.generate();
@@ -151,7 +152,9 @@ check(
   contractReason(stale.info.error ?? '') === 'The price changed, check it again',
   stale.info.error ?? 'no error',
 );
-const listed = readListing(new Args(await read(LAUNCHPAD, 'getListing', new Args().addU64(listing))));
+const listed = readListing(
+  new Args(await read(LAUNCHPAD, 'getListing', new Args().addU64(listing))),
+);
 check(
   'the listing keeps the marketplace fee in force',
   listed.feeBps === config.marketFeeBps,

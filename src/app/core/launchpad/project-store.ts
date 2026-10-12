@@ -52,11 +52,12 @@ export class ProjectStore {
     try {
       const projects: Project[] = [];
       let total = Infinity;
-      while (projects.length < Math.min(total, MAX_LOADED)) {
-        const page = await this.reader.projects(kind, projects.length, PAGE_SIZE);
+      // Pages are counted in ids, not records: ids removed by the admin (v1.2.0+) leave gaps,
+      // so a page can hold fewer records than its size.
+      for (let offset = 0; offset < Math.min(total, MAX_LOADED); offset += PAGE_SIZE) {
+        const page = await this.reader.projects(kind, offset, PAGE_SIZE);
         if (generation !== this.generation) return;
         total = page.total;
-        if (!page.projects.length) break;
         projects.push(...page.projects);
         list.set({ projects: [...projects], loaded: true, loading: true, error: null });
       }
@@ -65,6 +66,14 @@ export class ProjectStore {
       if (generation !== this.generation) return;
       list.update((l) => ({ ...l, loaded: true, loading: false, error: toUserMessage(err) }));
     }
+  }
+
+  /** Drops a record the admin removed from the Launchpad. */
+  remove(kind: ProjectKind, id: bigint): void {
+    this.lists[kind].update((list) => ({
+      ...list,
+      projects: list.projects.filter((p) => p.id !== id),
+    }));
   }
 
   /** Puts a fresh record in the list (after a launch or an edit) without reloading it all. */

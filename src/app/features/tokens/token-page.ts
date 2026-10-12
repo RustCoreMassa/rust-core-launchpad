@@ -19,10 +19,12 @@ import {
   Presale,
   Project,
   SOURCE_LAUNCHED,
+  Tokenomics,
   categoryLabel,
   hex,
 } from '../../core/launchpad/records';
 import { TokenReader, TokenState } from '../../core/launchpad/token-reader';
+import { baseSupply } from '../../core/launchpad/tokenomics';
 import { NetworkStore } from '../../core/network/network-store';
 import { httpUrl } from '../../core/utils/ipfs';
 import { toUserMessage } from '../../core/utils/user-error';
@@ -33,6 +35,8 @@ import { ProjectBadges } from '../../shared/ui/project-badges/project-badges';
 import { ProjectLogo } from '../../shared/ui/project-logo/project-logo';
 import { EditInfoDialog } from '../../shared/ui/edit-info-dialog/edit-info-dialog';
 import { MintDialog } from './mint-dialog';
+import { TokenomicsCard } from './tokenomics-card';
+import { TokenomicsDialog } from './tokenomics-dialog';
 
 /** One token: the registry record plus live reads from its contract. */
 @Component({
@@ -46,6 +50,8 @@ import { MintDialog } from './mint-dialog';
     ProjectLogo,
     EditInfoDialog,
     MintDialog,
+    TokenomicsCard,
+    TokenomicsDialog,
   ],
   templateUrl: './token-page.html',
   styleUrl: './token-page.scss',
@@ -64,9 +70,13 @@ export class TokenPage {
 
   /** undefined = loading, null = not in the Launchpad. */
   protected readonly project = signal<Project | null | undefined>(undefined);
+  /** The admin removed this contract from the registry (v1.2.0+). */
+  protected readonly removed = signal(false);
   protected readonly state = signal<TokenState | null>(null);
   /** The token's open presale; undefined while loading. */
   protected readonly presale = signal<Presale | null | undefined>(undefined);
+  /** Declared tokenomics; null when none, undefined while loading (or before Launchpad v1.1.0). */
+  protected readonly tokenomics = signal<Tokenomics | null | undefined>(undefined);
   protected readonly codeModified = signal<boolean | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly downloading = signal(false);
@@ -99,6 +109,7 @@ export class TokenPage {
 
   private readonly editDialog = viewChild.required(EditInfoDialog);
   private readonly mintDialog = viewChild.required(MintDialog);
+  private readonly tokenomicsDialog = viewChild.required(TokenomicsDialog);
   private loadRun = 0;
 
   constructor() {
@@ -129,6 +140,23 @@ export class TokenPage {
     const project = this.project();
     const room = this.mintRoom();
     if (project && room !== null) this.mintDialog().open(project, room);
+  }
+
+  protected editTokenomics(): void {
+    const project = this.project();
+    const state = this.state();
+    if (!project || !state) return;
+    const mintable = project.source === SOURCE_LAUNCHED && !!state.template?.mintable;
+    this.tokenomicsDialog().open(
+      project,
+      this.tokenomics() ?? null,
+      baseSupply(project, state),
+      mintable,
+    );
+  }
+
+  protected onTokenomicsSaved(tokenomics: Tokenomics | null): void {
+    this.tokenomics.set(tokenomics);
   }
 
   protected onSaved(project: Project): void {
@@ -169,18 +197,30 @@ export class TokenPage {
   private async load(address: string): Promise<void> {
     const run = ++this.loadRun;
     this.project.set(undefined);
+    this.removed.set(false);
     this.state.set(null);
     this.presale.set(undefined);
+    this.tokenomics.set(undefined);
     this.codeModified.set(null);
     this.error.set(null);
     try {
       const project = await this.launchpad.projectByAddress(address);
       if (run !== this.loadRun) return;
       this.project.set(project && project.kind === KIND_TOKEN ? project : null);
-      if (!project || project.kind !== KIND_TOKEN) return;
+      if (!project || project.kind !== KIND_TOKEN) {
+        const removed = !project && (await this.launchpad.isRemoved(address).catch(() => false));
+        if (run === this.loadRun) this.removed.set(removed);
+        return;
+      }
       const state = await this.tokens.state(address);
       if (run !== this.loadRun) return;
       this.state.set(state);
+      const supported = await this.launchpad.supportsTokenomics().catch(() => false);
+      const tokenomics = supported
+        ? await this.launchpad.tokenomics(project.id).catch(() => null)
+        : undefined;
+      if (run !== this.loadRun) return;
+      this.tokenomics.set(tokenomics);
       const presale = await this.launchpad.presaleOf(address).catch(() => null);
       if (run !== this.loadRun) return;
       this.presale.set(presale);

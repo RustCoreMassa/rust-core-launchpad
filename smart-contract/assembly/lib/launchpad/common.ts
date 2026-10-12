@@ -61,6 +61,15 @@ export function _projectByAddress(address: string): Project | null {
   return _load(ref[0], u64FromBE(ref, 1));
 }
 
+/** The caller must be the contract's current owner (renounced = nobody). */
+export function _onlyProjectOwner(project: Project): void {
+  const owner = _ownerOf(new Address(project.address));
+  assert(
+    owner != '' && owner == Context.caller().toString(),
+    'Only the contract owner can do this',
+  );
+}
+
 export function _isAdmin(address: string): bool {
   return address == bytesToString(Storage.get(ADMIN_KEY));
 }

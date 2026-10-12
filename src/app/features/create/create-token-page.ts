@@ -16,6 +16,15 @@ import { KEEP_ONLY_ORIGINAL } from '../../core/launchpad/original-code';
 import { ProjectStore } from '../../core/launchpad/project-store';
 import { KIND_TOKEN, ProjectInfo, TOKEN_CATEGORIES } from '../../core/launchpad/records';
 import { assertKnownTemplate } from '../../core/launchpad/templates';
+import {
+  AllocationRow,
+  chartSlices,
+  chartSummary,
+  rowsToAllocations,
+  shares,
+  formatBps,
+  tokenomicsCost,
+} from '../../core/launchpad/tokenomics';
 import { Transactions, eventFields } from '../../core/launchpad/transactions';
 import { NetworkStore } from '../../core/network/network-store';
 import { formatUnits } from '../../core/utils/token-amount';
@@ -25,6 +34,8 @@ import { ConnectWalletDialog } from '../../layout/connect-wallet-dialog/connect-
 import { MasPipe } from '../../shared/pipes/units-pipe';
 import { InfoForm } from '../../shared/ui/info-form/info-form';
 import { ProjectLogo } from '../../shared/ui/project-logo/project-logo';
+import { TokenomicsChart } from '../../shared/ui/tokenomics-chart/tokenomics-chart';
+import { TokenomicsEditor } from '../../shared/ui/tokenomics-editor/tokenomics-editor';
 import {
   EMPTY_DRAFT,
   STEPS,
@@ -32,6 +43,7 @@ import {
   createTokenArgs,
   draftErrors,
   stepValid,
+  tokenomicsBase,
 } from './token-draft';
 
 type SymbolCheck = 'idle' | 'checking' | 'free' | 'taken' | 'error';
@@ -39,7 +51,15 @@ type SymbolCheck = 'idle' | 'checking' | 'free' | 'taken' | 'error';
 /** The token launch wizard. */
 @Component({
   selector: 'app-create-token-page',
-  imports: [RouterLink, InfoForm, ProjectLogo, MasPipe, ConnectWalletDialog],
+  imports: [
+    RouterLink,
+    InfoForm,
+    ProjectLogo,
+    MasPipe,
+    ConnectWalletDialog,
+    TokenomicsChart,
+    TokenomicsEditor,
+  ],
   templateUrl: './create-token-page.html',
   styleUrl: './create-token-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,6 +88,8 @@ export class CreateTokenPage {
   protected readonly costError = signal<string | null>(null);
   protected readonly launching = signal(false);
   protected readonly launchError = signal<string | null>(null);
+  /** Distribution is offered only on a Launchpad that stores it (v1.1.0+). */
+  protected readonly tokenomicsSupported = signal(false);
 
   protected readonly errors = computed(() => draftErrors(this.draft()));
   protected readonly canContinue = computed(
@@ -81,6 +103,35 @@ export class CreateTokenPage {
     const units = parseSupply(d.supply, d.decimals);
     return units === null ? '' : formatUnits(units, d.decimals);
   });
+  /** What the declared parts must add up to (max supply if mintable). */
+  protected readonly tokenomicsBase = computed(() => tokenomicsBase(this.draft()));
+  /** The declared parts, valid or not yet ([] when none). */
+  protected readonly allocations = computed(() => {
+    const d = this.draft();
+    return rowsToAllocations(d.allocations, this.tokenomicsBase(), d.decimals) ?? [];
+  });
+  protected readonly tokenomicsStorage = computed(() =>
+    this.allocations().length ? tokenomicsCost(this.allocations()) : 0n,
+  );
+  protected readonly sendTotal = computed(() => {
+    const cost = this.cost();
+    return cost ? cost.total + this.tokenomicsStorage() : null;
+  });
+  protected readonly tokenomicsBaseText = computed(() => {
+    const base = this.tokenomicsBase();
+    return base === null ? '' : formatUnits(base, this.draft().decimals);
+  });
+  protected readonly reviewSlices = computed(() => chartSlices(this.allocations()));
+  protected readonly reviewSummary = computed(() => chartSummary(this.allocations()));
+  protected readonly reviewParts = computed(() => {
+    const parts = this.allocations();
+    const bps = shares(
+      parts.map((p) => p.amount),
+      this.tokenomicsBase() ?? 0n,
+    );
+    return parts.map((p, i) => ({ purpose: p.purpose, percent: formatBps(bps[i]) }));
+  });
+
   protected readonly canLaunch = computed(
     () =>
       stepValid(3, this.draft()) &&
@@ -102,6 +153,7 @@ export class CreateTokenPage {
       untracked(() => {
         this.cost.set(null);
         this.symbolCheck.set('idle');
+        void this.checkTokenomics();
       });
     });
   }
@@ -129,6 +181,11 @@ export class CreateTokenPage {
     this.update('info', info);
   }
 
+  /** Not "touched" while typing: the editor shows each field's error on blur. */
+  protected setAllocations(rows: AllocationRow[]): void {
+    this.draft.update((d) => ({ ...d, allocations: rows }));
+  }
+
   protected setCategory(category: number): void {
     this.update('category', category);
   }
@@ -153,7 +210,7 @@ export class CreateTokenPage {
   protected async next(): Promise<void> {
     const fields: Record<number, string[]> = {
       0: ['name', 'symbol'],
-      1: ['decimals', 'supply', 'maxSupply'],
+      1: ['decimals', 'supply', 'maxSupply', 'allocations'],
       2: ['category'],
     };
     for (const field of fields[this.step()] ?? []) this.touch(field);
@@ -177,18 +234,18 @@ export class CreateTokenPage {
 
   protected async launch(): Promise<void> {
     const target = this.launchpad.address();
-    const cost = this.cost();
-    if (!target || !cost || !this.canLaunch()) return;
+    const total = this.sendTotal();
+    if (!target || total === null || !this.canLaunch()) return;
     this.launching.set(true);
     this.launchError.set(null);
     try {
       const template = await this.launchpad.template(KIND_TOKEN);
-      assertKnownTemplate(KIND_TOKEN, template.version, template.hash);
+      assertKnownTemplate(KIND_TOKEN, template.hash);
       const result = await this.transactions.send({
         target,
         func: 'createToken',
         args: createTokenArgs(this.draft()),
-        coins: cost.total,
+        coins: total,
       });
       const [id, address] = eventFields(result.events, 'TOKEN_CREATED') ?? [];
       if (!id || !address)
@@ -202,6 +259,13 @@ export class CreateTokenPage {
     }
   }
 
+  private async checkTokenomics(): Promise<void> {
+    const supported =
+      !!this.launchpad.address() && (await this.launchpad.supportsTokenomics().catch(() => false));
+    this.tokenomicsSupported.set(supported);
+    if (!supported) this.draft.update((d) => ({ ...d, allocations: [] }));
+  }
+
   private async loadCost(): Promise<void> {
     if (this.cost()) return;
     this.costError.set(null);
@@ -209,7 +273,7 @@ export class CreateTokenPage {
       const config = await this.launchpad.config();
       const template = await this.launchpad.template(KIND_TOKEN);
       if (template.version === 0) throw new Error('Token launches are not open yet.');
-      assertKnownTemplate(KIND_TOKEN, template.version, template.hash);
+      assertKnownTemplate(KIND_TOKEN, template.hash);
       const code = await this.launchpad.templateCode(KIND_TOKEN, template.version);
       this.paused.set(config.paused);
       this.cost.set(launchCost(config.tokenFee, config.deployDeposit, code.length));

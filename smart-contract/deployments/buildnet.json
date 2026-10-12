@@ -1,10 +1,10 @@
 {
   "network": "buildnet",
   "address": "AS1Ngm242VSgb8MyxM4HJ9qB8fEB4QjJ7omKDMTA4dyvMpirvyo1",
-  "version": "0.6.0",
+  "version": "1.1.0",
   "admin": "AU126wtKuDT74wJmh4dwwZtRRX1Qvi6628y5berGnwtBbnUmsNhJ2",
   "deployedAt": "2026-10-05T11:46:42.297Z",
-  "launchpadBytes": 141564,
+  "launchpadBytes": 150338,
   "config": {
     "tokenFee": "1",
     "collectionFee": "1",
@@ -20,9 +20,11 @@
       "bytes": 38523
     },
     "rc-collection.wasm": {
-      "version": 1,
-      "sha256": "3b82684ba328e7757d49074c5ead45fab4a50ce7a096496b8ed54e7490128238",
-      "bytes": 46309
+      "version": 2,
+      "sha256": "cf863abe54010fba9b94f4b9ff01962b026fc5204df7f6f82bb10897cc1d58ee",
+      "bytes": 46772
     }
-  }
+  },
+  "upgradedAt": "2026-10-12T07:53:39.839Z",
+  "upgradedFrom": "0.6.0"
 }

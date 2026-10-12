@@ -14,11 +14,7 @@ import {
   Operation,
   OperationStatus,
 } from '@massalabs/massa-web3';
-import {
-  ADMIN_COINS,
-  configFromForm,
-  feeFormOf,
-} from '../../src/app/features/admin/admin-forms';
+import { ADMIN_COINS, configFromForm, feeFormOf } from '../../src/app/features/admin/admin-forms';
 import { contractReason } from '../../src/app/core/launchpad/events';
 import {
   KIND_TOKEN,
@@ -27,10 +23,10 @@ import {
   readUpgradeProposal,
   writeConfig,
 } from '../../src/app/core/launchpad/records';
-import { getScByteCode } from './utils';
+import { deploymentFile, getScByteCode } from './utils';
 
 if (process.env['NETWORK'] === 'mainnet') throw new Error('e2e runs on buildnet only');
-const LAUNCHPAD: string = JSON.parse(readFileSync('deployments/buildnet.json', 'utf8')).address;
+const LAUNCHPAD: string = JSON.parse(readFileSync(deploymentFile('buildnet'), 'utf8')).address;
 const adminAccount = await Account.fromEnv();
 const admin = JsonRpcProvider.buildnet(adminAccount);
 const otherAccount = await Account.generate();
@@ -187,12 +183,8 @@ const delayHours = (proposal.executableAt - Date.now()) / 3_600_000;
 check('upgrade pending ~72 h', delayHours > 71.5 && delayHours <= 72, `${delayHours.toFixed(2)} h`);
 check(
   'not before the delay',
-  (await refusal(
-    admin,
-    'executeUpgrade',
-    new Args().addUint8Array(code),
-    Mas.fromString('20'),
-  )) === 'The upgrade delay has not passed yet',
+  (await refusal(admin, 'executeUpgrade', new Args().addUint8Array(code), Mas.fromString('20'))) ===
+    'The upgrade delay has not passed yet',
 );
 await send(admin, 'cancelUpgrade', new Args());
 check('upgrade cancelled', (await read('pendingUpgrade')).length === 0);

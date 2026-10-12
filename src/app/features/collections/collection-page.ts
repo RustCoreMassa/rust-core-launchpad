@@ -76,6 +76,8 @@ export class CollectionPage {
 
   /** undefined = loading, null = not in the Launchpad. */
   protected readonly project = signal<Project | null | undefined>(undefined);
+  /** The admin removed this contract from the registry (v1.2.0+). */
+  protected readonly removed = signal(false);
   protected readonly state = signal<CollectionState | null>(null);
   protected readonly items = signal<NftItem[] | null>(null);
   /** Valid marketplace prices by token id; empty until loaded. */
@@ -248,6 +250,7 @@ export class CollectionPage {
   private async load(address: string): Promise<void> {
     const run = ++this.run;
     this.project.set(undefined);
+    this.removed.set(false);
     this.state.set(null);
     this.items.set(null);
     this.prices.set(new Map());
@@ -259,7 +262,11 @@ export class CollectionPage {
       if (run !== this.run) return;
       const isCollection = project?.kind === KIND_COLLECTION;
       this.project.set(isCollection ? project : null);
-      if (!project || !isCollection) return;
+      if (!project || !isCollection) {
+        const removed = !project && (await this.launchpad.isRemoved(address).catch(() => false));
+        if (run === this.run) this.removed.set(removed);
+        return;
+      }
       const state = await this.collections.state(address);
       if (run !== this.run) return;
       this.state.set(state);

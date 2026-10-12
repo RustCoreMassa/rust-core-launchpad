@@ -115,7 +115,8 @@ code** gives its source, which rebuilds to that bytecode (instructions in the zi
 `npm run deploy` (in `smart-contract/`) builds the contracts, deploys the Launchpad with the
 fees from `.env` (`.env.example` lists them), uploads both templates as v1, reads them back and
 checks their hashes, then writes `deployments/<network>.json` (address, version, admin, fees,
-template hashes). Before spending anything, it refuses templates the app doesn't know.
+template hashes). Before spending anything, it refuses templates that aren't the newest the
+app knows.
 
 The deploying account becomes the **admin**: on mainnet, use an account kept only for this,
 never a day-to-day wallet. Deploying costs about 23 MAS (the Launchpad's and the templates'
@@ -151,10 +152,13 @@ On mainnet the registry, the listings and the escrowed MAS live in the Launchpad
 the contract is upgraded in place rather than redeployed:
 
 1. Build the new code and check it on buildnet first (fresh deployment + e2e).
-2. On the Admin page, **Propose** the new `launchpad.wasm`: its sha256 is recorded on-chain, and
-   every page of the app tells everyone when it can run — 72 hours later.
-3. After 72 hours, **Run the upgrade** with the same file; the contract checks its hash. The
-   admin pays the storage of the new code.
+2. On the Admin page, **Propose** the new `launchpad.wasm` (or `npm run upgrade -- propose` in
+   `smart-contract/`, with the admin's key in `.env`): its sha256 is recorded on-chain, and every
+   page of the app tells everyone when it can run — 72 hours later. The script also saves a
+   snapshot of the whole datastore in `deployments/upgrades/<network>-<version>.json`.
+3. After 72 hours, **Run the upgrade** with the same file (or `npm run upgrade -- execute`, which
+   then checks that no storage entry was lost and updates `deployments/<network>.json`); the
+   contract checks its hash. The admin pays the storage of the new code.
 
 The new code must read every record the old one wrote: storage keys and record layouts can only
 grow at the end (new fields read with a default), never change meaning. If that's not possible,
@@ -166,9 +170,13 @@ it's a new deployment and a migration plan, discussed in an issue first.
    pinned `package.json`) and check it rebuilds to the same bytecode.
 2. Add the folder to `TEMPLATE_FILES` (`src/app/core/launchpad/original-code.ts`) and its hash
    to `KNOWN_TEMPLATES` (`src/app/core/launchpad/templates.ts`).
-3. Release the app, then upload the `.wasm` on the Admin page (**Templates**). New launches use
-   the newest version; the app refuses launches while the on-chain template is one it doesn't
-   know, so do it in this order.
+3. Release the app, then upload the `.wasm` on the Admin page (**Templates**) of every
+   Launchpad (mainnet and buildnet). New launches use the newest version; the app refuses
+   launches while the on-chain template isn't the newest one it knows, so do it in this order.
+   Until then `npm run verify` shows the on-chain template as a mismatch.
+
+A Launchpad numbers its templates in upload order (a fresh deployment gets the newest source
+versions as its v1), so the app links a template to its source by hash, never by that number.
 
 ## Deploying to DeWeb
 

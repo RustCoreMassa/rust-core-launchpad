@@ -1,5 +1,13 @@
-import { Args, bytesToString, bytesToU256 } from '@massalabs/as-types';
 import {
+  Args,
+  byteToBool,
+  bytesToString,
+  bytesToU256,
+  stringToBytes,
+  u256ToBytes,
+} from '@massalabs/as-types';
+import {
+  Storage,
   balanceOf as masBalanceOf,
   changeCallStack,
   mockAdminContext,
@@ -14,6 +22,8 @@ import {
   balanceOf,
   constructor,
   freezeMetadata,
+  getApproved,
+  isApprovedForAll,
   mintInfo,
   mintedBy,
   name,
@@ -24,6 +34,7 @@ import {
   publicMint,
   reduceMaxSupply,
   renounceOwnership,
+  setApprovalForAll,
   setBaseURI,
   setMintConfig,
   symbol,
@@ -139,7 +150,7 @@ describe('RC-Collection constructor', () => {
     expect(info.nextBool().unwrap()).toBe(false); // frozen
     const template = new Args(templateInfo([]));
     expect(template.nextString().unwrap()).toBe('RC-Collection');
-    expect(template.nextString().unwrap()).toBe('1.0.0');
+    expect(template.nextString().unwrap()).toBe('2.0.0');
     expect(template.nextBool().unwrap()).toBe(false); // mutable
   });
 
@@ -343,6 +354,116 @@ describe('RC-Collection transfers', () => {
     ownerMint(mintTo(ALICE, 1));
     callAs(BOB);
     transferFrom(transferArgs(ALICE, BOB, 1));
+  });
+});
+
+function approveArgs(to: string, token: u64): StaticArray<u8> {
+  return new Args().add(to).add(u256.fromU64(token)).serialize();
+}
+
+function operatorArgs(operator: string, approved: bool): StaticArray<u8> {
+  return new Args().add(operator).add(approved).serialize();
+}
+
+function approvedOf(token: u64): string {
+  return bytesToString(getApproved(id(token)));
+}
+
+function isOperator(owner: string, operator: string): bool {
+  return byteToBool(isApprovedForAll(new Args().add(owner).add(operator).serialize()));
+}
+
+/** The key v1 let anyone write: operator of the empty owner, i.e. of unminted tokens. */
+function plantV1Operator(address: string): void {
+  Storage.set(storageKey(0x06, stringToBytes(address)), storageKey(1, []));
+}
+
+/** A raw key of the collection's storage: one prefix byte, then `rest`. */
+function storageKey(prefix: u8, rest: StaticArray<u8>): StaticArray<u8> {
+  const head = new StaticArray<u8>(1);
+  head[0] = prefix;
+  return head.concat(rest);
+}
+
+/** The approval of `token` as v1 could leave it before the mint. */
+function plantApproval(token: u64, to: string): void {
+  Storage.set(storageKey(0x05, u256ToBytes(u256.fromU64(token))), stringToBytes(to));
+}
+
+// The audit of 2026-10-11: in v1 (sc-standards' MRC721), `setApprovalForAll('', true)` wrote the
+// key 0x06 + caller, read back as "operator of owner ''", i.e. of every token not minted yet; an
+// approval given then survived the mint, and its holder took the NFT.
+describe('RC-Collection approvals', () => {
+  throws('an empty operator (the first step of the attack)', () => {
+    deployDefault();
+    callAs(BOB);
+    setApprovalForAll(operatorArgs('', true));
+  });
+
+  throws('the caller as their own operator', () => {
+    deployDefault();
+    callAs(BOB);
+    setApprovalForAll(operatorArgs(BOB, true));
+  });
+
+  throws('an operator that is not an address', () => {
+    deployDefault();
+    callAs(BOB);
+    setApprovalForAll(operatorArgs('not an address', true));
+  });
+
+  throws('an approval of a token not minted yet, even with the v1 operator key', () => {
+    deployDefault();
+    plantV1Operator(BOB);
+    callAs(BOB);
+    approve(approveArgs(BOB, 1));
+  });
+
+  throws('an approval to something that is not an address', () => {
+    deployDefault();
+    callAs(OWNER);
+    ownerMint(mintTo(ALICE, 1));
+    callAs(ALICE);
+    approve(approveArgs('not an address', 1));
+  });
+
+  test('a mint clears an approval left on the new id (a v1 collection upgraded to v2)', () => {
+    deployDefault();
+    plantApproval(1, BOB);
+    callAs(OWNER);
+    ownerMint(mintTo(ALICE, 1));
+    expect(approvedOf(1)).toBe('');
+  });
+
+  throws('so the holder of an old approval can not take the minted NFT', () => {
+    deployDefault();
+    plantApproval(1, BOB);
+    callAs(OWNER);
+    ownerMint(mintTo(ALICE, 1));
+    callAs(BOB);
+    transferFrom(transferArgs(ALICE, BOB, 1));
+  });
+
+  test('a holder approves and clears; operators go on and off, twice off is fine', () => {
+    deployDefault();
+    callAs(OWNER);
+    ownerMint(mintTo(ALICE, 1));
+    callAs(ALICE);
+    approve(approveArgs(BOB, 1));
+    expect(approvedOf(1)).toBe(BOB);
+    approve(approveArgs('', 1));
+    expect(approvedOf(1)).toBe('');
+
+    setApprovalForAll(operatorArgs(BOB, true));
+    expect(isOperator(ALICE, BOB)).toBe(true);
+    callAs(BOB);
+    transferFrom(transferArgs(ALICE, BOB, 1));
+    expect(ownerOfToken(1)).toBe(BOB);
+    callAs(ALICE);
+    setApprovalForAll(operatorArgs(BOB, false));
+    expect(isOperator(ALICE, BOB)).toBe(false);
+    setApprovalForAll(operatorArgs(BOB, false));
+    expect(isOperator(ALICE, BOB)).toBe(false);
   });
 });
 

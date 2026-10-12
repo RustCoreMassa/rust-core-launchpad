@@ -381,3 +381,63 @@ export class Presale implements Serializable {
     return new Result(args.offset);
   }
 }
+
+/** One part of a token's declared supply split (phase 8). */
+export class Allocation implements Serializable {
+  constructor(
+    /** What the part is for, e.g. "Team", "Liquidity". */
+    public purpose: string = '',
+    /** Token units; the app shows the percentage computed from it. */
+    public amount: u256 = u256.Zero,
+    /** Optional details (vesting, cliff, lock), as the owner writes them. */
+    public description: string = '',
+    /** Optional address holding the part (AU… or AS…); empty when none. */
+    public holder: string = '',
+  ) {}
+
+  serialize(): StaticArray<u8> {
+    return new Args()
+      .add(this.purpose)
+      .add(this.amount)
+      .add(this.description)
+      .add(this.holder)
+      .serialize();
+  }
+
+  deserialize(data: StaticArray<u8>, offset: i32): Result<i32> {
+    const args = new Args(data, offset);
+    this.purpose = args.nextString().expect('purpose is missing or invalid');
+    this.amount = args.nextU256().expect('amount is missing or invalid');
+    this.description = args.nextString().expect('description is missing or invalid');
+    this.holder = args.nextString().expect('holder is missing or invalid');
+    return new Result(args.offset);
+  }
+}
+
+/**
+ * How the owner of a token says its supply is split. Declared, not enforced: the parts add up
+ * to the supply when declared, but locks or vesting in the descriptions are the owner's word.
+ */
+export class Tokenomics implements Serializable {
+  constructor(
+    public allocations: Allocation[] = [],
+    /** When the owner last declared it, milliseconds since the epoch. */
+    public updatedAt: u64 = 0,
+  ) {}
+
+  serialize(): StaticArray<u8> {
+    return new Args()
+      .addSerializableObjectArray<Allocation>(this.allocations)
+      .add(this.updatedAt)
+      .serialize();
+  }
+
+  deserialize(data: StaticArray<u8>, offset: i32): Result<i32> {
+    const args = new Args(data, offset);
+    this.allocations = args
+      .nextSerializableObjectArray<Allocation>()
+      .expect('allocations are missing or invalid');
+    this.updatedAt = args.nextU64().expect('updatedAt is missing or invalid');
+    return new Result(args.offset);
+  }
+}

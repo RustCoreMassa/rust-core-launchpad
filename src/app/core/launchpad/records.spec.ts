@@ -13,6 +13,7 @@ import {
   readSale,
   readProject,
   readProjectPage,
+  readTokenomics,
   writeProject,
 } from './records';
 
@@ -98,7 +99,37 @@ const CONTRACT_SALE_BYTES = new Uint8Array([
   0, 0, 160, 70, 46, 200, 153, 1, 0, 0, 128, 240, 250, 2, 0, 0, 0, 0,
 ]);
 
+/** A Tokenomics record stored by the contract from the app's createToken args (cross-check). */
+const CONTRACT_TOKENOMICS_BYTES = new Uint8Array([
+  228, 0, 0, 0, 7, 0, 0, 0, 69, 99, 104, 105, 112, 196, 131, 150, 134, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 18, 0, 0, 0, 49, 50, 32, 108, 117,
+  110, 105, 32, 226, 128, 148, 32, 98, 108, 111, 99, 97, 116, 53, 0, 0, 0, 65, 85, 49, 50, 54, 115,
+  57, 51, 90, 120, 98, 84, 52, 81, 85, 74, 99, 90, 89, 113, 115, 65, 120, 121, 77, 99, 51, 119, 118,
+  56, 110, 107, 72, 74, 89, 75, 89, 67, 116, 103, 81, 121, 69, 110, 90, 56, 86, 71, 82, 77, 57, 57,
+  80, 9, 0, 0, 0, 76, 105, 113, 117, 105, 100, 105, 116, 121, 150, 134, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0,
+  67, 111, 109, 109, 117, 110, 105, 116, 121, 180, 134, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 252, 239, 152, 31, 161, 1, 0,
+  0,
+]);
+
 describe('Launchpad records', () => {
+  it('decodes tokenomics stored by the contract', () => {
+    expect(readTokenomics(new Args(CONTRACT_TOKENOMICS_BYTES))).toEqual({
+      allocations: [
+        {
+          purpose: 'Echipă',
+          amount: 99_990n,
+          description: '12 luni — blocat',
+          holder: 'AU126s93ZxbT4QUJcZYqsAxyMc3wv8nkHJYKYCtgQyEnZ8VGRM99P',
+        },
+        { purpose: 'Liquidity', amount: 99_990n, description: '', holder: '' },
+        { purpose: 'Community', amount: 100_020n, description: '', holder: '' },
+      ],
+      updatedAt: 1791531479036,
+    });
+  });
+
   it('decodes a config, a listing and a sale serialized by the contract', () => {
     expect(readConfig(new Args(CONTRACT_CONFIG_BYTES))).toEqual({
       tokenFee: 5n,

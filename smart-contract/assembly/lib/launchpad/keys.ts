@@ -205,3 +205,23 @@ export function escrowedKey(token: string): StaticArray<u8> {
 export function mrc20BalanceKey(address: string): StaticArray<u8> {
   return stringToBytes('BALANCE' + address);
 }
+
+// ---- tokenomics (phase 8) -----------------------------------------------------------------
+const TOKENOMICS = stringToBytes('tkm:');
+
+/** The declared supply split of a token, by its registry id. */
+export function tokenomicsKey(tokenId: u64): StaticArray<u8> {
+  return TOKENOMICS.concat(u64BE(tokenId));
+}
+
+// ---- removal (v1.2.0) --------------------------------------------------------------------
+const REMOVED = stringToBytes('x:');
+
+/** Set when the admin removed a contract from the registry: it can never be imported again. */
+export function removedKey(address: string): StaticArray<u8> {
+  return REMOVED.concat(stringToBytes(address + ':'));
+}
+
+/** RC-Token storage (rc-token.ts): whether it can mint, and up to what. */
+export const RC_TOKEN_MINTABLE_KEY = stringToBytes('MINTABLE');
+export const RC_TOKEN_MAX_SUPPLY_KEY = stringToBytes('MAX_SUPPLY');

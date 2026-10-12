@@ -29,6 +29,7 @@ import {
   timeLeft,
 } from '../../core/launchpad/presale-state';
 import { Presale, Project, tokensFor } from '../../core/launchpad/records';
+import { TokenReader } from '../../core/launchpad/token-reader';
 import { Transactions } from '../../core/launchpad/transactions';
 import { NetworkStore } from '../../core/network/network-store';
 import { formatUnits } from '../../core/utils/token-amount';
@@ -63,6 +64,7 @@ type Busy = 'contribute' | 'finalize' | 'claim' | 'refund' | 'withdraw' | 'cance
 })
 export class PresalePage {
   private readonly launchpad = inject(LaunchpadReader);
+  private readonly tokens = inject(TokenReader);
   private readonly transactions = inject(Transactions);
   protected readonly network = inject(NetworkStore);
   protected readonly wallet = inject(WalletStore);
@@ -73,6 +75,11 @@ export class PresalePage {
   /** undefined = loading, null = not found. */
   protected readonly presale = signal<Presale | null | undefined>(undefined);
   protected readonly token = signal<Project | null>(null);
+  /**
+   * Read from the token contract when it has no record: the admin removed it (v1.2.0+), and its
+   * contributors must still be able to claim or refund.
+   */
+  protected readonly bare = signal<{ decimals: number; symbol: string } | null>(null);
   /** The wallet's pending contribution, nanoMAS. */
   protected readonly mine = signal(0n);
   protected readonly amount = signal('');
@@ -85,8 +92,10 @@ export class PresalePage {
     const p = this.presale();
     return p ? presalePhase(p, this.now()) : null;
   });
-  protected readonly decimals = computed(() => this.token()?.decimals ?? 0);
-  protected readonly symbol = computed(() => this.token()?.symbol ?? '');
+  protected readonly decimals = computed(
+    () => this.token()?.decimals ?? this.bare()?.decimals ?? 0,
+  );
+  protected readonly symbol = computed(() => this.token()?.symbol ?? this.bare()?.symbol ?? '');
   protected readonly isCreator = computed(
     () => !!this.presale() && this.presale()!.creator === this.wallet.address(),
   );
@@ -221,11 +230,18 @@ export class PresalePage {
     }
     try {
       const presale = await this.launchpad.presale(BigInt(id));
-      const token = await this.launchpad.projectByAddress(presale.token);
+      const token = await this.launchpad.projectByAddress(presale.token).catch(() => null);
+      const bare = token
+        ? null
+        : {
+            decimals: await this.tokens.decimals(presale.token),
+            symbol: await this.tokens.text(presale.token, 'symbol').catch(() => ''),
+          };
       const mine = me ? await this.launchpad.contribution(presale.id, me) : 0n;
       if (run !== this.run) return;
       this.presale.set(presale);
       this.token.set(token);
+      this.bare.set(bare);
       this.mine.set(mine);
       this.now.set(Date.now());
     } catch (err) {

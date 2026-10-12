@@ -11,7 +11,12 @@ import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { Args } from '@massalabs/massa-web3';
 import { symbolError } from '../../core/launchpad/launch-rules';
-import { LaunchpadReader, SymbolStatus } from '../../core/launchpad/launchpad-reader';
+import {
+  REMOVAL_VERSION,
+  atLeast,
+  LaunchpadReader,
+  SymbolStatus,
+} from '../../core/launchpad/launchpad-reader';
 import { timeLeft } from '../../core/launchpad/presale-state';
 import { ProjectStore } from '../../core/launchpad/project-store';
 import {
@@ -25,7 +30,7 @@ import {
   hex,
   writeConfig,
 } from '../../core/launchpad/records';
-import { KNOWN_TEMPLATES } from '../../core/launchpad/templates';
+import { newestTemplate, templateSource } from '../../core/launchpad/templates';
 import { Transactions } from '../../core/launchpad/transactions';
 import { NetworkStore } from '../../core/network/network-store';
 import { sha256 } from '../../core/utils/sha256';
@@ -52,7 +57,10 @@ interface TemplateState {
   label: string;
   version: number;
   hash: string;
-  known: boolean;
+  /** Source version (public/templates) with this hash; null when the app doesn't know it. */
+  source: number | null;
+  /** The newest template the app knows: the only one launches go through with. */
+  newest: boolean;
 }
 
 interface Status {
@@ -162,6 +170,13 @@ export class AdminPage {
     return { total: matches.length, shown: matches.slice(0, MAX_RESULTS) };
   });
   protected readonly imported = SOURCE_IMPORTED;
+  /** removeProject exists from Launchpad v1.2.0. */
+  protected readonly removalSupported = computed(() =>
+    atLeast(this.status()?.version ?? '0.0.0', REMOVAL_VERSION),
+  );
+  /** The project whose removal is being confirmed (kind-id), and the symbol typed. */
+  protected readonly removing = signal<string | null>(null);
+  protected readonly removeTyped = signal('');
 
   // ---- symbols ----
   protected readonly symbol = signal('');
@@ -179,7 +194,8 @@ export class AdminPage {
     if (!status || !code) return null;
     const kind = this.templateKind();
     const next = status.templates[kind].version + 1;
-    return { next, known: KNOWN_TEMPLATES[kind][next] === code.hash };
+    const newest = newestTemplate(kind);
+    return { next, newest: newest.version, isNewest: code.hash === newest.hash };
   });
 
   // ---- upgrade ----
@@ -302,6 +318,27 @@ export class AdminPage {
     const args = new Args().addU8(BigInt(project.kind)).addU64(project.id).addBool(value);
     const ok = await this.call(`project-${project.kind}-${project.id}`, func, args, ADMIN_COINS);
     if (ok) this.store.upsert(await this.launchpad.project(project.kind, project.id));
+  }
+
+  protected askRemove(project: Project): void {
+    this.removing.set(`${project.kind}-${project.id}`);
+    this.removeTyped.set('');
+  }
+
+  /** Takes the project out of the registry for good (its contract stays on-chain). */
+  protected async remove(project: Project): Promise<void> {
+    if (this.removeTyped().trim() !== project.symbol) return;
+    const args = new Args().addU8(BigInt(project.kind)).addU64(project.id);
+    const ok = await this.call(
+      `project-${project.kind}-${project.id}`,
+      'removeProject',
+      args,
+      ADMIN_COINS,
+    );
+    if (ok) {
+      this.store.remove(project.kind, project.id);
+      this.removing.set(null);
+    }
   }
 
   protected setSymbol(value: string): void {
@@ -475,7 +512,8 @@ export class AdminPage {
           label: TEMPLATE_LABELS[kind],
           version: t.version,
           hash,
-          known: KNOWN_TEMPLATES[kind][t.version] === hash,
+          source: templateSource(kind, hash),
+          newest: newestTemplate(kind).hash === hash,
         });
       }
       if (run !== this.run) return;

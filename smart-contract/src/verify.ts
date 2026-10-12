@@ -7,10 +7,10 @@
 import { createHash } from 'crypto';
 import { existsSync, readFileSync } from 'fs';
 import { Args, JsonRpcPublicProvider } from '@massalabs/massa-web3';
-import { getScByteCode } from './utils';
+import { deploymentFile, getScByteCode } from './utils';
 
 const network = process.env['NETWORK'] === 'mainnet' ? 'mainnet' : 'buildnet';
-const file = `deployments/${network}.json`;
+const file = deploymentFile(network);
 if (!existsSync(file)) throw new Error(`No ${file}: the Launchpad isn't deployed on ${network}.`);
 const address: string = JSON.parse(readFileSync(file, 'utf8')).address;
 const provider =

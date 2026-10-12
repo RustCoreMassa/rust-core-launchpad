@@ -4,8 +4,9 @@
  * The contract's own message out of a node error. Seen on buildnet (2026-10-04):
  * "readonly call failed: VM Error in ReadOnlyExecutionTarget::FunctionCall context: Depth error:
  * Runtime error: error: This symbol is already taken or reserved at assembly/contracts/
- * launchpad.ts:140 col: 3" → "This symbol is already taken or reserved". The older
- * "abort with message: …" wording is understood too.
+ * launchpad.ts:140 col: 3" → "This symbol is already taken or reserved". Also seen (2026-10-09):
+ * "… VM execution error: VM instance error: error: Only the contract owner can do this at
+ * assembly/lib/launchpad/common.ts:6". The older "abort with message: …" wording is understood too.
  */
 export function contractReason(raw: string): string {
   let text = raw;
@@ -16,7 +17,7 @@ export function contractReason(raw: string): string {
     // not JSON
   }
   const match =
-    /(?:abort with message:|Runtime error: error:)\s*(.+?)(?:\s+at\s+\S+\.ts:\d+|\s+at\s+\S+\(|$)/s.exec(
+    /(?:abort with message:|(?:Runtime|instance) error: error:)\s*(.+?)(?:\s+at\s+\S+\.ts:\d+|\s+at\s+\S+\(|$)/s.exec(
       text,
     );
   return (match?.[1] ?? text).trim().slice(0, 200) || 'rejected by the network';

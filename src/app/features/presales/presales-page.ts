@@ -65,17 +65,23 @@ export class PresalesPage {
     const now = this.now();
     const filter = this.filter();
     const order: PresalePhase[] = ['live', 'upcoming', 'ended', 'success', 'failed', 'cancelled'];
-    return (this.presales() ?? [])
-      .filter((p) => !this.byAddress().get(p.token)?.hidden)
-      .map((p) => ({ presale: p, phase: presalePhase(p, now) }))
-      .filter(({ phase }) =>
-        filter === 'all'
-          ? true
-          : filter === 'closed'
-            ? phase === 'failed' || phase === 'cancelled'
-            : phase === filter,
-      )
-      .sort((a, b) => order.indexOf(a.phase) - order.indexOf(b.phase));
+    return (
+      (this.presales() ?? [])
+        // Hidden tokens, and (once the list is loaded) tokens the admin removed, stay out.
+        .filter((p) => {
+          const token = this.byAddress().get(p.token);
+          return token ? !token.hidden : !this.tokens().loaded;
+        })
+        .map((p) => ({ presale: p, phase: presalePhase(p, now) }))
+        .filter(({ phase }) =>
+          filter === 'all'
+            ? true
+            : filter === 'closed'
+              ? phase === 'failed' || phase === 'cancelled'
+              : phase === filter,
+        )
+        .sort((a, b) => order.indexOf(a.phase) - order.indexOf(b.phase))
+    );
   });
 
   private run = 0;

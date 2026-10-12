@@ -8,6 +8,47 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
+Needs the Launchpad contract **v1.2.0** for tokenomics and removals (on older versions the app
+hides them; tokenomics alone work from v1.1.0).
+
+### Added
+
+- **Tokenomics on token pages**: the token's owner declares how the supply is split — up to 30
+  parts, each with a purpose, a percentage or an amount, an optional one-line description
+  (vesting, lock…) and an optional address holding it. The parts must add up to 100% of the
+  supply (the max supply for mintable tokens), checked by the contract. The token page shows them
+  as a donut chart with the list of parts and the live balance of each address named, and a note
+  when the supply changed since the declaration. Declared at launch (an optional "Distribution"
+  section in the wizard, with quick-start templates) or anytime from the token page; only the
+  storage is paid, no Launchpad fee. The Launchpad doesn't enforce the locks or vesting the
+  parts describe.
+- **Removal by the admin**, for offensive tokens and collections: on the Admin page, next to
+  Hide, **Remove** deletes a project from the registry for good, after typing its symbol. Its
+  address can never be imported again and a launched token's symbol becomes free; its contract
+  stays on-chain, untouched. A token with an open presale can't be removed (cancel it first);
+  a removed collection's listings become invalid and anyone can clean them up, the storage
+  going back to the sellers. Its page says it was removed; a removed token's presale page still
+  lets contributors claim or refund.
+- Launchpad contract **v1.2.0** (from v1.0.0): `setTokenomics`, `getTokenomics`, an optional
+  last argument of `createToken`, `removeProject` and `isRemoved`. `getProjects` pages count ids
+  (removed projects leave gaps); existing records and calls are unchanged.
+
+### Fixed
+
+- Some refusals reached the app as "VM instance error: error: …" and were shown as raw
+  technical text instead of the contract's reason.
+
+### Security
+
+- **RC-Collection v2**. In v1 (and in the MRC721 of `@massalabs/sc-standards` 1.3.0 it builds
+  on), anyone could make themselves approved for NFTs not minted yet and take each one right
+  after its mint. v2 accepts only valid addresses as operators and approved addresses, approves
+  only existing tokens, and clears any approval left on an id when it's minted. No collection
+  had been launched on mainnet with v1.
+- The app launches only from the newest template of each kind, so collection launches stay
+  paused until the Launchpad's admin adds RC-Collection v2 (`setTemplate`). "Download original
+  code" finds a template's source by its hash, whatever version number the Launchpad gave it.
+
 ## [1.0.1] — 2026-10-08
 
 Works with the Launchpad contract **v1.0.0** (unchanged).

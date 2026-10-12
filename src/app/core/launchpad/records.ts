@@ -350,3 +350,54 @@ export function readPresale(args: Args): Presale {
 export function tokensFor(amount: bigint, rate: bigint): bigint {
   return (amount * rate) / 1_000_000_000n;
 }
+
+// ---- tokenomics (phase 8) -------------------------------------------------------------------
+
+/** One part of a token's declared supply split. */
+export interface Allocation {
+  purpose: string;
+  /** Token units: the source of truth, percentages are computed from it. */
+  amount: bigint;
+  description: string;
+  /** Address holding the part (AU… or AS…); empty when none. */
+  holder: string;
+}
+
+/** The owner's declaration; the parts added up to the supply when it was made. */
+export interface Tokenomics {
+  allocations: Allocation[];
+  /** ms since the epoch */
+  updatedAt: number;
+}
+
+/** A length-prefixed run of Allocation records (Args addSerializableObjectArray). */
+export function writeAllocations(args: Args, allocations: Allocation[]): Args {
+  const array = new Args();
+  for (const part of allocations) {
+    array
+      .addString(part.purpose)
+      .addU256(part.amount)
+      .addString(part.description)
+      .addString(part.holder);
+  }
+  return args.addUint8Array(array.serialize());
+}
+
+export function readTokenomics(args: Args): Tokenomics {
+  const array = new Args(args.nextUint8Array());
+  const allocations: Allocation[] = [];
+  while (array.getOffset() < array.serialize().length) {
+    allocations.push({
+      purpose: array.nextString(),
+      amount: array.nextU256(),
+      description: array.nextString(),
+      holder: array.nextString(),
+    });
+  }
+  return { allocations, updatedAt: Number(args.nextU64()) };
+}
+
+/** The bytes the contract stores for a declaration (what its storage costs). */
+export function writeTokenomics(t: Tokenomics): Uint8Array {
+  return writeAllocations(new Args(), t.allocations).addU64(BigInt(t.updatedAt)).serialize();
+}
