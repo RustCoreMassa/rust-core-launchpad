@@ -2,6 +2,7 @@
 //
 //   npm run upgrade -- propose   # records the new code's hash; executable 72 h later
 //   npm run upgrade -- status    # what is pending, and when it can run
+//   npm run upgrade -- snapshot  # retakes the storage snapshot (do it right before execute)
 //   npm run upgrade -- execute   # after the delay: installs the code, then checks the storage
 //
 // The admin is PRIVATE_KEY; NETWORK=mainnet for mainnet (the Admin page does the same there).
@@ -58,7 +59,10 @@ async function send(func: string, parameter: Args, coins: bigint): Promise<strin
   return events;
 }
 
-/** sha256 of every value in the Launchpad's datastore, by key (hex). */
+/** The pending proposal's own entry: executeUpgrade deletes it, as expected. */
+const UPGRADE_KEY_HEX = Buffer.from('upg').toString('hex');
+
+/** sha256 of every value in the Launchpad's datastore, by key (hex), except the proposal. */
 async function snapshot(): Promise<Record<string, string>> {
   const keys = await provider.getStorageKeys(LAUNCHPAD, new Uint8Array(), true);
   const out: Record<string, string> = {};
@@ -69,6 +73,7 @@ async function snapshot(): Promise<Record<string, string>> {
       (key, j) => (out[Buffer.from(key).toString('hex')] = sha256(values[j] ?? new Uint8Array())),
     );
   }
+  delete out[UPGRADE_KEY_HEX];
   return out;
 }
 
@@ -128,6 +133,15 @@ if (command === 'status') {
   );
   console.log(`Proposed. Executable at ${new Date(proposal.executableAt).toISOString()}.`);
   console.log(`Snapshot saved to ${snapshotFile}.`);
+} else if (command === 'snapshot') {
+  if (!existsSync(snapshotFile)) throw new Error(`No ${snapshotFile}: propose first.`);
+  const saved = JSON.parse(readFileSync(snapshotFile, 'utf8'));
+  const storage = await snapshot();
+  writeFileSync(
+    snapshotFile,
+    JSON.stringify({ ...saved, snapshotAt: new Date().toISOString(), storage }, null, 2) + '\n',
+  );
+  console.log(`Snapshot retaken: ${Object.keys(storage).length} storage entries.`);
 } else if (command === 'execute') {
   if (!existsSync(snapshotFile)) throw new Error(`No ${snapshotFile}: propose first.`);
   const saved = JSON.parse(readFileSync(snapshotFile, 'utf8'));
@@ -192,6 +206,6 @@ if (command === 'status') {
   }
   process.exit(failures ? 1 : 0);
 } else {
-  console.log('Usage: npm run upgrade -- propose | status | execute');
+  console.log('Usage: npm run upgrade -- propose | status | snapshot | execute');
   process.exit(1);
 }
