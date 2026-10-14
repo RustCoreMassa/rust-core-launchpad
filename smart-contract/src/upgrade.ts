@@ -2,6 +2,7 @@
 //
 //   npm run upgrade -- propose   # records the new code's hash; executable 72 h later
 //   npm run upgrade -- status    # what is pending, and when it can run
+//   npm run upgrade -- cancel    # withdraws the pending proposal (before proposing another)
 //   npm run upgrade -- snapshot  # retakes the storage snapshot (do it right before execute)
 //   npm run upgrade -- execute   # after the delay: installs the code, then checks the storage
 //
@@ -104,10 +105,20 @@ if (command === 'status') {
     console.log(`Pending: ${hash}${hash === codeHash ? ' (= this build)' : ' (NOT this build)'}`);
     console.log(`Executable at ${new Date(proposal.executableAt).toISOString()}`);
   }
+} else if (command === 'cancel') {
+  const proposal = await pending();
+  if (!proposal) throw new Error('No upgrade is pending.');
+  const hash = Buffer.from(proposal.codeHash).toString('hex');
+  console.log(`Cancelling the pending upgrade ${hash}`);
+  await send('cancelUpgrade', new Args(), MARGIN);
+  if (await pending()) throw new Error('The upgrade is still pending.');
+  console.log('Cancelled: no upgrade is pending.');
 } else if (command === 'propose') {
   if (sha256(await onChainCode()) === codeHash) throw new Error('This code is already deployed.');
   if (await pending())
-    throw new Error('An upgrade is already pending (cancel it on the Admin page).');
+    throw new Error(
+      'An upgrade is already pending: npm run upgrade -- cancel (or the Admin page).',
+    );
   const before = await snapshot();
   console.log(`Snapshot: ${Object.keys(before).length} storage entries`);
   await send('proposeUpgrade', new Args().addUint8Array(Buffer.from(codeHash, 'hex')), MARGIN);
