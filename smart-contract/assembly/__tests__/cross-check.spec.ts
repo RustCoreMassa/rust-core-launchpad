@@ -179,6 +179,8 @@ describe('app ↔ contract encoding', () => {
       u64(1_760_000_000_000),
       0,
       100,
+      500,
+      ALICE,
     );
     log<string>('LISTING_BYTES ' + listing.serialize().toString());
     const sale = new Sale(

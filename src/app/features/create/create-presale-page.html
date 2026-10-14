@@ -31,6 +31,12 @@
         </div>
       </div>
 
+      @if (codeRisk(); as risk) {
+        <div class="notice">
+          {{ risk }} Contributors will see a warning that a code change could stop their claims.
+        </div>
+      }
+
       @if (open(); as o) {
         <div class="notice">
           This token already has an open presale.

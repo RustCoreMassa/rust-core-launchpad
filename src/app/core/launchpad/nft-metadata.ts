@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { CollectionReader } from './collection-reader';
 import { httpUrl, localGatewayOf } from '../utils/ipfs';
+import { stripHidden } from '../utils/hidden-chars';
 
 export interface NftAttribute {
   trait: string;
@@ -74,7 +75,7 @@ export function parseMetadata(json: unknown, gateway?: string): NftMetadata | nu
 }
 
 function text(value: unknown): string {
-  if (typeof value === 'string') return value.slice(0, MAX_TEXT);
+  if (typeof value === 'string') return stripHidden(value).slice(0, MAX_TEXT);
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   return '';
 }

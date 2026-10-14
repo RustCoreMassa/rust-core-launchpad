@@ -18,6 +18,7 @@ import {
   KIND_TOKEN,
   Presale,
   Project,
+  SOURCE_IMPORTED,
   SOURCE_LAUNCHED,
   Tokenomics,
   categoryLabel,
@@ -78,6 +79,8 @@ export class TokenPage {
   /** Declared tokenomics; null when none, undefined while loading (or before Launchpad v1.1.0). */
   protected readonly tokenomics = signal<Tokenomics | null | undefined>(undefined);
   protected readonly codeModified = signal<boolean | null>(null);
+  /** An imported token whose symbol the Launchpad keeps for another token, or reserved. */
+  protected readonly symbolClash = signal<'reserved' | 'taken' | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly downloading = signal(false);
   protected readonly downloadError = signal<string | null>(null);
@@ -194,6 +197,14 @@ export class TokenPage {
     }
   }
 
+  /** Is an imported token's symbol the one of a token launched here, or a reserved one? */
+  private async loadSymbolClash(project: Project, run: number): Promise<void> {
+    const status = await this.launchpad
+      .symbolStatus(project.symbol.toUpperCase())
+      .catch(() => 'free' as const);
+    if (run === this.loadRun) this.symbolClash.set(status === 'free' ? null : status);
+  }
+
   private async load(address: string): Promise<void> {
     const run = ++this.loadRun;
     this.project.set(undefined);
@@ -202,6 +213,7 @@ export class TokenPage {
     this.presale.set(undefined);
     this.tokenomics.set(undefined);
     this.codeModified.set(null);
+    this.symbolClash.set(null);
     this.error.set(null);
     try {
       const project = await this.launchpad.projectByAddress(address);
@@ -212,6 +224,7 @@ export class TokenPage {
         if (run === this.loadRun) this.removed.set(removed);
         return;
       }
+      if (project.source === SOURCE_IMPORTED) void this.loadSymbolClash(project, run);
       const state = await this.tokens.state(address);
       if (run !== this.loadRun) return;
       this.state.set(state);

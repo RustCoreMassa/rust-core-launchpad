@@ -30,9 +30,10 @@ import {
   setConfig,
   setHidden,
   setPaused,
+  setRoyalty,
   updatePrice,
 } from '../contracts/launchpad';
-import { KIND_COLLECTION, LOCK_KEY, STD_OWNER_KEY } from '../lib/launchpad/keys';
+import { KIND_COLLECTION, LOCK_KEY, STD_OWNER_KEY, listingKey } from '../lib/launchpad/keys';
 import { Config, Listing, MarketStats, ProjectInfo } from '../lib/launchpad/records';
 
 const LAUNCHPAD = 'AS12BqZEQ6sByhRLyEuf0YbQmcF2PsDdkNNG1akBJu9XcjZA1eT';
@@ -187,6 +188,83 @@ describe('Marketplace fee', () => {
     resetStorage();
     setDeployContext(ADMIN);
     constructor(new Args().add(marketConfig(501)).serialize());
+  });
+});
+
+/** The collection's owner (ADMIN) sets a new royalty: `bps` to ALICE. */
+function newRoyalty(bps: u16): void {
+  pay(ADMIN, MAS);
+  setRoyalty(new Args().add(u64(1)).add(bps).add(ALICE).serialize());
+  done();
+}
+
+/** Rewrites a listing as a Launchpad before v1.3.1 stored it: without royalty fields. */
+function makeLegacy(id: u64): void {
+  const l = listing(id);
+  l.royaltyFixed = false;
+  Storage.set(listingKey(id), l.serialize());
+}
+
+function storedListing(id: u64): Listing {
+  return new Args(Storage.get(listingKey(id))).nextSerializable<Listing>().unwrap();
+}
+
+describe('Marketplace royalty', () => {
+  test('a listing keeps the royalty in force when it was listed', () => {
+    setup();
+    approveLaunchpad(COLLECTION, 2);
+    const first = aliceLists(1);
+    expect(listing(first).royaltyBps).toBe(500);
+    expect(listing(first).royaltyReceiver).toBe(CAROL);
+    newRoyalty(1_000);
+    expect(listing(first).royaltyBps).toBe(500); // a royalty change never reaches existing listings
+    expect(listing(first).royaltyReceiver).toBe(CAROL);
+    const second = aliceLists(2);
+    expect(listing(second).royaltyBps).toBe(1_000);
+    expect(listing(second).royaltyReceiver).toBe(ALICE);
+  });
+
+  test('a price change keeps the listed royalty', () => {
+    setup();
+    const id = aliceLists();
+    newRoyalty(1_000);
+    pay(ALICE, 0);
+    updatePrice(new Args().add(id).add(MAS).serialize());
+    done();
+    expect(listing(id).royaltyBps).toBe(500);
+    expect(listing(id).royaltyReceiver).toBe(CAROL);
+  });
+
+  test('a listing from before v1.3.1 reads with the collection’s current royalty', () => {
+    setup();
+    approveLaunchpad(COLLECTION, 2);
+    const legacy = aliceLists(1);
+    makeLegacy(legacy);
+    expect(storedListing(legacy).royaltyFixed).toBe(false);
+    newRoyalty(1_000);
+    expect(listing(legacy).royaltyBps).toBe(1_000);
+    expect(listing(legacy).royaltyReceiver).toBe(ALICE);
+    aliceLists(2);
+    // Every listing of a page reads in one format: the legacy one doesn't shift the next.
+    const page = new Args(getListings(new Args().add(u64(0)).add(u64(0)).add(u32(10)).serialize()));
+    expect(page.nextU64().unwrap()).toBe(2);
+    const items = page.nextSerializableObjectArray<Listing>().unwrap();
+    expect(items.length).toBe(2);
+    expect(items[0].tokenId).toBe(u256.fromU64(2));
+    expect(items[1].royaltyBps).toBe(1_000);
+    expect(items[1].tokenId).toBe(u256.One);
+    expect(problem(legacy, BOB)).toBe('');
+  });
+
+  test('a price change keeps a legacy listing legacy', () => {
+    setup();
+    const id = aliceLists();
+    makeLegacy(id);
+    pay(ALICE, 0);
+    updatePrice(new Args().add(id).add(MAS).serialize());
+    done();
+    expect(storedListing(id).royaltyFixed).toBe(false);
+    expect(storedListing(id).price).toBe(MAS);
   });
 });
 

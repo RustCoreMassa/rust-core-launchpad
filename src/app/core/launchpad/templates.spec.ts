@@ -4,6 +4,7 @@ import {
   UnknownTemplateError,
   assertKnownTemplate,
   newestTemplate,
+  publicMintSafety,
   templateSource,
 } from './templates';
 import { toUserMessage } from '../utils/user-error';
@@ -42,5 +43,12 @@ describe('known templates', () => {
   it('explains itself to the user', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     expect(toUserMessage(new UnknownTemplateError())).toMatch(/template this app does not know/);
+  });
+
+  it('offers the public mint only on sound collection templates', () => {
+    expect(publicMintSafety(KNOWN_TEMPLATES[1][2])).toBe('ok');
+    expect(publicMintSafety(KNOWN_TEMPLATES[1][1])).toBe('flawed');
+    expect(publicMintSafety(KNOWN_TEMPLATES[0][1])).toBe('unknown');
+    expect(publicMintSafety('00'.repeat(32))).toBe('unknown');
   });
 });

@@ -109,6 +109,8 @@ export function list(binaryArgs: StaticArray<u8>): void {
     now,
     expiresAt,
     config.marketFeeBps,
+    project.royaltyBps,
+    project.royaltyReceiver,
   );
   Storage.set(listingKey(id), listing.serialize());
   Storage.set(listingByCollectionKey(project.id, id), new StaticArray<u8>(0));
@@ -182,7 +184,10 @@ export function buy(binaryArgs: StaticArray<u8>): void {
   const beforeRemove = balance();
   _remove(listing);
   const freed = balance() - beforeRemove; // the listing's storage, back to the seller
-  const royalty = _share(listing.price, project.royaltyBps);
+  // The royalty the seller saw when listing; the collection's current one for older listings.
+  const royaltyBps = listing.royaltyFixed ? listing.royaltyBps : project.royaltyBps;
+  const receiver = listing.royaltyFixed ? listing.royaltyReceiver : project.royaltyReceiver;
+  const royalty = _share(listing.price, royaltyBps);
   const fee = _share(listing.price, listing.feeBps);
   const sale = new Sale(
     _nextId(COUNTER_SALE),
@@ -212,7 +217,7 @@ export function buy(binaryArgs: StaticArray<u8>): void {
   );
   assert(_tokenOwner(contract, listing.tokenId) == buyer, 'The NFT was not transferred');
 
-  if (royalty > 0) transferCoins(new Address(project.royaltyReceiver), royalty);
+  if (royalty > 0) transferCoins(new Address(receiver), royalty);
   transferCoins(new Address(seller), listing.price - royalty - fee + freed);
   Storage.del(LOCK_KEY);
   generateEvent(
@@ -237,7 +242,7 @@ export function buy(binaryArgs: StaticArray<u8>): void {
 export function getListing(binaryArgs: StaticArray<u8>): StaticArray<u8> {
   const id = new Args(binaryArgs).nextU64().expect('listingId is missing or invalid');
   assert(Storage.has(listingKey(id)), 'This listing is no longer active');
-  return Storage.get(listingKey(id));
+  return _view(_load(id)).serialize();
 }
 
 /**
@@ -256,7 +261,7 @@ export function getListings(binaryArgs: StaticArray<u8>): StaticArray<u8> {
   );
   const page: Listing[] = [];
   for (let i = i32(offset); i < ids.length && page.length < i32(limit); i++) {
-    page.push(_load(ids[i]));
+    page.push(_view(_load(ids[i])));
   }
   return new Args().add(u64(ids.length)).addSerializableObjectArray<Listing>(page).serialize();
 }
@@ -343,6 +348,21 @@ function _load(id: u64): Listing {
   const key = listingKey(id);
   assert(Storage.has(key), 'This listing is no longer active');
   return new Args(Storage.get(key)).nextSerializable<Listing>().unwrap();
+}
+
+/**
+ * A listing as reads return it: always with a royalty, so readers parse one format. A listing
+ * written before v1.3.1 shows the collection's current royalty, which is what its sale pays.
+ */
+function _view(listing: Listing): Listing {
+  if (listing.royaltyFixed) return listing;
+  const project = _projectByAddress(listing.collection);
+  if (project != null) {
+    listing.royaltyBps = project.royaltyBps;
+    listing.royaltyReceiver = project.royaltyReceiver;
+  }
+  listing.royaltyFixed = true;
+  return listing;
 }
 
 function _remove(listing: Listing): void {

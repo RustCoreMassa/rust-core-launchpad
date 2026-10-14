@@ -24,6 +24,7 @@ import {
   PHASE_LABELS,
   contributionError,
   maxContribution,
+  presaleCodeRisk,
   presalePhase,
   reachesSoftCap,
   timeLeft,
@@ -75,6 +76,10 @@ export class PresalePage {
   /** undefined = loading, null = not found. */
   protected readonly presale = signal<Presale | null | undefined>(undefined);
   protected readonly token = signal<Project | null>(null);
+  protected readonly codeRisk = computed(() => {
+    const token = this.token();
+    return token ? presaleCodeRisk(token) : null;
+  });
   /**
    * Read from the token contract when it has no record: the admin removed it (v1.2.0+), and its
    * contributors must still be able to claim or refund.

@@ -1,4 +1,5 @@
 import { Args } from '@massalabs/massa-web3';
+import { stripHidden } from '../utils/hidden-chars';
 
 /**
  * TypeScript mirror of the Launchpad SC records (smart-contract/assembly/lib/launchpad/
@@ -99,7 +100,7 @@ export function writeInfo(args: Args, info: ProjectInfo): Args {
 
 export function readInfo(args: Args): ProjectInfo {
   return {
-    description: args.nextString(),
+    description: stripHidden(args.nextString()),
     logoUrl: args.nextString(),
     bannerUrl: args.nextString(),
     website: args.nextString(),
@@ -119,8 +120,9 @@ export function readProject(args: Args): Project {
     createdAt: Number(args.nextU64()),
     templateVersion: Number(args.nextU32()),
     codeHash: args.nextUint8Array(),
-    name: args.nextString(),
-    symbol: args.nextString(),
+    // Imported contracts may hold bidi or invisible characters: never shown.
+    name: stripHidden(args.nextString()),
+    symbol: stripHidden(args.nextString()),
     decimals: Number(args.nextU8()),
     mutable: args.nextBool(),
     category: Number(args.nextU8()),
@@ -219,6 +221,12 @@ export interface Listing {
   expiresAt: number;
   /** Marketplace fee in basis points, fixed when the NFT was listed. */
   feeBps: number;
+  /**
+   * Royalty in basis points fixed when the NFT was listed (Launchpad v1.3.1+); null on older
+   * Launchpads, whose sales pay the collection's current royalty.
+   */
+  royaltyBps: number | null;
+  royaltyReceiver: string;
 }
 
 export interface Sale {
@@ -243,7 +251,8 @@ export interface MarketStats {
   lastPrice: bigint;
 }
 
-export function readListing(args: Args): Listing {
+/** `withRoyalty`: the Launchpad is v1.3.1+, whose listings end with their royalty. */
+export function readListing(args: Args, withRoyalty = true): Listing {
   return {
     id: args.nextU64(),
     collectionId: args.nextU64(),
@@ -254,6 +263,8 @@ export function readListing(args: Args): Listing {
     createdAt: Number(args.nextU64()),
     expiresAt: Number(args.nextU64()),
     feeBps: Number(args.nextU16()),
+    royaltyBps: withRoyalty ? Number(args.nextU16()) : null,
+    royaltyReceiver: withRoyalty ? args.nextString() : '',
   };
 }
 

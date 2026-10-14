@@ -1,7 +1,15 @@
-import { PRESALE_CANCELLED, PRESALE_OPEN, PRESALE_SUCCESS, Presale } from './records';
+import {
+  PRESALE_CANCELLED,
+  PRESALE_OPEN,
+  PRESALE_SUCCESS,
+  Presale,
+  SOURCE_IMPORTED,
+  SOURCE_LAUNCHED,
+} from './records';
 import {
   contributionError,
   maxContribution,
+  presaleCodeRisk,
   presalePhase,
   progressPercent,
   reachesSoftCap,
@@ -78,5 +86,13 @@ describe('presale state', () => {
     expect(timeLeft(3 * 3_600_000 + 12 * 60_000, 0)).toBe('3h 12m');
     expect(timeLeft(45 * 60_000, 0)).toBe('45m');
     expect(timeLeft(0, 1_000)).toBe('0m');
+  });
+});
+
+describe('presale code risk', () => {
+  it('warns about imported tokens and launched tokens with mutable code', () => {
+    expect(presaleCodeRisk({ source: SOURCE_IMPORTED, mutable: false })).toMatch(/imported/);
+    expect(presaleCodeRisk({ source: SOURCE_LAUNCHED, mutable: true })).toMatch(/replaced/);
+    expect(presaleCodeRisk({ source: SOURCE_LAUNCHED, mutable: false })).toBeNull();
   });
 });

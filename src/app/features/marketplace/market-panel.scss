@@ -27,3 +27,14 @@ h3 {
 .hint {
   margin: 0;
 }
+
+.inactive {
+  justify-self: start;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 201, 77, 0.35);
+  background: rgba(255, 201, 77, 0.08);
+  color: #ffe1a0;
+  font-size: 12px;
+  font-weight: 600;
+}

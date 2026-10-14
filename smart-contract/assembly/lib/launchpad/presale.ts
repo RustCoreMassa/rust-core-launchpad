@@ -109,6 +109,8 @@ export function createPresale(binaryArgs: StaticArray<u8>): void {
   assert(maxBuy == 0 || minBuy <= maxBuy, 'The minimum must not exceed the maximum');
   assert(minBuy <= hardCap, 'The minimum must not exceed the hard cap');
   assert(rate > u256.Zero, 'The rate must be greater than zero');
+  // hardCap × rate must fit in a u256: as-bignum's multiplication wraps around silently.
+  assert(rate <= divU256ByU64(u256.Max, hardCap), 'The rate is too high');
   assert(tokensForSale > u256.Zero, 'Put some tokens up for sale');
   assert(_tokensFor(hardCap, rate) <= tokensForSale, 'Not enough tokens for the hard cap');
 

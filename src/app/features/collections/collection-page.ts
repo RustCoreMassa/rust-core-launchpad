@@ -15,6 +15,7 @@ import { Args } from '@massalabs/massa-web3';
 import { CollectionReader, CollectionState, NftItem } from '../../core/launchpad/collection-reader';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
 import { publicMintCoins } from '../../core/launchpad/mint-cost';
+import { publicMintSafety } from '../../core/launchpad/templates';
 import { KEEP_ONLY_ORIGINAL, OriginalCode } from '../../core/launchpad/original-code';
 import { ProjectStore } from '../../core/launchpad/project-store';
 import {
@@ -89,7 +90,18 @@ export class CollectionPage {
     for (const price of this.prices().values()) if (floor === null || price < floor) floor = price;
     return floor;
   });
-  protected readonly codeModified = signal<boolean | null>(null);
+  /** sha256 (hex) of the collection's current bytecode; null while loading. */
+  protected readonly codeHash = signal<string | null>(null);
+  protected readonly codeModified = computed(() => {
+    const hash = this.codeHash();
+    const project = this.project();
+    return hash && project ? hash !== hex(project.codeHash) : null;
+  });
+  /** Whether the app offers the public mint (see publicMintSafety); null while loading. */
+  protected readonly mintSafety = computed(() => {
+    const hash = this.codeHash();
+    return hash ? publicMintSafety(hash) : null;
+  });
   protected readonly error = signal<string | null>(null);
 
   protected readonly mintCount = signal(1);
@@ -174,7 +186,7 @@ export class CollectionPage {
 
   protected async publicMint(): Promise<void> {
     const count = this.mintCount();
-    if (count < 1 || count > this.maxMint()) return;
+    if (count < 1 || count > this.maxMint() || this.mintSafety() !== 'ok') return;
     this.minting.set(true);
     this.mintError.set(null);
     try {
@@ -255,7 +267,7 @@ export class CollectionPage {
     this.items.set(null);
     this.prices.set(new Map());
     this.market.set(null);
-    this.codeModified.set(null);
+    this.codeHash.set(null);
     this.error.set(null);
     try {
       const project = await this.launchpad.projectByAddress(address);
@@ -267,16 +279,17 @@ export class CollectionPage {
         if (run === this.run) this.removed.set(removed);
         return;
       }
-      const state = await this.collections.state(address);
+      const [state, codeHash] = await Promise.all([
+        this.collections.state(address),
+        this.tokens.codeHash(address),
+      ]);
       if (run !== this.run) return;
       this.state.set(state);
+      this.codeHash.set(codeHash);
       const items = await this.collections.items(address);
       if (run !== this.run) return;
       this.items.set(items);
       await this.loadMarket(project);
-      if (run !== this.run) return;
-      const current = await this.tokens.codeHash(address);
-      if (run === this.run) this.codeModified.set(current !== hex(project.codeHash));
     } catch (err) {
       if (run === this.run) this.error.set(toUserMessage(err));
     }

@@ -1,4 +1,4 @@
-import { ProjectKind, hex } from './records';
+import { KIND_COLLECTION, ProjectKind, hex } from './records';
 
 /**
  * sha256 of every template version this app has the source of (public/templates/<tpl>/v<N>/,
@@ -14,6 +14,20 @@ export const KNOWN_TEMPLATES: Record<ProjectKind, Record<number, string>> = {
     2: 'cf863abe54010fba9b94f4b9ff01962b026fc5204df7f6f82bb10897cc1d58ee',
   },
 };
+
+/** Template versions with a known flaw that puts users at risk, by kind. */
+export const FLAWED_TEMPLATES: Record<ProjectKind, number[]> = { 0: [], 1: [1] };
+
+/**
+ * May the app offer the public mint of a collection whose current code has this hash? Only
+ * when it's a known, sound RustCore template: other code may keep the MAS sent ('unknown'),
+ * RC-Collection v1 lets anyone take NFTs right after their mint ('flawed').
+ */
+export function publicMintSafety(hash: string): 'ok' | 'unknown' | 'flawed' {
+  const version = templateSource(KIND_COLLECTION, hash);
+  if (version === null) return 'unknown';
+  return FLAWED_TEMPLATES[KIND_COLLECTION].includes(version) ? 'flawed' : 'ok';
+}
 
 export class UnknownTemplateError extends Error {
   constructor() {

@@ -34,6 +34,7 @@ import {
   createPresale,
 } from '../contracts/launchpad';
 import { KIND_TOKEN, LOCK_KEY, STD_OWNER_KEY } from '../lib/launchpad/keys';
+import { divU256ByU64 } from '../lib/launchpad/math';
 import {
   Config,
   PRESALE_CANCELLED,
@@ -301,6 +302,24 @@ describe('Presale creation', () => {
   throws('a rate of zero', () => {
     setup();
     create(presaleArgs(50 * MAS, 100 * MAS, MAS, 0, START, END, u256.Zero));
+  });
+
+  throws('a rate so high that hard cap × rate overflows', () => {
+    setup();
+    // Wrapped around, hard cap × rate would be tiny and pass the escrow check below.
+    const rate = divU256ByU64(u256.Max, 100 * MAS) + u256.One;
+    create(presaleArgs(50 * MAS, 100 * MAS, MAS, 40 * MAS, START, END, rate));
+  });
+
+  test('the highest rate whose hard cap × rate fits', () => {
+    setup();
+    const rate = divU256ByU64(u256.Max, 100 * MAS);
+    escrowArrived(u256.Max);
+    pay(ALICE, MAS);
+    mockScCall([]); // transferFrom
+    createPresale(presaleArgs(50 * MAS, 100 * MAS, MAS, 40 * MAS, START, END, rate, u256.Max));
+    done();
+    expect(presale().rate).toBe(rate);
   });
 });
 

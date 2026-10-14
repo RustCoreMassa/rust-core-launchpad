@@ -2,7 +2,7 @@
   <header class="page-head">
     <span class="label">Dashboard</span>
     <h1>My launches</h1>
-    <p>Tokens and collections you launched or imported, and the NFTs you hold.</p>
+    <p>Tokens and collections you launched or imported, the NFTs you hold and sell.</p>
   </header>
 
   @if (!launchpad.address()) {
@@ -44,6 +44,16 @@
           (click)="tab.set('nfts')"
         >
           My NFTs
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="chip"
+          [class.selected]="tab() === 'listings'"
+          [attr.aria-selected]="tab() === 'listings'"
+          (click)="tab.set('listings')"
+        >
+          Listings
         </button>
         <button
           type="button"
@@ -98,6 +108,64 @@
             </a>
           }
         </div>
+      }
+    } @else if (tab() === 'listings') {
+      @if (listings() === null) {
+        <div class="card row"><span class="skeleton" style="width: 50%"></span></div>
+      } @else if (listings()!.length === 0) {
+        <div class="card empty">
+          <p>You have no NFT listed for sale.</p>
+          <a class="btn btn-ghost btn-sm" routerLink="/marketplace">Explore the marketplace</a>
+        </div>
+      } @else {
+        <div class="list">
+          @for (item of listings(); track item.listing.id) {
+            <div class="card row">
+              <app-project-logo
+                [url]="item.project?.info?.logoUrl ?? ''"
+                [symbol]="item.project?.symbol ?? '?'"
+              />
+              <div class="names">
+                <a
+                  [routerLink]="[
+                    '/collections',
+                    item.listing.collection,
+                    item.listing.tokenId.toString(),
+                  ]"
+                >
+                  <strong
+                    >{{ item.project?.name ?? 'Collection' }} #{{ item.listing.tokenId }}</strong
+                  >
+                </a>
+                <span class="muted">{{ item.listing.price | mas }}</span>
+                @if (item.problem) {
+                  <span class="muted">
+                    {{ item.problem }}.
+                    @if (revivable(item)) {
+                      It becomes buyable again at this price if that changes back.
+                    }
+                  </span>
+                }
+              </div>
+              @if (item.problem) {
+                <span class="owner lost">Inactive</span>
+                <button
+                  class="btn btn-ghost btn-sm"
+                  type="button"
+                  [disabled]="cancelling() !== null || wallet.networkMismatch()"
+                  (click)="cancel(item)"
+                >
+                  {{ cancelling() === item.listing.id ? 'Confirm in your wallet…' : 'Cancel' }}
+                </button>
+              } @else {
+                <span class="owner">Active</span>
+              }
+            </div>
+          }
+        </div>
+        <p class="hint">
+          An inactive listing can't be bought now; cancel it to get its storage back.
+        </p>
       }
     } @else if (tab() === 'nfts') {
       @if (nfts() === null) {
