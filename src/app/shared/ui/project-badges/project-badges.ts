@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { symbolWarning } from '../../../core/launchpad/launch-rules';
 import { Project, SOURCE_IMPORTED } from '../../../core/launchpad/records';
 
 /**
@@ -13,7 +14,11 @@ import { Project, SOURCE_IMPORTED } from '../../../core/launchpad/records';
       <span class="badge good" title="Checked by the RustCore team">Verified</span>
     }
     @if (project().source === imported) {
-      <span class="badge" title="Existing contract imported by its owner">Imported</span>
+      <span
+        class="badge warn"
+        title="An existing contract, imported by its owner: the Launchpad didn't write or check its code"
+        >Imported</span
+      >
     } @else if (project().mutable) {
       <span class="badge warn" title="The owner can replace this contract's code"
         >Mutable code</span
@@ -21,7 +26,22 @@ import { Project, SOURCE_IMPORTED } from '../../../core/launchpad/records';
     } @else {
       <span class="badge" title="This contract's code can never change">Immutable</span>
     }
-    @if (codeModified() === true) {
+    @if (symbolWarning(); as warning) {
+      <span class="badge warn" [title]="warning">Look-alike symbol</span>
+    }
+    @if (project().source === imported) {
+      @if (codeModified() === true) {
+        <span class="badge bad" title="The code changed since the contract was imported"
+          >Code changed since import</span
+        >
+      } @else if (codeModified() === false && showOriginal()) {
+        <span
+          class="badge"
+          title="The code is the one it had when imported, which the Launchpad didn't check"
+          >Unchanged since import</span
+        >
+      }
+    } @else if (codeModified() === true) {
       <span class="badge bad" title="The code differs from what was launched">Code modified</span>
     } @else if (codeModified() === false && showOriginal()) {
       <span class="badge good" title="The code is the one launched">Original code</span>
@@ -70,4 +90,5 @@ export class ProjectBadges {
   readonly codeModified = input<boolean | null>(null);
   readonly showOriginal = input(false);
   protected readonly imported = SOURCE_IMPORTED;
+  protected readonly symbolWarning = computed(() => symbolWarning(this.project()));
 }

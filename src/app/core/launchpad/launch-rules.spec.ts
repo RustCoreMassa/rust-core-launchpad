@@ -1,4 +1,11 @@
-import { EMPTY_INFO, KIND_COLLECTION, KIND_TOKEN } from './records';
+import {
+  EMPTY_INFO,
+  KIND_COLLECTION,
+  KIND_TOKEN,
+  ProjectKind,
+  SOURCE_IMPORTED,
+  SOURCE_LAUNCHED,
+} from './records';
 import {
   categoryError,
   decimalsError,
@@ -8,6 +15,7 @@ import {
   parseSupply,
   supplyError,
   symbolError,
+  symbolWarning,
   urlError,
 } from './launch-rules';
 import { IPFS_GATEWAY, configureUrls } from '../utils/ipfs';
@@ -100,5 +108,31 @@ describe('links while developing', () => {
     expect(urlError('http://[::1]/')).toBeNull();
     expect(urlError('http://nft.example/meta/')).toBe('Start with https:// or ipfs://');
     expect(urlError('http://localhost.evil.example/')).toBe('Start with https:// or ipfs://');
+  });
+});
+
+describe('imported symbols', () => {
+  const imported = (kind: ProjectKind, symbol: string) => ({
+    kind,
+    source: SOURCE_IMPORTED,
+    symbol,
+  });
+
+  it('flags well-known token symbols, in any case', () => {
+    expect(symbolWarning(imported(KIND_TOKEN, 'USDC'))).toMatch(/well-known token \(USDC\)/);
+    expect(symbolWarning(imported(KIND_TOKEN, 'wmas'))).toMatch(/WMAS/);
+    expect(symbolWarning(imported(KIND_COLLECTION, 'USDC'))).toBeNull();
+  });
+
+  it('flags look-alike characters', () => {
+    expect(symbolWarning(imported(KIND_TOKEN, 'USD\u0421'))).toMatch(/unusual characters/);
+    expect(symbolWarning(imported(KIND_COLLECTION, 'CAT S'))).toMatch(/unusual characters/);
+  });
+
+  it('leaves ordinary and launched symbols alone', () => {
+    expect(symbolWarning(imported(KIND_TOKEN, 'RUST'))).toBeNull();
+    expect(
+      symbolWarning({ kind: KIND_TOKEN, source: SOURCE_LAUNCHED, symbol: 'USD\u0421' }),
+    ).toBeNull();
   });
 });

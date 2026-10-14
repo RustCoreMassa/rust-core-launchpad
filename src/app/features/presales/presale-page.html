@@ -26,6 +26,13 @@
           </div>
           @if (t) {
             <app-project-badges [project]="t" />
+            @if (codeRisk(); as risk) {
+              <div class="notice">
+                {{ risk }} If the code is changed so that transfers fail, contributors can't claim
+                their tokens, while the owner may already have withdrawn the MAS raised. Contribute
+                only if you trust the token's owner.
+              </div>
+            }
           } @else {
             <p class="notice">
               This token is no longer in the Launchpad. Contributors can still claim their tokens or

@@ -4,7 +4,21 @@ import {
   PRESALE_OPEN,
   PRESALE_SUCCESS,
   Presale,
+  Project,
+  SOURCE_IMPORTED,
 } from './records';
+
+/**
+ * Why a presale's token code may change under its contributors, or null: an imported token
+ * (code the Launchpad didn't write) or a launched one with mutable code. Its owner could make
+ * transfers fail after withdrawing the raised MAS, and claims would fail too.
+ */
+export function presaleCodeRisk(token: Pick<Project, 'source' | 'mutable'>): string | null {
+  if (token.source === SOURCE_IMPORTED)
+    return "This token was imported: the Launchpad didn't write its code, which may let its owner change it.";
+  if (token.mutable) return "This token's code can be replaced by its owner.";
+  return null;
+}
 
 /**
  * Where a presale stands at `now`. The contract stores only open / success / failed /

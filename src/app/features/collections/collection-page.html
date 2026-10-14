@@ -148,7 +148,20 @@
                   </div>
                 }
               </dl>
-              @if (remaining() === 0) {
+              @if (mintSafety() === null) {
+                <span class="skeleton" style="width: 60%"></span>
+              } @else if (mintSafety() === 'unknown') {
+                <div class="notice">
+                  This collection's code isn't a RustCore template, so the Launchpad can't tell what
+                  it does with the MAS you send: public mint isn't offered here. Mint on the
+                  creator's own site only if you trust it.
+                </div>
+              } @else if (mintSafety() === 'flawed') {
+                <div class="notice">
+                  This collection runs RC-Collection v1, which lets anyone take NFTs right after
+                  their mint (fixed in v2): public mint isn't offered here.
+                </div>
+              } @else if (remaining() === 0) {
                 <p class="muted small">Sold out.</p>
               } @else if (!wallet.connected()) {
                 <button class="btn btn-red btn-block" type="button" (click)="connect()">

@@ -63,6 +63,9 @@ export function presaleTerms(
   if (hard === null || hard <= 0n) errors.hardCap = 'Enter the most MAS to raise.';
   if (soft === null) errors.softCap = 'Enter the MAS needed for success (0 allowed).';
   else if (hard !== null && soft > hard) errors.softCap = 'Must not exceed the hard cap.';
+  // The contract refuses a rate for which hard cap × rate doesn't fit in a u256.
+  if (rate !== null && rate > 0n && hard !== null && hard > 0n && rate > (2n ** 256n - 1n) / hard)
+    errors.rate = 'This rate is too high for the hard cap.';
   if (min === null) errors.minBuy = 'Enter a number (0 allowed).';
   else if (hard !== null && min > hard) errors.minBuy = 'Must not exceed the hard cap.';
   if (max === null) errors.maxBuy = 'Enter a number, or leave it empty.';

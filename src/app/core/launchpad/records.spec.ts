@@ -86,6 +86,19 @@ const CONTRACT_LISTING_BYTES = new Uint8Array([
   65, 85, 49, 50, 66, 113, 90, 69, 81, 54, 115, 66, 121, 104, 82, 76, 121, 69, 117, 102, 48, 89, 98,
   81, 109, 99, 70, 50, 80, 115, 68, 100, 107, 78, 78, 71, 49, 97, 107, 66, 74, 117, 57, 88, 99, 106,
   90, 65, 49, 101, 56, 0, 242, 5, 42, 1, 0, 0, 0, 0, 192, 44, 200, 153, 1, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 100, 0, 244, 1, 51, 0, 0, 0, 65, 85, 49, 50, 66, 113, 90, 69, 81, 54, 115, 66, 121, 104, 82,
+  76, 121, 69, 117, 102, 48, 89, 98, 81, 109, 99, 70, 50, 80, 115, 68, 100, 107, 78, 78, 71, 49, 97,
+  107, 66, 74, 117, 57, 88, 99, 106, 90, 65, 49, 101, 56,
+]);
+/** A listing of a Launchpad before v1.3.1, without its royalty. */
+const CONTRACT_LISTING_V1_BYTES = new Uint8Array([
+  9, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 51, 0, 0, 0, 65, 85, 49, 50, 66, 113, 90, 69, 81,
+  54, 115, 66, 121, 104, 82, 76, 121, 69, 117, 102, 48, 89, 98, 81, 109, 99, 70, 50, 80, 115, 68,
+  100, 107, 78, 78, 71, 49, 97, 107, 66, 74, 117, 57, 88, 99, 106, 90, 65, 49, 101, 56, 42, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 51, 0, 0, 0,
+  65, 85, 49, 50, 66, 113, 90, 69, 81, 54, 115, 66, 121, 104, 82, 76, 121, 69, 117, 102, 48, 89, 98,
+  81, 109, 99, 70, 50, 80, 115, 68, 100, 107, 78, 78, 71, 49, 97, 107, 66, 74, 117, 57, 88, 99, 106,
+  90, 65, 49, 101, 56, 0, 242, 5, 42, 1, 0, 0, 0, 0, 192, 44, 200, 153, 1, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 100, 0,
 ]);
 const CONTRACT_SALE_BYTES = new Uint8Array([
@@ -148,6 +161,11 @@ describe('Launchpad records', () => {
     expect(listing.createdAt).toBe(1_760_000_000_000);
     expect(listing.expiresAt).toBe(0);
     expect(listing.feeBps).toBe(100);
+    expect(listing.royaltyBps).toBe(500);
+    expect(listing.royaltyReceiver).toBe('AU12BqZEQ6sByhRLyEuf0YbQmcF2PsDdkNNG1akBJu9XcjZA1e8');
+    const v1 = readListing(new Args(CONTRACT_LISTING_V1_BYTES), false);
+    expect(v1.feeBps).toBe(100);
+    expect(v1.royaltyBps).toBeNull();
     const sale = readSale(new Args(CONTRACT_SALE_BYTES));
     expect(sale.id).toBe(3n);
     expect(sale.listingId).toBe(9n);

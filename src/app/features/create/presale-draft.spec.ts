@@ -38,6 +38,15 @@ describe('presale draft', () => {
     expect(Object.keys(errors).sort()).toEqual(['hours', 'maxBuy', 'rate', 'softCap']);
   });
 
+  it('refuses a rate for which hard cap × rate overflows, like the contract', () => {
+    const hard = 100n * MAS;
+    const highest = (2n ** 256n - 1n) / hard; // smallest units per MAS, decimals 0
+    expect(presaleTerms({ ...valid, rate: String(highest) }, 0, NOW).errors.rate).toBeUndefined();
+    expect(presaleTerms({ ...valid, rate: String(highest + 1n) }, 0, NOW).errors.rate).toMatch(
+      /too high/,
+    );
+  });
+
   it('checks a scheduled start', () => {
     const past = presaleTerms({ ...valid, start: '2026-10-01T10:00' }, 9, NOW);
     expect(past.errors.start).toBe('Pick a moment in the future.');

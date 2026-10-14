@@ -99,7 +99,7 @@ import {
 } from '../lib/launchpad/common';
 import { _storeTokenomics } from '../lib/launchpad/tokenomics';
 
-export const VERSION = '1.2.0';
+export const VERSION = '1.3.1';
 /** Delay between proposing and executing an upgrade of this contract: 72 hours. */
 export const UPGRADE_DELAY_MS: u64 = 72 * 60 * 60 * 1000;
 export const MAX_DECIMALS: u8 = 18;

@@ -41,6 +41,20 @@
         </div>
       </div>
       <app-project-badges [project]="p" [codeModified]="codeModified()" [showOriginal]="true" />
+      @switch (symbolClash()) {
+        @case ('taken') {
+          <div class="notice">
+            A token launched on the Launchpad already uses the symbol {{ p.symbol }}: this one is a
+            different contract, imported by its owner. Check the address before you trade it.
+          </div>
+        }
+        @case ('reserved') {
+          <div class="notice">
+            {{ p.symbol }} is a reserved symbol, kept for a well-known token: this one is a
+            different contract, imported by its owner. Check the address before you trade it.
+          </div>
+        }
+      }
       @if (p.info.description) {
         <p class="description">{{ p.info.description }}</p>
       }

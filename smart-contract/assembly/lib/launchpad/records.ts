@@ -195,10 +195,18 @@ export class Listing implements Serializable {
     public expiresAt: u64 = 0,
     /** Marketplace fee in basis points, fixed when the NFT was listed. */
     public feeBps: u16 = 0,
+    /** The collection's royalty when the NFT was listed (v1.3.1), in basis points. */
+    public royaltyBps: u16 = 0,
+    public royaltyReceiver: string = '',
+    /**
+     * false for a listing written before v1.3.1, without the two fields above: its sale pays the
+     * collection's current royalty, as then. Not stored.
+     */
+    public royaltyFixed: bool = true,
   ) {}
 
   serialize(): StaticArray<u8> {
-    return new Args()
+    const args = new Args()
       .add(this.id)
       .add(this.collectionId)
       .add(this.collection)
@@ -207,8 +215,9 @@ export class Listing implements Serializable {
       .add(this.price)
       .add(this.createdAt)
       .add(this.expiresAt)
-      .add(this.feeBps)
-      .serialize();
+      .add(this.feeBps);
+    if (this.royaltyFixed) args.add(this.royaltyBps).add(this.royaltyReceiver);
+    return args.serialize();
   }
 
   deserialize(data: StaticArray<u8>, offset: i32): Result<i32> {
@@ -222,6 +231,12 @@ export class Listing implements Serializable {
     this.createdAt = args.nextU64().expect('createdAt');
     this.expiresAt = args.nextU64().expect('expiresAt');
     this.feeBps = args.nextU16().expect('feeBps');
+    const royaltyBps = args.nextU16();
+    this.royaltyFixed = royaltyBps.isOk();
+    if (this.royaltyFixed) {
+      this.royaltyBps = royaltyBps.unwrap();
+      this.royaltyReceiver = args.nextString().expect('royaltyReceiver');
+    }
     return new Result(args.offset);
   }
 }

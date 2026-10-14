@@ -8,6 +8,48 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
+## [1.3.1] — 2026-10-14
+
+Works with the Launchpad contract **v1.3.1** (mainnet: upgrade from v1.0.0 through the 72-hour
+delay; the v1.2.0 upgrade proposed on 2026-10-12 is replaced, never executed). It brings the
+fixes of the security audit of 2026-10-11 on top of 1.2.0. On older contracts the app reads
+listings without their royalty, as before.
+
+### Added
+
+- **Listings** tab on the dashboard: every NFT you listed, active or inactive, with Cancel for
+  the inactive ones.
+
+### Changed
+
+- **The royalty is fixed when an NFT is listed**, like the marketplace fee: a collection owner
+  who raises the royalty or changes its receiver afterwards no longer reduces what the seller
+  of an existing listing gets. Listings made before v1.3.1 still pay the collection's current
+  royalty, and show it. The NFT page shows the listing's own royalty.
+- A listing that can't be bought now (the NFT left the seller, the approval was withdrawn, it
+  expired…) shows as **Inactive**, with the reason, on the NFT page. Its seller is told when it
+  would turn buyable again by itself at its old price, for example if the NFT comes back to
+  their wallet, and can cancel it. The NFT's new holder sees the sell form instead of the old
+  listing (listing removes it).
+- Public mint is offered only for collections whose current code is a RustCore template, and
+  not on RC-Collection v1. Other code could keep the MAS sent.
+- Imported projects: the **Imported** badge is a warning, "Original code" reads **Unchanged
+  since import**, and a **Look-alike symbol** badge flags a well-known token's symbol or unusual
+  characters. An imported token's page says when a token launched here, or a reserved symbol,
+  has its symbol.
+- Presales of imported tokens, or of tokens with mutable code, warn contributors (and the
+  creator, in the wizard) that a code change could stop their claims.
+
+### Security
+
+- Launchpad contract **v1.3.1**: `createPresale` refuses a rate for which hard cap × rate
+  doesn't fit in 256 bits. The multiplication wrapped around silently, so an absurd rate could
+  pass the escrow check with tokens owed to an earlier presale of the same token. The presale
+  form checks it too.
+- Bidi controls and invisible characters (U+202A–U+202E, U+2066–U+2069, U+200B, U+200E, U+200F,
+  U+061C, U+FEFF) are removed from names, symbols, descriptions and NFT metadata before they're
+  shown, so an imported name can't read as another one.
+
 ## [1.2.0] — 2026-10-12
 
 Works with the Launchpad contract **v1.2.0** (mainnet: upgrade from v1.0.0 through the 72-hour

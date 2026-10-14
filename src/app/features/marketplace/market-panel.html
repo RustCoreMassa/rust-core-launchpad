@@ -1,17 +1,32 @@
 <div class="card market">
-  @if (listing() === undefined) {
+  @if (shown() === undefined) {
     <span class="skeleton" style="width: 50%"></span>
-  } @else if (listing(); as l) {
+  } @else if (shown(); as l) {
     <div class="price-row">
       <span class="muted">Price</span>
       <strong class="price">{{ l.price | mas }}</strong>
     </div>
+    @if (problem()) {
+      <span class="inactive" title="It can't be bought right now">Inactive</span>
+    }
     @if (l.expiresAt) {
       <p class="hint">Listed until {{ l.expiresAt | date: 'medium' }}</p>
     }
 
     @if (isSeller()) {
-      <p class="hint">You listed this NFT. It stays in your wallet until someone buys it.</p>
+      @if (problem(); as reason) {
+        <div class="notice">
+          {{ reason }}, so nobody can buy it now.
+          @if (revivable()) {
+            It becomes buyable again at this price if that changes back (for example the NFT returns
+            to your wallet with the approval in place). Cancel it unless you want that.
+          } @else {
+            Cancel it to get its storage back.
+          }
+        </div>
+      } @else {
+        <p class="hint">You listed this NFT. It stays in your wallet until someone buys it.</p>
+      }
       <label class="field">
         <span>New price (MAS)</span>
         <input
@@ -34,12 +49,12 @@
           {{ busy() === 'cancel' ? 'Confirm in your wallet…' : 'Cancel listing' }}
         </button>
       </div>
+    } @else if (problem()) {
+      <div class="notice">{{ problem() }}</div>
     } @else if (!wallet.connected()) {
       <button class="btn btn-red btn-block" type="button" (click)="connect()">
         Connect wallet to buy
       </button>
-    } @else if (problem()) {
-      <div class="notice">{{ problem() }}</div>
     } @else if (breakdown(); as b) {
       <dl class="rows">
         <div>
@@ -47,7 +62,7 @@
           <dd>{{ b.seller | mas }}</dd>
         </div>
         <div>
-          <dt>Creator royalty ({{ royaltyPercent() }}%)</dt>
+          <dt>Creator royalty ({{ b.royaltyPercent }}%)</dt>
           <dd>{{ b.royalty | mas }}</dd>
         </div>
         <div>

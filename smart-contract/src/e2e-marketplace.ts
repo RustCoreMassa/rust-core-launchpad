@@ -1,4 +1,5 @@
-// End-to-end check of the marketplace on buildnet: list, buy with royalty, cancel, stale cleanup.
+// End-to-end check of the marketplace on buildnet: list, buy with the royalty fixed at listing,
+// cancel, stale cleanup.
 //   npx tsx src/e2e-marketplace.ts
 // The seller is PRIVATE_KEY; a buyer and a royalty receiver are generated and funded from it
 // (test MAS). Never on mainnet.
@@ -30,6 +31,8 @@ const seller = JsonRpcProvider.buildnet(sellerAccount);
 const buyerAccount = await Account.generate();
 const buyer = JsonRpcProvider.buildnet(buyerAccount);
 const receiver = (await Account.generate()).address.toString();
+// Gets the royalty set after the NFT was listed: must receive nothing from that sale.
+const lateReceiver = (await Account.generate()).address.toString();
 const SELLER = sellerAccount.address.toString();
 const BUYER = buyerAccount.address.toString();
 const fee = await seller.client.getMinimalFee();
@@ -134,6 +137,15 @@ check(
 );
 check('buyer can buy', (await problem(listing, BUYER)) === '');
 
+// ---- the collection's owner raises the royalty to 10% and sends it elsewhere, after listing ----
+await send(
+  seller,
+  LAUNCHPAD,
+  'setRoyalty',
+  new Args().addU64(BigInt(collectionId)).addU16(1_000n).addString(lateReceiver),
+  Mas.fromString('0.01'),
+);
+
 // ---- buy -------------------------------------------------------------------------------------
 const sellerBefore = await balanceOf(SELLER);
 const receiverBefore = await balanceOf(receiver).catch(() => 0n);
@@ -160,6 +172,12 @@ check(
   listed.feeBps === config.marketFeeBps,
   `${listed.feeBps / 100}%`,
 );
+check(
+  'the listing keeps the royalty in force when it was listed',
+  listed.royaltyBps === 500 && listed.royaltyReceiver === receiver,
+  `${(listed.royaltyBps ?? 0) / 100}% to ${listed.royaltyReceiver}`,
+);
+const lateBefore = await balanceOf(lateReceiver).catch(() => 0n);
 const feesBefore = new Args(await read(LAUNCHPAD, 'fees')).nextU64();
 const sold = await send(buyer, LAUNCHPAD, 'buy', new Args().addU64(listing).addU64(PRICE), coins);
 check('SOLD event', eventFields(sold, 'SOLD') !== null);
@@ -174,6 +192,10 @@ check(
   'royalty paid (minus the new account’s ledger entry)',
   receiverGot === royalty - newAccountCost,
   mas(receiverGot),
+);
+check(
+  'the royalty set after listing gets nothing from this sale',
+  (await balanceOf(lateReceiver).catch(() => 0n)) === lateBefore,
 );
 const sellerGot = (await balanceOf(SELLER)) - sellerBefore;
 check(

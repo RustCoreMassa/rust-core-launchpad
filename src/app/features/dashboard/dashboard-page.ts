@@ -9,12 +9,15 @@ import {
   viewChild,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Args } from '@massalabs/massa-web3';
 import { CollectionReader } from '../../core/launchpad/collection-reader';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
+import { listingCanRevive } from '../../core/launchpad/listing-state';
 import { ProjectStore } from '../../core/launchpad/project-store';
 import {
   KIND_COLLECTION,
   KIND_TOKEN,
+  Listing,
   Presale,
   Project,
   ProjectKind,
@@ -23,6 +26,7 @@ import {
 } from '../../core/launchpad/records';
 import { PHASE_LABELS, presalePhase } from '../../core/launchpad/presale-state';
 import { TokenReader } from '../../core/launchpad/token-reader';
+import { Transactions } from '../../core/launchpad/transactions';
 import { MasPipe } from '../../shared/pipes/units-pipe';
 import { NetworkStore } from '../../core/network/network-store';
 import { toUserMessage } from '../../core/utils/user-error';
@@ -32,7 +36,7 @@ import { ProjectBadges } from '../../shared/ui/project-badges/project-badges';
 import { ProjectLogo } from '../../shared/ui/project-logo/project-logo';
 import { ImportDialog } from './import-dialog';
 
-type Tab = 'tokens' | 'collections' | 'nfts' | 'presales';
+type Tab = 'tokens' | 'collections' | 'nfts' | 'listings' | 'presales';
 
 interface MyProject {
   project: Project;
@@ -45,6 +49,14 @@ interface MyPresale {
   token: Project | null;
   /** The wallet's pending contribution, nanoMAS (0 for presales it only created). */
   contribution: bigint;
+}
+
+interface MyListing {
+  listing: Listing;
+  /** null when the collection was removed from the Launchpad. */
+  project: Project | null;
+  /** Why it can't be bought now (buyProblem); '' = active. */
+  problem: string;
 }
 
 interface MyNfts {
@@ -67,6 +79,7 @@ export class DashboardPage {
   private readonly tokens = inject(TokenReader);
   private readonly collections = inject(CollectionReader);
   private readonly store = inject(ProjectStore);
+  private readonly transactions = inject(Transactions);
 
   protected readonly tab = signal<Tab>('tokens');
   /** Per kind; null while loading. */
@@ -76,6 +89,10 @@ export class DashboardPage {
   protected readonly nftsScanned = signal(0);
   /** null while loading. */
   protected readonly presales = signal<MyPresale[] | null>(null);
+  /** null while loading. */
+  protected readonly listings = signal<MyListing[] | null>(null);
+  /** The listing being cancelled. */
+  protected readonly cancelling = signal<bigint | null>(null);
   protected readonly phaseLabels = PHASE_LABELS;
   protected readonly error = signal<string | null>(null);
   protected readonly imported = SOURCE_IMPORTED;
@@ -106,6 +123,7 @@ export class DashboardPage {
         this.mine.set([null, null]);
         this.nfts.set(null);
         this.presales.set(null);
+        this.listings.set(null);
         if (address && deployed) {
           void this.loadMine(address, KIND_TOKEN, this.run);
           void this.loadMine(address, KIND_COLLECTION, this.run);
@@ -117,6 +135,8 @@ export class DashboardPage {
       const address = this.wallet.address();
       if (tab === 'nfts' && address && this.launchpad.address())
         untracked(() => this.nfts() === null && void this.loadNfts(address, this.run));
+      if (tab === 'listings' && address && this.launchpad.address())
+        untracked(() => this.listings() === null && void this.loadListings(address, this.run));
       if (tab === 'presales' && address && this.launchpad.address())
         untracked(() => this.presales() === null && void this.loadPresales(address, this.run));
     });
@@ -124,6 +144,32 @@ export class DashboardPage {
 
   protected phase(p: Presale): string {
     return this.phaseLabels[presalePhase(p)];
+  }
+
+  protected revivable(item: MyListing): boolean {
+    return listingCanRevive(item.problem);
+  }
+
+  /** Cancels one of the wallet's listings, then re-reads the list. */
+  protected async cancel(item: MyListing): Promise<void> {
+    const target = this.launchpad.address();
+    const address = this.wallet.address();
+    if (!target || !address) return;
+    this.cancelling.set(item.listing.id);
+    this.error.set(null);
+    try {
+      await this.transactions.send({
+        target,
+        func: 'cancel',
+        args: new Args().addU64(item.listing.id),
+        coins: 0n,
+      });
+      await this.loadListings(address, this.run);
+    } catch (err) {
+      this.error.set(toUserMessage(err));
+    } finally {
+      this.cancelling.set(null);
+    }
   }
 
   protected category(project: Project): string {
@@ -186,6 +232,25 @@ export class DashboardPage {
         this.nftsScanned.update((n) => n + 1);
       }
       this.nfts.set(found);
+    } catch (err) {
+      if (run === this.run) this.error.set(toUserMessage(err));
+    }
+  }
+
+  /** The wallet's listings, newest first, each with what keeps it from being bought now. */
+  private async loadListings(address: string, run: number): Promise<void> {
+    try {
+      const ids = await this.launchpad.listingsBySeller(address);
+      const list: MyListing[] = [];
+      for (const id of ids) {
+        const listing = await this.launchpad.listing(id);
+        const [project, problem] = await Promise.all([
+          this.launchpad.project(KIND_COLLECTION, listing.collectionId).catch(() => null),
+          this.launchpad.buyProblem(id, ''),
+        ]);
+        list.push({ listing, project, problem });
+      }
+      if (run === this.run) this.listings.set(list);
     } catch (err) {
       if (run === this.run) this.error.set(toUserMessage(err));
     }

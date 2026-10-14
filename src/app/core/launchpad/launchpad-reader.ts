@@ -30,6 +30,9 @@ export const TOKENOMICS_VERSION = '1.1.0';
 /** First Launchpad version where the admin can remove a project from the registry. */
 export const REMOVAL_VERSION = '1.2.0';
 
+/** First Launchpad version whose listings keep the royalty in force when they were listed. */
+export const LISTING_ROYALTY_VERSION = '1.3.1';
+
 /** "1.10.0" ≥ "1.9.2": compares x.y.z numerically. */
 export function atLeast(version: string, minimum: string): boolean {
   const a = version.split('.').map(Number);
@@ -203,7 +206,8 @@ export class LaunchpadReader {
       'getListings',
       new Args().addU64(collectionId).addU64(BigInt(offset)).addU32(BigInt(limit)),
     );
-    return readPage(bytes, readListing);
+    const royalty = await this.listingRoyalty();
+    return readPage(bytes, (args) => readListing(args, royalty));
   }
 
   /** Every active listing of a collection (or of all with 0), page after page. */
@@ -222,7 +226,7 @@ export class LaunchpadReader {
       await this.read('listingOf', new Args().addString(collection).addU256(tokenId)),
     ).nextU64();
     if (id === 0n) return null;
-    return readListing(new Args(await this.read('getListing', new Args().addU64(id))));
+    return this.listing(id);
   }
 
   /** Why `buyer` can't buy this listing now; '' when they can. */
@@ -237,7 +241,13 @@ export class LaunchpadReader {
   }
 
   async listing(id: bigint): Promise<Listing> {
-    return readListing(new Args(await this.read('getListing', new Args().addU64(id))));
+    const bytes = await this.read('getListing', new Args().addU64(id));
+    return readListing(new Args(bytes), await this.listingRoyalty());
+  }
+
+  /** Whether this Launchpad's listings carry their royalty (v1.3.1+). */
+  private async listingRoyalty(): Promise<boolean> {
+    return atLeast(await this.version(), LISTING_ROYALTY_VERSION);
   }
 
   async sales(

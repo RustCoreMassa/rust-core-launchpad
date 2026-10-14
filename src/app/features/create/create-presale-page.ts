@@ -13,6 +13,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Args } from '@massalabs/massa-web3';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
 import { ALLOWANCE_COINS, CREATE_PRESALE_COINS } from '../../core/launchpad/presale-cost';
+import { presaleCodeRisk } from '../../core/launchpad/presale-state';
 import { KIND_TOKEN, Presale, Project } from '../../core/launchpad/records';
 import { TokenReader } from '../../core/launchpad/token-reader';
 import { Transactions, eventFields } from '../../core/launchpad/transactions';
@@ -53,6 +54,10 @@ export class CreatePresalePage {
 
   /** undefined = loading, null = not a Launchpad token. */
   protected readonly project = signal<Project | null | undefined>(undefined);
+  protected readonly codeRisk = computed(() => {
+    const project = this.project();
+    return project ? presaleCodeRisk(project) : null;
+  });
   protected readonly owner = signal('');
   protected readonly balance = signal<bigint | null>(null);
   protected readonly open = signal<Presale | null>(null);

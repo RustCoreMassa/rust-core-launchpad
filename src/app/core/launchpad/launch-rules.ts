@@ -3,8 +3,10 @@ import { allowsLocalUrls, isLocalUrl } from '../utils/ipfs';
 import {
   COLLECTION_CATEGORIES,
   KIND_TOKEN,
+  Project,
   ProjectInfo,
   ProjectKind,
+  SOURCE_IMPORTED,
   TOKEN_CATEGORIES,
 } from './records';
 
@@ -40,6 +42,20 @@ export const RESERVED_SYMBOLS = [
 ];
 
 const CONTROL = /[\u0000-\u001f\u007f]/;
+
+/**
+ * Why an imported project's symbol may mislead, or null. Imports keep the symbol of their
+ * contract, which the Launchpad doesn't check: it may be a well-known token's, or use
+ * look-alike letters (a Cyrillic С in "USDС"). Launched symbols are checked by the contract.
+ */
+export function symbolWarning(project: Pick<Project, 'kind' | 'source' | 'symbol'>): string | null {
+  if (project.source !== SOURCE_IMPORTED) return null;
+  if (!/^[A-Za-z0-9]+$/.test(project.symbol))
+    return 'The symbol has unusual characters, which can imitate another symbol';
+  if (project.kind === KIND_TOKEN && RESERVED_SYMBOLS.includes(project.symbol.toUpperCase()))
+    return `Same symbol as a well-known token (${project.symbol.toUpperCase()}): check the address`;
+  return null;
+}
 
 export function nameError(name: string): string | null {
   if (name.length < NAME_MIN || name.length > NAME_MAX) return 'Use 3 to 32 characters.';

@@ -14,6 +14,7 @@ import { DatePipe } from '@angular/common';
 import { Args } from '@massalabs/massa-web3';
 import { CollectionReader } from '../../core/launchpad/collection-reader';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
+import { listingCanRevive } from '../../core/launchpad/listing-state';
 import { APPROVE_COINS, LIST_COINS, buyCoins, saleSplit } from '../../core/launchpad/market-cost';
 import { Listing, Project, Sale } from '../../core/launchpad/records';
 import { Transactions } from '../../core/launchpad/transactions';
@@ -76,14 +77,33 @@ export class MarketPanel {
     const price = this.price();
     return price !== null && price > 0n;
   });
+  /**
+   * The listing the panel shows; undefined = loading. A previous owner's inactive listing is
+   * left out for the NFT's holder, who can list it (`list` removes the old one).
+   */
+  protected readonly shown = computed(() => {
+    const listing = this.listing();
+    if (listing && this.problem() && this.isOwner() && listing.seller !== this.me()) return null;
+    return listing;
+  });
+  /** An inactive listing that turns buyable again by itself, at its old price. */
+  protected readonly revivable = computed(() => listingCanRevive(this.problem()));
+  /** The collection's royalty now: what a new listing gets. */
   protected readonly royaltyPercent = computed(() => this.collection().royaltyBps / 100);
   /** The marketplace fee new listings get (from the Launchpad's config), bps; null while unknown. */
   protected readonly marketFeeBps = signal<number | null>(null);
   protected readonly breakdown = computed(() => {
     const listing = this.listing();
     if (!listing) return null;
-    const split = saleSplit(listing.price, this.collection().royaltyBps, listing.feeBps);
-    return { ...split, feePercent: listing.feeBps / 100, sent: buyCoins(listing.price) };
+    // Fixed in the listing (v1.3.1+); older Launchpads pay the collection's current royalty.
+    const royaltyBps = listing.royaltyBps ?? this.collection().royaltyBps;
+    const split = saleSplit(listing.price, royaltyBps, listing.feeBps);
+    return {
+      ...split,
+      royaltyPercent: royaltyBps / 100,
+      feePercent: listing.feeBps / 100,
+      sent: buyCoins(listing.price),
+    };
   });
   protected readonly preview = computed(() => {
     const price = this.price();
@@ -210,12 +230,12 @@ export class MarketPanel {
     this.problem.set('');
     try {
       const listing = await this.launchpad.listingOf(project.address, tokenId);
+      // Read for everyone, the seller too (as buyer ''): an inactive listing shows as such.
+      const buyer = listing && me && me !== listing.seller ? me : '';
+      const problem = listing ? await this.launchpad.buyProblem(listing.id, buyer) : '';
       if (run !== this.run) return;
+      this.problem.set(problem);
       this.listing.set(listing);
-      if (listing && me && listing.seller !== me) {
-        const problem = await this.launchpad.buyProblem(listing.id, me);
-        if (run === this.run) this.problem.set(problem);
-      }
       const sales = await this.launchpad.sales(project.id);
       if (run === this.run) this.sales.set(sales.items.filter((s) => s.tokenId === tokenId));
       if (this.marketFeeBps() === null) {

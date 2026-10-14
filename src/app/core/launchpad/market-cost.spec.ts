@@ -34,7 +34,9 @@ describe('marketplace records', () => {
       .addU64(price)
       .addU64(1_000n)
       .addU64(0n)
-      .addU16(100n);
+      .addU16(100n)
+      .addU16(500n)
+      .addString('AU1carol');
   }
 
   it('reads a listing in the contract’s order', () => {
@@ -48,6 +50,8 @@ describe('marketplace records', () => {
       createdAt: 1_000,
       expiresAt: 0,
       feeBps: 100,
+      royaltyBps: 500,
+      royaltyReceiver: 'AU1carol',
     });
   });
 
