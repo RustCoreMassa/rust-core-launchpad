@@ -11,7 +11,9 @@ Launchpad contract version it works with.
 ## [1.3.2] — 2026-10-17
 
 Works with the Launchpad contract **v1.3.1** (unchanged), live on mainnet since 2026-10-17: the
-upgrade from v1.0.0 ran after the 72-hour public delay.
+upgrade from v1.0.0 ran after the 72-hour public delay. From this release on, the app and the
+contracts package share one version number; the contract's on-chain `VERSION` changes only with
+its code, so the contracts of 1.3.2 build to the same bytecode as v1.3.1.
 
 ### Changed
 

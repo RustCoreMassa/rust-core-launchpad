@@ -31,7 +31,10 @@ const admin = account.address.toString();
 const code = getScByteCode('build', 'launchpad.wasm');
 const sha256 = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
 const codeHash = sha256(code);
-const newVersion: string = JSON.parse(readFileSync('package.json', 'utf8')).version;
+/** The version compiled into the new code (launchpad.ts VERSION), which `version` returns. */
+const newVersion: string = /^export const VERSION = '(.*)';$/m.exec(
+  readFileSync('assembly/contracts/launchpad.ts', 'utf8'),
+)![1];
 const snapshotFile = `deployments/upgrades/${process.env['DEPLOYMENT'] || network}-${newVersion}.json`;
 /** Storage of a bigger code is paid by the admin; the unused part is refunded. */
 const MARGIN = 100_000_000n; // 0.1 MAS
