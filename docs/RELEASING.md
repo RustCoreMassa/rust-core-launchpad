@@ -156,7 +156,10 @@ the contract is upgraded in place rather than redeployed:
    `smart-contract/`, with the admin's key in `.env`): its sha256 is recorded on-chain, and every
    page of the app tells everyone when it can run — 72 hours later. The script also saves a
    snapshot of the whole datastore in `deployments/upgrades/<network>-<version>.json`.
-3. After 72 hours, **Run the upgrade** with the same file (or `npm run upgrade -- execute`, which
+   `propose` refuses while another upgrade is pending: withdraw it first with **Cancel** on the
+   Admin page or `npm run upgrade -- cancel` (the new proposal waits the full 72 hours again).
+3. Right before running it, `npm run upgrade -- snapshot` retakes the snapshot.
+4. After 72 hours, **Run the upgrade** with the same file (or `npm run upgrade -- execute`, which
    then checks that no storage entry was lost and updates `deployments/<network>.json`); the
    contract checks its hash. The admin pays the storage of the new code.
 

@@ -8,6 +8,26 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
+## [1.3.2] — 2026-10-17
+
+Works with the Launchpad contract **v1.3.1** (unchanged), live on mainnet since 2026-10-17: the
+upgrade from v1.0.0 ran after the 72-hour public delay.
+
+### Changed
+
+- Massa libraries updated: `@massalabs/massa-web3` 5.4.0 (support for the MAIN.5.1 node API,
+  operation status no longer stuck on "in pool", operations above the maximum size refused
+  before signing) and `@massalabs/wallet-provider` 3.3.1 (Bearby: paginated storage reads and the
+  same operation status fix). The contracts are built from the same sources and libraries:
+  their bytecode is unchanged.
+- The README says the Launchpad contract v1.3.1 is live on mainnet.
+
+### Added
+
+- `npm run upgrade -- cancel` (in `smart-contract/`) withdraws a pending upgrade of the
+  Launchpad; `docs/RELEASING.md` describes it, and the snapshot to retake right before running
+  an upgrade.
+
 ## [1.3.1] — 2026-10-14
 
 Works with the Launchpad contract **v1.3.1** (mainnet: upgrade from v1.0.0 through the 72-hour
@@ -159,6 +179,8 @@ raised, marketplace 1% of each sale. Not independently audited yet.
   one-step admin transfer, and upgrade storage paid from escrow. The app launches only from
   templates whose source it ships, checked by hash.
 
+[1.3.2]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.3.2
+[1.3.1]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.3.1
 [1.2.0]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.2.0
 [1.0.1]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.0.1
 [1.0.0]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.0.0
