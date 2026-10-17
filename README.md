@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 1.3.1" src="https://img.shields.io/badge/version-1.3.1-brightgreen" />
+  <img alt="Version 1.3.2" src="https://img.shields.io/badge/version-1.3.2-brightgreen" />
   <img alt="Network: Massa" src="https://img.shields.io/badge/network-Massa-red" />
   <img alt="License: FSL-1.1-ALv2" src="https://img.shields.io/badge/license-FSL--1.1--ALv2-blue" />
 </p>
@@ -42,11 +42,10 @@ your money. RustCore Launchpad is built on four principles:
   The Launchpad's own code can only change after a **72-hour public delay**, and its admin can
   never touch presale funds — only the fees collected.
 
-> **Version 1.3.1** ([what's new](CHANGELOG.md)). The Launchpad contract is live
-> on Massa **mainnet** at `AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP` (v1.0.0; its
-> upgrade to v1.3.1, which brings tokenomics, removals and the audit fixes, follows this
-> release after the 72-hour public delay). It has not had an independent security audit yet:
-> start with small amounts.
+> **Version 1.3.2** ([what's new](CHANGELOG.md)). The Launchpad contract **v1.3.1** is live
+> on Massa **mainnet** at `AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP`, upgraded in
+> place from v1.0.0 on 2026-10-17 after the 72-hour public delay. It has not had an independent
+> security audit yet: start with small amounts.
 
 ## What you can do
 
@@ -109,7 +108,7 @@ already created.
 - It holds MAS only in escrow (open presales) and in transit (a purchase pays the seller and
   the royalty in the same transaction). Its admin can withdraw **only the fees collected**: no
   function lets it move escrowed MAS. A presale or a listing keeps the fee in force when it was
-  created, so a fee change never reaches them.
+  created, and a listing keeps the creator's royalty too, so a later change never reaches them.
 - Its admin can mark projects as **verified**, **hide** scams from the lists (their contracts
   keep working), **remove** offensive projects from the registry for good (their address can't
   be imported again; their contracts still keep working, and a removed token's presale still
@@ -199,6 +198,8 @@ the links. Pin your files so they stay online.
 
 **Later**
 - [x] Tokenomics on token pages: the split the owner declares, as a chart, with live balances (v1.2.0)
+- [x] Fixes from the internal security audit: RC-Collection v2, royalty fixed in listings,
+      presale rate cap, warnings on imports and inactive listings (v1.3.1)
 - [ ] Presale extras: whitelist, vesting, liquidity on Dusa
 - [ ] Token payments on the marketplace
 - [ ] An indexer for very large collections

@@ -1,10 +1,10 @@
 {
   "network": "mainnet",
   "address": "AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP",
-  "version": "1.0.0",
+  "version": "1.3.1",
   "admin": "AU126s93ZxbT4QUJcZYqsAxyMc3wv8nkHJYKYCtgQyEnZ8VGRM99P",
   "deployedAt": "2026-10-05T12:16:59.684Z",
-  "launchpadBytes": 141564,
+  "launchpadBytes": 153784,
   "config": {
     "tokenFee": "100",
     "collectionFee": "200",
@@ -20,9 +20,11 @@
       "bytes": 38523
     },
     "rc-collection.wasm": {
-      "version": 1,
-      "sha256": "3b82684ba328e7757d49074c5ead45fab4a50ce7a096496b8ed54e7490128238",
-      "bytes": 46309
+      "version": 2,
+      "sha256": "cf863abe54010fba9b94f4b9ff01962b026fc5204df7f6f82bb10897cc1d58ee",
+      "bytes": 46772
     }
-  }
+  },
+  "upgradedAt": "2026-10-17T16:03:09.119Z",
+  "upgradedFrom": "1.0.0"
 }

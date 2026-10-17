@@ -6,14 +6,19 @@ development, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Versioning
 
-Two version numbers move independently, both following
-[Semantic Versioning](https://semver.org) (major for breaking changes, minor for new features,
-patch for fixes):
+One release number, following [Semantic Versioning](https://semver.org) (major for breaking
+changes, minor for new features, patch for fixes), names the app and the contracts package
+together. The Launchpad's on-chain version moves only when its code changes:
 
 | What | Where | Released by |
 |---|---|---|
-| The app | `package.json` | a Git tag `vX.Y.Z` → a GitHub Release |
-| The Launchpad contract | `VERSION` in `smart-contract/assembly/contracts/launchpad.ts`, mirrored by `smart-contract/package.json` | a deployment (`deployments/<network>.json`), or an upgrade through the 72 h timelock |
+| The release (app + contracts package) | `package.json` and `smart-contract/package.json`, always equal | a Git tag `vX.Y.Z` → a GitHub Release |
+| The Launchpad contract | `VERSION` in `smart-contract/assembly/contracts/launchpad.ts`, returned on-chain by `version` | a deployment (`deployments/<network>.json`), or an upgrade through the 72 h timelock |
+
+`VERSION` is compiled into the bytecode, so it changes only in a release that changes the
+contract's code, and then takes that release's number. A release without contract changes keeps
+the previous `VERSION`: its contracts build to the same bytecode as the one on-chain (so
+`npm run verify` still passes) and need no upgrade.
 
 The templates have their own versions (`rc-token` v1, `rc-collection` v1, …): a new one is
 added on-chain with `setTemplate` and never replaces the code of contracts already launched.
@@ -42,7 +47,8 @@ release's `SHA256SUMS-contracts` was checked against the chain afterwards and ma
 
 ## Publishing a release
 
-1. Bump the version: `npm version 1.1.0 --no-git-tag-version`
+1. Bump the version of both packages: `npm version 1.1.0 --no-git-tag-version`, the same in
+   `smart-contract/` — and `VERSION` in `launchpad.ts` only if the contract's code changed.
 2. In `CHANGELOG.md`, rename the `## [Unreleased]` section (where changes collect between
    releases) to `## [1.1.0] — <date>` and add its link at the bottom.
 3. Commit, then push a matching tag:
@@ -57,8 +63,8 @@ Actions. It builds from exactly the tagged commit, in public, and:
 
 - refuses a tag that doesn't match `package.json`, has no changelog section, was already
   released, or isn't higher than the latest release — a version can only move forward;
-- refuses contracts whose `smart-contract/package.json` version differs from `VERSION` in
-  `launchpad.ts`;
+- refuses a `smart-contract/package.json` version that differs from the release, and a
+  `VERSION` in `launchpad.ts` higher than the release;
 - runs the app's tests, then builds for production and boots that build in a simulated browser
   — if a test fails or the app doesn't render, nothing is published;
 - builds the contracts, runs their tests, and refuses templates whose hash isn't the one the app
@@ -156,7 +162,10 @@ the contract is upgraded in place rather than redeployed:
    `smart-contract/`, with the admin's key in `.env`): its sha256 is recorded on-chain, and every
    page of the app tells everyone when it can run — 72 hours later. The script also saves a
    snapshot of the whole datastore in `deployments/upgrades/<network>-<version>.json`.
-3. After 72 hours, **Run the upgrade** with the same file (or `npm run upgrade -- execute`, which
+   `propose` refuses while another upgrade is pending: withdraw it first with **Cancel** on the
+   Admin page or `npm run upgrade -- cancel` (the new proposal waits the full 72 hours again).
+3. Right before running it, `npm run upgrade -- snapshot` retakes the snapshot.
+4. After 72 hours, **Run the upgrade** with the same file (or `npm run upgrade -- execute`, which
    then checks that no storage entry was lost and updates `deployments/<network>.json`); the
    contract checks its hash. The admin pays the storage of the new code.
 
