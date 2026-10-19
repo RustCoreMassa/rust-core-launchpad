@@ -25,6 +25,11 @@ the app shows the fees as before, without any discount.
   and how to get the discount; the discount collection's page says what its NFTs give.
 - `/admin`: a Holder discount card (collection address and percentage, empty address = off) and
   the discount in the status.
+- Home page: the RustCore membership collection — live mint progress (re-read every 30 s),
+  price, NFTs left, the limit per wallet, a mint button, and what holding one gives (the
+  discount with the fees it lowers, support for development, resale on the marketplace). It
+  shows the collection the holder discount names, or the one announced for the network before
+  that (`membershipCollection` in networks.ts).
 
 ### Fixed
 
