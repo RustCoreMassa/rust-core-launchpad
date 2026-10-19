@@ -55,6 +55,17 @@
             marketplace {{ s.config.marketFeeBps / 100 }}%
           </dd>
         </div>
+        @if (s.holderDiscount; as d) {
+          <div>
+            <dt>Holder discount</dt>
+            <dd>
+              {{ d.bps / 100 }}% for holders of
+              <a class="mono" [routerLink]="['/collections', d.collection]">{{
+                d.collection | shortAddress
+              }}</a>
+            </dd>
+          </div>
+        }
         @for (t of s.templates; track t.kind) {
           <div>
             <dt>{{ t.label }}</dt>
@@ -257,6 +268,56 @@
               <div class="notice notice-error" role="alert">{{ message }}</div>
             }
             @if (doneIn('fees'); as message) {
+              <div class="notice" role="status">{{ message }}</div>
+            }
+          </div>
+        }
+
+        <!-- Holder discount -->
+        @if (discountSupported()) {
+          <div class="card">
+            <h2>Holder discount</h2>
+            <p class="hint">
+              Holders of at least one NFT of this collection pay the platform fees less this
+              percentage: launches, imports, and the presale and marketplace fees fixed when they
+              create a presale or a listing. Deposits and storage are never discounted. Leave the
+              collection empty to turn the discount off.
+            </p>
+            <div class="form-grid">
+              <label class="field">
+                <span>Collection address</span>
+                <input
+                  class="input mono"
+                  [value]="discountCollection()"
+                  (input)="discountCollection.set(text($event).trim())"
+                  placeholder="AS…"
+                />
+              </label>
+              <label class="field">
+                <span>Discount (%)</span>
+                <input
+                  class="input"
+                  inputmode="decimal"
+                  [value]="discountPercent()"
+                  (input)="discountPercent.set(text($event))"
+                />
+              </label>
+            </div>
+            @if (discountError(); as e) {
+              <span class="error">{{ e }}</span>
+            }
+            <button
+              class="btn btn-red btn-sm"
+              type="button"
+              [disabled]="!!busy() || !!discountError()"
+              (click)="saveDiscount()"
+            >
+              {{ busy() === 'discount' ? 'Confirm in your wallet…' : 'Save discount' }}
+            </button>
+            @if (errorIn('discount'); as message) {
+              <div class="notice notice-error" role="alert">{{ message }}</div>
+            }
+            @if (doneIn('discount'); as message) {
               <div class="notice" role="status">{{ message }}</div>
             }
           </div>

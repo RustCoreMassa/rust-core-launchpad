@@ -1,4 +1,5 @@
 import { StorageCost } from '@massalabs/massa-web3';
+import { lessDiscount } from './discount';
 
 /**
  * Upper bound for the record, its indexes and the event of a launch or import — a few hundred
@@ -7,8 +8,12 @@ import { StorageCost } from '@massalabs/massa-web3';
 export const RECORD_MARGIN = 300_000_000n; // 0.3 MAS
 
 export interface LaunchCost {
-  /** Platform fee, nanoMAS. */
+  /** Platform fee the caller pays (after the holder discount), nanoMAS. */
   fee: bigint;
+  /** Platform fee without the discount, nanoMAS. */
+  fullFee: bigint;
+  /** Holder discount applied to the fee, basis points (0 = none). */
+  discountBps: number;
   /** Storage of the new contract: its bytecode + account, nanoMAS. */
   contract: bigint;
   /** Given to the new contract for its own storage, nanoMAS. */
@@ -19,10 +24,18 @@ export interface LaunchCost {
   total: bigint;
 }
 
-export function launchCost(fee: bigint, deposit: bigint, templateBytes: number): LaunchCost {
+export function launchCost(
+  fullFee: bigint,
+  deposit: bigint,
+  templateBytes: number,
+  discountBps = 0,
+): LaunchCost {
   const contract = StorageCost.smartContractDeploy(templateBytes);
+  const fee = lessDiscount(fullFee, discountBps);
   return {
     fee,
+    fullFee,
+    discountBps,
     contract,
     deposit,
     margin: RECORD_MARGIN,

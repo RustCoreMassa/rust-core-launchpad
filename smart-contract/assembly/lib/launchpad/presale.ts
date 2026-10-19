@@ -48,6 +48,7 @@ import {
   PRESALE_SUCCESS,
   Presale,
 } from './records';
+import { _feeBpsFor } from './discount';
 import { divU256ByU64 } from './math';
 import { MAX_PAGE } from './rules';
 import { addFee, settle } from './settlement';
@@ -129,7 +130,7 @@ export function createPresale(binaryArgs: StaticArray<u8>): void {
     start,
     end,
   );
-  presale.feeBps = config.presaleFeeBps;
+  presale.feeBps = _feeBpsFor(config.presaleFeeBps, creator);
   Storage.set(presaleKey(id), presale.serialize());
   Storage.set(presaleActiveKey(token), u64ToBytes(id));
   const owed = _escrowed(token) + tokensForSale;

@@ -14,6 +14,7 @@ import {
   OperationStatus,
 } from '@massalabs/massa-web3';
 import { createTokenArgs, EMPTY_DRAFT } from '../../src/app/features/create/token-draft';
+import { lessDiscountBps } from '../../src/app/core/launchpad/discount';
 import { launchCost } from '../../src/app/core/launchpad/launch-cost';
 import {
   PRESALE_CANCELLED,
@@ -191,7 +192,17 @@ const feesBefore = await fees();
 const ownerBefore = await owner.balance(true);
 await send(owner, LAUNCHPAD, 'withdrawRaised', new Args().addU64(id), Mas.fromString('0.02'));
 const fee = (await fees()) - feesBefore;
-check('2 % presale fee', fee === (HARD_CAP * BigInt(config.presaleFeeBps)) / 10_000n, mas(fee));
+// Fixed at creation: the config's fee, less the owner's holder discount (Launchpad v1.4.0+).
+const version = new TextDecoder().decode(await read(LAUNCHPAD, 'version'));
+const discount =
+  version >= '1.4.0'
+    ? Number(
+        new Args(await read(LAUNCHPAD, 'getHolderDiscount', new Args().addString(OWNER))).nextU16(),
+      )
+    : 0;
+const feeBps = lessDiscountBps(config.presaleFeeBps, discount);
+check('the presale keeps its fee', (await presale(id)).feeBps === feeBps, `${feeBps} bps`);
+check('presale fee paid', fee === (HARD_CAP * BigInt(feeBps)) / 10_000n, mas(fee));
 const ownerGot = (await owner.balance(true)) - ownerBefore;
 check('owner received the rest', ownerGot > HARD_CAP - fee - Mas.fromString('0.03'), mas(ownerGot));
 

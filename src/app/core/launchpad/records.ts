@@ -191,6 +191,16 @@ export function readUpgradeProposal(args: Args): UpgradeProposal {
   return { codeHash: args.nextUint8Array(), executableAt: Number(args.nextU64()) };
 }
 
+/** Holders of an NFT of `collection` pay the platform fees less `bps` (Launchpad v1.4.0). */
+export interface HolderDiscount {
+  collection: string;
+  bps: number;
+}
+
+export function readHolderDiscount(args: Args): HolderDiscount {
+  return { collection: args.nextString(), bps: Number(args.nextU16()) };
+}
+
 /** `getProjects` result: total count, then a length-prefixed array of Project records. */
 export function readProjectPage(bytes: Uint8Array): { total: bigint; projects: Project[] } {
   const args = new Args(bytes);

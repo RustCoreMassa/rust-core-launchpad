@@ -11,6 +11,8 @@ import {
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { Args } from '@massalabs/massa-web3';
+import { lessDiscountBps } from '../../core/launchpad/discount';
+import { HolderDiscountStore } from '../../core/launchpad/holder-discount';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
 import { ALLOWANCE_COINS, CREATE_PRESALE_COINS } from '../../core/launchpad/presale-cost';
 import { presaleCodeRisk } from '../../core/launchpad/presale-state';
@@ -23,6 +25,7 @@ import { toUserMessage } from '../../core/utils/user-error';
 import { WalletStore } from '../../core/wallet/wallet-store';
 import { ConnectWalletDialog } from '../../layout/connect-wallet-dialog/connect-wallet-dialog';
 import { MasPipe, UnitsPipe } from '../../shared/pipes/units-pipe';
+import { HolderDiscountNote } from '../../shared/ui/holder-discount-note/holder-discount-note';
 import { ProjectLogo } from '../../shared/ui/project-logo/project-logo';
 import {
   EMPTY_PRESALE_DRAFT,
@@ -36,7 +39,7 @@ type Busy = 'approve' | 'create' | null;
 /** Starts a presale for a token the wallet owns. */
 @Component({
   selector: 'app-create-presale-page',
-  imports: [RouterLink, ProjectLogo, MasPipe, UnitsPipe, ConnectWalletDialog],
+  imports: [RouterLink, ProjectLogo, MasPipe, UnitsPipe, ConnectWalletDialog, HolderDiscountNote],
   templateUrl: './create-presale-page.html',
   styleUrl: './create-token-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,6 +48,7 @@ export class CreatePresalePage {
   protected readonly launchpad = inject(LaunchpadReader);
   protected readonly wallet = inject(WalletStore);
   protected readonly network = inject(NetworkStore);
+  private readonly discount = inject(HolderDiscountStore);
   private readonly tokens = inject(TokenReader);
   private readonly transactions = inject(Transactions);
   private readonly router = inject(Router);
@@ -61,7 +65,11 @@ export class CreatePresalePage {
   protected readonly owner = signal('');
   protected readonly balance = signal<bigint | null>(null);
   protected readonly open = signal<Presale | null>(null);
-  protected readonly feeBps = signal(0);
+  /** The presale fee before any holder discount; fixed in the presale when it's created. */
+  protected readonly fullFeeBps = signal(0);
+  protected readonly feeBps = computed(() =>
+    lessDiscountBps(this.fullFeeBps(), this.discount.bps()),
+  );
   protected readonly draft = signal<PresaleDraft>({ ...EMPTY_PRESALE_DRAFT });
   protected readonly touched = signal(false);
   protected readonly busy = signal<Busy>(null);
@@ -176,11 +184,12 @@ export class CreatePresalePage {
       const state = await this.tokens.state(token);
       const open = await this.launchpad.presaleOf(token);
       const config = await this.launchpad.config();
+      void this.discount.refresh();
       const balance = me ? await this.tokens.balanceOf(token, me) : null;
       if (run !== this.run) return;
       this.owner.set(state.owner);
       this.open.set(open);
-      this.feeBps.set(config.presaleFeeBps);
+      this.fullFeeBps.set(config.presaleFeeBps);
       this.balance.set(balance);
     } catch (err) {
       if (run === this.run) this.error.set(toUserMessage(err));

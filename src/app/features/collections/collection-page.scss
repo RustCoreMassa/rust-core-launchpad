@@ -28,6 +28,12 @@
   object-fit: cover;
 }
 
+.perk {
+  background: rgba(51, 209, 122, 0.08);
+  border-color: rgba(51, 209, 122, 0.3);
+  color: var(--green);
+}
+
 .identity {
   display: flex;
   align-items: center;

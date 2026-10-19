@@ -9,7 +9,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { LaunchCost, launchCost } from '../../core/launchpad/launch-cost';
+import { HolderDiscountStore } from '../../core/launchpad/holder-discount';
+import { launchCost } from '../../core/launchpad/launch-cost';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
 import { NftMetadata, NftMetadataLoader } from '../../core/launchpad/nft-metadata';
 import { KEEP_ONLY_ORIGINAL } from '../../core/launchpad/original-code';
@@ -23,6 +24,7 @@ import { toUserMessage } from '../../core/utils/user-error';
 import { WalletStore } from '../../core/wallet/wallet-store';
 import { ConnectWalletDialog } from '../../layout/connect-wallet-dialog/connect-wallet-dialog';
 import { MasPipe } from '../../shared/pipes/units-pipe';
+import { HolderDiscountNote } from '../../shared/ui/holder-discount-note/holder-discount-note';
 import { InfoForm } from '../../shared/ui/info-form/info-form';
 import { ProjectLogo } from '../../shared/ui/project-logo/project-logo';
 import {
@@ -44,7 +46,15 @@ type FolderCheck = 'idle' | 'checking' | 'ok' | 'failed';
 /** The NFT collection launch wizard. */
 @Component({
   selector: 'app-create-collection-page',
-  imports: [RouterLink, InfoForm, ProjectLogo, MasPipe, ConnectWalletDialog, MetadataGuide],
+  imports: [
+    RouterLink,
+    InfoForm,
+    ProjectLogo,
+    MasPipe,
+    ConnectWalletDialog,
+    MetadataGuide,
+    HolderDiscountNote,
+  ],
   templateUrl: './create-collection-page.html',
   styleUrl: './create-token-page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +63,7 @@ export class CreateCollectionPage {
   protected readonly launchpad = inject(LaunchpadReader);
   protected readonly wallet = inject(WalletStore);
   protected readonly network = inject(NetworkStore);
+  private readonly discount = inject(HolderDiscountStore);
   private readonly transactions = inject(Transactions);
   private readonly store = inject(ProjectStore);
   private readonly metadata = inject(NftMetadataLoader);
@@ -72,7 +83,12 @@ export class CreateCollectionPage {
   protected readonly folderCheck = signal<FolderCheck>('idle');
   protected readonly firstNft = signal<NftMetadata | null>(null);
 
-  protected readonly cost = signal<LaunchCost | null>(null);
+  /** The fee before any holder discount, the deposit and the template's size, once read. */
+  private readonly costBase = signal<{ fee: bigint; deposit: bigint; bytes: number } | null>(null);
+  protected readonly cost = computed(() => {
+    const base = this.costBase();
+    return base && launchCost(base.fee, base.deposit, base.bytes, this.discount.bps());
+  });
   protected readonly paused = signal(false);
   protected readonly costError = signal<string | null>(null);
   protected readonly launching = signal(false);
@@ -111,7 +127,7 @@ export class CreateCollectionPage {
   constructor() {
     effect(() => {
       this.network.network();
-      untracked(() => this.cost.set(null));
+      untracked(() => this.costBase.set(null));
     });
   }
 
@@ -219,7 +235,8 @@ export class CreateCollectionPage {
   }
 
   private async loadCost(): Promise<void> {
-    if (this.cost()) return;
+    void this.discount.refresh();
+    if (this.costBase()) return;
     this.costError.set(null);
     try {
       const config = await this.launchpad.config();
@@ -228,7 +245,11 @@ export class CreateCollectionPage {
       assertKnownTemplate(KIND_COLLECTION, template.hash);
       const code = await this.launchpad.templateCode(KIND_COLLECTION, template.version);
       this.paused.set(config.paused);
-      this.cost.set(launchCost(config.collectionFee, config.deployDeposit, code.length));
+      this.costBase.set({
+        fee: config.collectionFee,
+        deposit: config.deployDeposit,
+        bytes: code.length,
+      });
     } catch (err) {
       this.costError.set(toUserMessage(err));
     }

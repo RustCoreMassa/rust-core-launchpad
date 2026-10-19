@@ -8,6 +8,31 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-10-19
+
+Works with the Launchpad contract **v1.4.0** (new: the holder discount). On older contracts
+the app shows the fees as before, without any discount.
+
+### Added
+
+- Holder discount: whoever holds at least one NFT of the collection named by the admin pays the
+  platform fees less a percentage (10% planned for the RustCore collection; the contract caps it
+  at 50%) — token and collection launches, imports, and the presale and marketplace fees, fixed
+  with the discount when a presale or a listing is created. Holding is read from the
+  collection's standard MRC721 balance when the fee is charged; deposits and storage are never
+  discounted. Contract: `setHolderDiscount` (admin), `holderDiscount`, `getHolderDiscount`.
+- The launch, import, presale and listing forms show the discounted fee next to the full one,
+  and how to get the discount; the discount collection's page says what its NFTs give.
+- `/admin`: a Holder discount card (collection address and percentage, empty address = off) and
+  the discount in the status.
+
+### Fixed
+
+- Right after a launch, the new token's or collection's page failed with "Not found: Account …"
+  until the transaction was final (~45 s): the app read the contract's code and storage from the
+  final state, which doesn't hold it yet. Every read now uses the same (candidate) state as the
+  contract calls, so a page shows what a transaction did as soon as it executed.
+
 ## [1.3.2] — 2026-10-17
 
 Works with the Launchpad contract **v1.3.1** (unchanged), live on mainnet since 2026-10-17: the

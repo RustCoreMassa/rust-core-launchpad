@@ -41,6 +41,19 @@
         </div>
       </div>
       <app-project-badges [project]="p" [codeModified]="codeModified()" [showOriginal]="true" />
+      @if (discount.program(); as program) {
+        @if (program.collection === p.address) {
+          <div class="notice perk" role="note">
+            @if (discount.bps()) {
+              You hold an NFT of this collection: {{ program.bps / 100 }}% off every Launchpad fee
+              (launches, imports, presales, marketplace).
+            } @else {
+              Holders of at least one NFT of this collection get {{ program.bps / 100 }}% off every
+              Launchpad fee (launches, imports, presales, marketplace).
+            }
+          </div>
+        }
+      }
       @if (p.info.description) {
         <p class="description">{{ p.info.description }}</p>
       }

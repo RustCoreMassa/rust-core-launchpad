@@ -1,8 +1,9 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { Args, ArrayTypes } from '@massalabs/massa-web3';
-import { MassaReader } from '../massa/massa-reader';
+import { MassaReader, READ_FINAL } from '../massa/massa-reader';
 import { NetworkStore } from '../network/network-store';
 import {
+  HolderDiscount,
   LaunchpadConfig,
   Listing,
   MarketStats,
@@ -13,6 +14,7 @@ import {
   Tokenomics,
   UpgradeProposal,
   readConfig,
+  readHolderDiscount,
   readListing,
   readPresale,
   readPage,
@@ -32,6 +34,9 @@ export const REMOVAL_VERSION = '1.2.0';
 
 /** First Launchpad version whose listings keep the royalty in force when they were listed. */
 export const LISTING_ROYALTY_VERSION = '1.3.1';
+
+/** First Launchpad version that discounts the fees of holders of a chosen collection. */
+export const HOLDER_DISCOUNT_VERSION = '1.4.0';
 
 /** "1.10.0" ≥ "1.9.2": compares x.y.z numerically. */
 export function atLeast(version: string, minimum: string): boolean {
@@ -87,6 +92,19 @@ export class LaunchpadReader {
     return atLeast(await this.version(), TOKENOMICS_VERSION);
   }
 
+  /** The holder discount program; null when it's off or this Launchpad predates it. */
+  async holderDiscount(): Promise<HolderDiscount | null> {
+    if (!atLeast(await this.version(), HOLDER_DISCOUNT_VERSION)) return null;
+    const bytes = await this.read('holderDiscount');
+    return bytes.length ? readHolderDiscount(new Args(bytes)) : null;
+  }
+
+  /** The discount `address` gets on the platform fees now, in basis points (0 = none). */
+  async discountFor(address: string): Promise<number> {
+    const bytes = await this.read('getHolderDiscount', new Args().addString(address));
+    return Number(new Args(bytes).nextU16());
+  }
+
   /** Platform fees collected and not withdrawn yet, nanoMAS. */
   async collectedFees(): Promise<bigint> {
     return new Args(await this.read('fees')).nextU64();
@@ -106,7 +124,7 @@ export class LaunchpadReader {
 
   /** The Launchpad's MAS balance (fees, escrow, storage reserve), nanoMAS. */
   async balance(): Promise<bigint> {
-    const [entry] = await this.reader.provider().balanceOf([this.requireAddress()], true);
+    const [entry] = await this.reader.provider().balanceOf([this.requireAddress()], READ_FINAL);
     return entry?.balance ?? 0n;
   }
 
@@ -118,7 +136,9 @@ export class LaunchpadReader {
   /** Reads the symbol index (`s:<SYMBOL>:`): no entry = free, empty value = reserved. */
   async symbolStatus(symbol: string): Promise<SymbolStatus> {
     const key = new TextEncoder().encode(`s:${symbol}:`);
-    const [value] = await this.reader.provider().readStorage(this.requireAddress(), [key], true);
+    const [value] = await this.reader
+      .provider()
+      .readStorage(this.requireAddress(), [key], READ_FINAL);
     if (value == null) return 'free';
     return value.length ? 'taken' : 'reserved';
   }
@@ -189,7 +209,9 @@ export class LaunchpadReader {
       (version >>> 8) & 0xff,
       version & 0xff,
     ]);
-    const [value] = await this.reader.provider().readStorage(this.requireAddress(), [key], true);
+    const [value] = await this.reader
+      .provider()
+      .readStorage(this.requireAddress(), [key], READ_FINAL);
     if (!value) throw new Error(`Template ${kind} v${version} not found`);
     return value;
   }
@@ -319,7 +341,9 @@ export class LaunchpadReader {
    */
   async isRemoved(address: string): Promise<boolean> {
     const key = new TextEncoder().encode(`x:${address}:`);
-    const [value] = await this.reader.provider().readStorage(this.requireAddress(), [key], true);
+    const [value] = await this.reader
+      .provider()
+      .readStorage(this.requireAddress(), [key], READ_FINAL);
     return value != null;
   }
 

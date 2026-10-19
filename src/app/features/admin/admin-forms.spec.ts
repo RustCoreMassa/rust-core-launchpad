@@ -1,5 +1,14 @@
 import { LaunchpadConfig } from '../../core/launchpad/records';
-import { configFromForm, feeFormOf, isWasm, percentToBps, templateCoins } from './admin-forms';
+import {
+  configFromForm,
+  feeFormOf,
+  holderDiscountFromForm,
+  isWasm,
+  percentToBps,
+  templateCoins,
+} from './admin-forms';
+
+const COLLECTION = 'AS12qtY6289wWKz19dXn2GtPuKKAt8KnkG9XZAjotaWEVRjMhrN3e';
 
 const CONFIG: LaunchpadConfig = {
   tokenFee: 1_000_000_000n,
@@ -23,6 +32,22 @@ describe('admin forms', () => {
     expect(percentToBps('1.234')).toBeNull();
     expect(percentToBps('-1')).toBeNull();
     expect(percentToBps('')).toBeNull();
+  });
+
+  it('reads the holder discount form', () => {
+    expect(holderDiscountFromForm(` ${COLLECTION} `, '10')).toEqual({
+      collection: COLLECTION,
+      bps: 1_000,
+    });
+    expect(holderDiscountFromForm(COLLECTION, '50')).toEqual({
+      collection: COLLECTION,
+      bps: 5_000,
+    });
+    expect(holderDiscountFromForm('', 'anything')).toEqual({ collection: '', bps: 0 });
+    expect('error' in holderDiscountFromForm(COLLECTION, '50.01')).toBe(true);
+    expect('error' in holderDiscountFromForm(COLLECTION, '0')).toBe(true);
+    expect('error' in holderDiscountFromForm(COLLECTION, '')).toBe(true);
+    expect('error' in holderDiscountFromForm('AU1' + COLLECTION.slice(3), '10')).toBe(true);
   });
 
   it('round-trips a config through the form, keeping the pause flag', () => {

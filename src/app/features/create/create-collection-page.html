@@ -341,7 +341,12 @@
             <dl class="rows">
               <div>
                 <dt>Launchpad fee</dt>
-                <dd>{{ c.fee | mas }}</dd>
+                <dd>
+                  @if (c.discountBps) {
+                    <s class="full-fee">{{ c.fullFee | mas }}</s>
+                  }
+                  {{ c.fee | mas }}
+                </dd>
               </div>
               <div>
                 <dt>Contract storage (its code)</dt>
@@ -360,6 +365,7 @@
                 <dd>{{ c.total | mas }} + network fee</dd>
               </div>
             </dl>
+            <app-holder-discount-note />
           } @else {
             <span class="skeleton" style="width: 60%"></span>
           }

@@ -456,3 +456,22 @@ export class Tokenomics implements Serializable {
     return new Result(args.offset);
   }
 }
+
+/** Holders of at least one NFT of `collection` pay the platform fees less `bps` (v1.4.0). */
+export class HolderDiscount implements Serializable {
+  constructor(
+    public collection: string = '',
+    public bps: u16 = 0,
+  ) {}
+
+  serialize(): StaticArray<u8> {
+    return new Args().add(this.collection).add(this.bps).serialize();
+  }
+
+  deserialize(data: StaticArray<u8>, offset: i32): Result<i32> {
+    const args = new Args(data, offset);
+    this.collection = args.nextString().expect('collection is missing or invalid');
+    this.bps = args.nextU16().expect('bps is missing or invalid');
+    return new Result(args.offset);
+  }
+}

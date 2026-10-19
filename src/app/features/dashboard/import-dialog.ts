@@ -10,6 +10,8 @@ import {
 } from '@angular/core';
 import { Args } from '@massalabs/massa-web3';
 import { CollectionReader } from '../../core/launchpad/collection-reader';
+import { lessDiscount } from '../../core/launchpad/discount';
+import { HolderDiscountStore } from '../../core/launchpad/holder-discount';
 import { recordCost } from '../../core/launchpad/launch-cost';
 import { infoErrors } from '../../core/launchpad/launch-rules';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
@@ -26,6 +28,7 @@ import { Transactions, eventFields } from '../../core/launchpad/transactions';
 import { toUserMessage } from '../../core/utils/user-error';
 import { WalletStore } from '../../core/wallet/wallet-store';
 import { MasPipe } from '../../shared/pipes/units-pipe';
+import { HolderDiscountNote } from '../../shared/ui/holder-discount-note/holder-discount-note';
 import { InfoForm } from '../../shared/ui/info-form/info-form';
 import { royaltyBps } from '../create/collection-draft';
 
@@ -45,7 +48,7 @@ const ADDRESS = /^A[US][1-9A-HJ-NP-Za-km-z]{40,60}$/;
  */
 @Component({
   selector: 'app-import-dialog',
-  imports: [InfoForm, MasPipe],
+  imports: [InfoForm, MasPipe, HolderDiscountNote],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <dialog class="sheet" #dialog aria-labelledby="import-title">
@@ -123,9 +126,14 @@ const ADDRESS = /^A[US][1-9A-HJ-NP-Za-km-z]{40,60}$/;
             [(category)]="category"
           />
           <p class="hint">
-            Import fee {{ fee() | mas }} + storage (up to {{ margin | mas }}, the rest is refunded).
-            Imported contracts keep their name and symbol and show an "Imported" badge.
+            Import fee
+            @if (fee() !== fullFee()) {
+              <s class="full-fee">{{ fullFee() | mas }}</s>
+            }
+            {{ fee() | mas }} + storage (up to {{ margin | mas }}, the rest is refunded). Imported
+            contracts keep their name and symbol and show an "Imported" badge.
           </p>
+          <app-holder-discount-note />
           @if (error(); as message) {
             <div class="notice notice-error" role="alert">{{ message }}</div>
           }
@@ -158,6 +166,7 @@ export class ImportDialog {
   private readonly collections = inject(CollectionReader);
   private readonly transactions = inject(Transactions);
   private readonly wallet = inject(WalletStore);
+  private readonly discount = inject(HolderDiscountStore);
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
 
   readonly imported = output<Project>();
@@ -170,7 +179,9 @@ export class ImportDialog {
   protected readonly category = signal(0);
   protected readonly royalty = signal('5');
   protected readonly receiver = signal('');
-  protected readonly fee = signal(0n);
+  /** The import fee before any holder discount. */
+  protected readonly fullFee = signal(0n);
+  protected readonly fee = computed(() => lessDiscount(this.fullFee(), this.discount.bps()));
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly valid = computed(() => {
@@ -215,7 +226,8 @@ export class ImportDialog {
       const candidate = this.isToken()
         ? await this.tokenCandidate(address)
         : await this.collectionCandidate(address);
-      this.fee.set((await this.launchpad.config()).importFee);
+      void this.discount.refresh();
+      this.fullFee.set((await this.launchpad.config()).importFee);
       this.candidate.set(candidate);
     } catch (err) {
       this.error.set(toUserMessage(err));

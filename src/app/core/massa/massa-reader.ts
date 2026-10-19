@@ -6,6 +6,14 @@ import { fromUnits } from '../utils/token-amount';
 
 export const MAS_DECIMALS = 9;
 
+/**
+ * The `final` flag of every storage, bytecode and balance read: false = the candidate state, the
+ * one readSC runs on. It already holds what a transaction executed a moment ago; the final state
+ * lags ~45 s behind (measured on buildnet), and a contract launched meanwhile doesn't exist there
+ * ("Not found: Account …").
+ */
+export const READ_FINAL = false;
+
 /** Builds the public (read-only) JSON-RPC provider for a network. Replaced in tests. */
 export const PUBLIC_PROVIDER_FACTORY = new InjectionToken<(network: NetworkId) => PublicProvider>(
   'PUBLIC_PROVIDER_FACTORY',
@@ -36,9 +44,9 @@ export class MassaReader {
     return provider;
   }
 
-  /** Final MAS balance of an address, in MAS. */
+  /** MAS balance of an address, in MAS. */
   async masBalance(address: string, network: NetworkId = this.networks.network()): Promise<number> {
-    const [entry] = await this.provider(network).balanceOf([address], true);
+    const [entry] = await this.provider(network).balanceOf([address], READ_FINAL);
     return fromUnits(entry?.balance ?? 0n, MAS_DECIMALS);
   }
 }

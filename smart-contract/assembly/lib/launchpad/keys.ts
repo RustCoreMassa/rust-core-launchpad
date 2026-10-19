@@ -225,3 +225,9 @@ export function removedKey(address: string): StaticArray<u8> {
 /** RC-Token storage (rc-token.ts): whether it can mint, and up to what. */
 export const RC_TOKEN_MINTABLE_KEY = stringToBytes('MINTABLE');
 export const RC_TOKEN_MAX_SUPPLY_KEY = stringToBytes('MAX_SUPPLY');
+
+// ---- holder discount (v1.4.0) ------------------------------------------------------------
+/** HolderDiscount: the collection whose holders pay less, and by how much. */
+export const HOLDER_DISCOUNT_KEY = stringToBytes('hdc');
+/** Standard MRC721 balance of an address: 0x03 + address → u256 (sc-standards balanceKey). */
+export const MRC721_BALANCE_PREFIX: u8 = 0x03;

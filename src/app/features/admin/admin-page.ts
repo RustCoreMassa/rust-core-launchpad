@@ -12,6 +12,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Args } from '@massalabs/massa-web3';
 import { symbolError } from '../../core/launchpad/launch-rules';
 import {
+  HOLDER_DISCOUNT_VERSION,
   REMOVAL_VERSION,
   atLeast,
   LaunchpadReader,
@@ -20,6 +21,7 @@ import {
 import { timeLeft } from '../../core/launchpad/presale-state';
 import { ProjectStore } from '../../core/launchpad/project-store';
 import {
+  HolderDiscount,
   KIND_COLLECTION,
   KIND_TOKEN,
   LaunchpadConfig,
@@ -46,6 +48,7 @@ import {
   FeeForm,
   configFromForm,
   feeFormOf,
+  holderDiscountFromForm,
   isWasm,
   masText,
   templateCoins,
@@ -70,6 +73,8 @@ interface Status {
   balance: bigint;
   fees: bigint;
   config: LaunchpadConfig;
+  /** Null when off, or on a Launchpad before v1.4.0. */
+  holderDiscount: HolderDiscount | null;
   upgrade: UpgradeProposal | null;
   templates: TemplateState[];
 }
@@ -86,7 +91,7 @@ const TEMPLATE_LABELS = ['RC-Token', 'RC-Collection'];
 const MAX_RESULTS = 20;
 
 /**
- * The Launchpad admin's tools: pause, fees, fee withdrawal, verified / hidden, reserved
+ * The Launchpad admin's tools: pause, fees, holder discount, fee withdrawal, verified / hidden, reserved
  * symbols, templates, the upgrade timelock and the admin handover. The status (and a pending
  * upgrade) is public: anyone can open this page and see it, only the admin wallet can act.
  */
@@ -131,6 +136,21 @@ export class AdminPage {
     return 'errors' in result ? result.errors : {};
   });
   protected readonly feeInvalid = computed(() => Object.keys(this.feeErrors()).length > 0);
+
+  // ---- holder discount ----
+  /** setHolderDiscount exists from Launchpad v1.4.0. */
+  protected readonly discountSupported = computed(() =>
+    atLeast(this.status()?.version ?? '0.0.0', HOLDER_DISCOUNT_VERSION),
+  );
+  protected readonly discountCollection = signal('');
+  protected readonly discountPercent = signal('');
+  protected readonly discountForm = computed(() =>
+    holderDiscountFromForm(this.discountCollection(), this.discountPercent()),
+  );
+  protected readonly discountError = computed(() => {
+    const form = this.discountForm();
+    return 'error' in form ? form.error : null;
+  });
 
   // ---- fee withdrawal ----
   protected readonly withdrawTo = signal('');
@@ -291,6 +311,18 @@ export class AdminPage {
       ADMIN_COINS,
       'Fees saved.',
     );
+  }
+
+  protected saveDiscount(): Promise<void> {
+    const form = this.discountForm();
+    if ('error' in form) return Promise.resolve();
+    return this.call(
+      'discount',
+      'setHolderDiscount',
+      new Args().addString(form.collection).addU16(BigInt(form.bps)),
+      ADMIN_COINS,
+      form.bps ? 'Holder discount saved.' : 'Holder discount turned off.',
+    ).then(() => undefined);
   }
 
   protected withdrawAll(): void {
@@ -502,6 +534,7 @@ export class AdminPage {
       const balance = await this.launchpad.balance();
       const fees = await this.launchpad.collectedFees();
       const config = await this.launchpad.config();
+      const holderDiscount = await this.launchpad.holderDiscount();
       const upgrade = await this.launchpad.pendingUpgrade();
       const templates: TemplateState[] = [];
       for (const kind of [KIND_TOKEN, KIND_COLLECTION] as ProjectKind[]) {
@@ -517,8 +550,20 @@ export class AdminPage {
         });
       }
       if (run !== this.run) return;
-      this.status.set({ version, admin, pendingAdmin, balance, fees, config, upgrade, templates });
+      this.status.set({
+        version,
+        admin,
+        pendingAdmin,
+        balance,
+        fees,
+        config,
+        holderDiscount,
+        upgrade,
+        templates,
+      });
       this.feeForm.set(feeFormOf(config));
+      this.discountCollection.set(holderDiscount?.collection ?? '');
+      this.discountPercent.set(holderDiscount ? String(holderDiscount.bps / 100) : '10');
       if (!this.withdrawTo() && this.wallet.address()) this.withdrawTo.set(this.wallet.address()!);
       this.now.set(Date.now());
     } catch (err) {

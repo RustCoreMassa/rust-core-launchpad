@@ -511,6 +511,12 @@ textarea.input {
   overflow-wrap: anywhere;
 }
 
+/* A fee before the holder discount, struck through next to the discounted one. */
+.full-fee {
+  margin-right: 6px;
+  color: var(--gray-500);
+}
+
 .sheet-body {
   display: grid;
   gap: 16px;

@@ -27,6 +27,7 @@ import {
 import { KIND_COLLECTION, KIND_TOKEN, STD_OWNER_KEY } from '../lib/launchpad/keys';
 import {
   Config,
+  HolderDiscount,
   Listing,
   PRESALE_SUCCESS,
   Presale,
@@ -196,6 +197,10 @@ describe('app ↔ contract encoding', () => {
       u64(50_000_000),
     );
     log<string>('SALE_BYTES ' + sale.serialize().toString());
+  });
+
+  test('logs a HolderDiscount record for the app to decode (records.spec.ts)', () => {
+    log<string>('HOLDER_DISCOUNT_BYTES ' + new HolderDiscount(ALICE, 1_000).serialize().toString());
   });
 
   test('createToken and setTokenomics decode the app’s tokenomics', () => {
