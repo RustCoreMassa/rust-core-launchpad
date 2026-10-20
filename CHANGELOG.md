@@ -8,6 +8,13 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
+### Added
+
+- RustCore Wallet in the Connect dialog (its browser extension, through wallet-provider's new
+  RustCore provider, not yet in wallet-provider 3.3.1: until that update it shows its install
+  link). Disconnecting the site in the wallet disconnects the app too; an account without a name
+  shows its short address in the wallet menu.
+
 ## [1.4.0] — 2026-10-19
 
 Works with the Launchpad contract **v1.4.0** (new: the holder discount). On older contracts

@@ -2,7 +2,7 @@ import { InjectionToken } from '@angular/core';
 import type { Wallet } from '@massalabs/wallet-provider';
 
 /** wallet-provider's WalletName values. */
-export type WalletId = 'BEARBY' | 'MASSA WALLET' | 'METAMASK';
+export type WalletId = 'RUSTCORE' | 'BEARBY' | 'MASSA WALLET' | 'METAMASK';
 
 export interface WalletOption {
   readonly id: WalletId;
@@ -10,11 +10,9 @@ export interface WalletOption {
   readonly installUrl: string;
 }
 
-/**
- * The wallets @massalabs/wallet-provider 3.3 can talk to. RustCore Wallet joins this list once
- * its provider is added to wallet-provider (planned in the wallet project).
- */
+/** The wallets @massalabs/wallet-provider can talk to. */
 export const WALLET_OPTIONS: readonly WalletOption[] = [
+  { id: 'RUSTCORE', label: 'RustCore Wallet', installUrl: 'https://wrustcore.massa.network' },
   { id: 'BEARBY', label: 'Bearby', installUrl: 'https://bearby.io' },
   { id: 'MASSA WALLET', label: 'Massa Station', installUrl: 'https://station.massa.net/' },
   {

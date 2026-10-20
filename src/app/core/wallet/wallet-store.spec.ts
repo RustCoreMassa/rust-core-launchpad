@@ -18,12 +18,17 @@ interface FakeWalletOptions {
   chainId?: bigint;
   /** wallet-provider 3.3 throws this for Massa Station and MetaMask. */
   noAccountListener?: boolean;
+  /** Only RustCore Wallet tells when the user disconnects the site in the wallet. */
+  disconnectListener?: boolean;
+  /** RustCore Wallet names its accounts by their address. */
+  nameIsAddress?: boolean;
 }
 
 /** Just what WalletStore uses of wallet-provider's Wallet. */
 function fakeWallet(id: WalletId, options: FakeWalletOptions = {}) {
   let accountListener: ((address: string) => void) | null = null;
   let networkListener: ((network: Network) => void) | null = null;
+  let disconnectListener: (() => void) | null = null;
   const accounts = options.accounts ?? [ALICE, BOB];
   const wallet = {
     name: () => id,
@@ -31,7 +36,13 @@ function fakeWallet(id: WalletId, options: FakeWalletOptions = {}) {
     connected: vi.fn(async () => options.trusted ?? false),
     disconnect: vi.fn(async () => true),
     accounts: vi.fn(async () =>
-      accounts.map((address) => ({ address, accountName: `name-${address}` }) as Provider),
+      accounts.map(
+        (address) =>
+          ({
+            address,
+            accountName: options.nameIsAddress ? address : `name-${address}`,
+          }) as Provider,
+      ),
     ),
     networkInfos: vi.fn(async () => ({
       name: 'buildnet',
@@ -49,6 +60,12 @@ function fakeWallet(id: WalletId, options: FakeWalletOptions = {}) {
       networkListener = cb;
       return { unsubscribe: () => (networkListener = null) };
     },
+    ...(options.disconnectListener && {
+      listenDisconnect: (cb: () => void) => {
+        disconnectListener = cb;
+        return { unsubscribe: () => (disconnectListener = null) };
+      },
+    }),
   };
   return {
     wallet: wallet as unknown as Wallet,
@@ -56,6 +73,7 @@ function fakeWallet(id: WalletId, options: FakeWalletOptions = {}) {
     switchAccount: (address: string) => accountListener?.(address),
     switchNetwork: (chainId: bigint) =>
       networkListener?.({ name: 'x', chainId, minimalFee: 0n } as Network),
+    disconnectInWallet: () => disconnectListener?.(),
   };
 }
 
@@ -87,6 +105,7 @@ describe('WalletStore', () => {
     expect(wallets.choices()).toBeNull();
     await wallets.detect();
     expect(wallets.choices()?.map((c) => [c.id, c.installed])).toEqual([
+      ['RUSTCORE', false],
       ['BEARBY', true],
       ['MASSA WALLET', false],
       ['METAMASK', false],
@@ -130,6 +149,21 @@ describe('WalletStore', () => {
     fake.switchAccount(BOB);
     expect(wallets.address()).toBe(BOB);
     expect(wallets.balance()).toBeNull(); // re-read for the new account, never the old value
+  });
+
+  it('disconnects when the site is disconnected in the wallet', async () => {
+    const fake = fakeWallet('RUSTCORE', {
+      accounts: [ALICE],
+      disconnectListener: true,
+      nameIsAddress: true,
+    });
+    const { wallets } = setup([fake.wallet]);
+    expect(await wallets.connect('RUSTCORE')).toBe(true);
+    expect(wallets.walletLabel()).toBe('RustCore Wallet');
+    expect(wallets.accounts()).toEqual([{ address: ALICE, name: '' }]);
+    fake.disconnectInWallet();
+    await vi.waitFor(() => expect(wallets.connected()).toBe(false));
+    expect(wallets.signer()).toBeNull();
   });
 
   it('connects to wallets that cannot report account switches', async () => {

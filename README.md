@@ -63,10 +63,9 @@ your money. RustCore Launchpad is built on four principles:
 
 ## Getting started
 
-1. **Install a Massa wallet**: [Bearby](https://bearby.io),
-   [Massa Station](https://station.massa.net/) or MetaMask with the
-   [Massa Snap](https://snaps.metamask.io/snap/npm/massalabs/metamask-snap/). RustCore Wallet
-   joins the list once its browser extension can connect to dApps.
+1. **Install a Massa wallet**: [RustCore Wallet](https://wrustcore.massa.network),
+   [Bearby](https://bearby.io), [Massa Station](https://station.massa.net/) or MetaMask with the
+   [Massa Snap](https://snaps.metamask.io/snap/npm/massalabs/metamask-snap/).
 2. **Have some MAS** on Massa mainnet for the fees and storage, and keep your wallet on
    mainnet. (Developers can run the app locally against buildnet, the test network — see
    [CONTRIBUTING.md](CONTRIBUTING.md).)
@@ -213,7 +212,7 @@ the links. Pin your files so they stay online.
 - [ ] Token payments on the marketplace
 - [ ] An indexer for very large collections
 - [ ] Independent security audit
-- [ ] RustCore Wallet connection
+- [x] RustCore Wallet connection
 
 ## Community
 
