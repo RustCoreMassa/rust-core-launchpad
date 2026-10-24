@@ -13,6 +13,8 @@ import {
 import { DatePipe } from '@angular/common';
 import { Args } from '@massalabs/massa-web3';
 import { CollectionReader } from '../../core/launchpad/collection-reader';
+import { lessDiscountBps } from '../../core/launchpad/discount';
+import { HolderDiscountStore } from '../../core/launchpad/holder-discount';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
 import { listingCanRevive } from '../../core/launchpad/listing-state';
 import { APPROVE_COINS, LIST_COINS, buyCoins, saleSplit } from '../../core/launchpad/market-cost';
@@ -23,6 +25,7 @@ import { WalletStore } from '../../core/wallet/wallet-store';
 import { ConnectWalletDialog } from '../../layout/connect-wallet-dialog/connect-wallet-dialog';
 import { ShortAddressPipe } from '../../shared/pipes/short-address-pipe';
 import { MasPipe } from '../../shared/pipes/units-pipe';
+import { HolderDiscountNote } from '../../shared/ui/holder-discount-note/holder-discount-note';
 import { priceNano } from '../create/collection-draft';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -38,7 +41,7 @@ type Busy = 'approve' | 'list' | 'price' | 'cancel' | 'buy' | null;
 /** Buy, list, reprice or cancel one NFT. No custody. */
 @Component({
   selector: 'app-market-panel',
-  imports: [DatePipe, MasPipe, ShortAddressPipe, ConnectWalletDialog],
+  imports: [DatePipe, MasPipe, ShortAddressPipe, ConnectWalletDialog, HolderDiscountNote],
   templateUrl: './market-panel.html',
   styleUrl: './market-panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,6 +50,7 @@ export class MarketPanel {
   private readonly launchpad = inject(LaunchpadReader);
   private readonly collections = inject(CollectionReader);
   private readonly transactions = inject(Transactions);
+  private readonly discount = inject(HolderDiscountStore);
   protected readonly wallet = inject(WalletStore);
 
   readonly collection = input.required<Project>();
@@ -107,8 +111,10 @@ export class MarketPanel {
   });
   protected readonly preview = computed(() => {
     const price = this.price();
-    const feeBps = this.marketFeeBps();
-    if (price === null || price <= 0n || feeBps === null) return null;
+    const fullFeeBps = this.marketFeeBps();
+    if (price === null || price <= 0n || fullFeeBps === null) return null;
+    // The seller's holder discount, fixed in the listing like the fee.
+    const feeBps = lessDiscountBps(fullFeeBps, this.discount.bps());
     const split = saleSplit(price, this.collection().royaltyBps, feeBps);
     return { ...split, feePercent: feeBps / 100 };
   });

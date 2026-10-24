@@ -8,6 +8,7 @@ import {
   hex,
   PRESALE_SUCCESS,
   readConfig,
+  readHolderDiscount,
   readListing,
   readPresale,
   readSale,
@@ -112,6 +113,13 @@ const CONTRACT_SALE_BYTES = new Uint8Array([
   0, 0, 160, 70, 46, 200, 153, 1, 0, 0, 128, 240, 250, 2, 0, 0, 0, 0,
 ]);
 
+/** A HolderDiscount record serialized by the contract (cross-check.spec.ts). */
+const CONTRACT_HOLDER_DISCOUNT_BYTES = new Uint8Array([
+  51, 0, 0, 0, 65, 85, 49, 50, 66, 113, 90, 69, 81, 54, 115, 66, 121, 104, 82, 76, 121, 69, 117,
+  102, 48, 89, 98, 81, 109, 99, 70, 50, 80, 115, 68, 100, 107, 78, 78, 71, 49, 97, 107, 66, 74, 117,
+  57, 88, 99, 106, 90, 65, 49, 101, 56, 232, 3,
+]);
+
 /** A Tokenomics record stored by the contract from the app's createToken args (cross-check). */
 const CONTRACT_TOKENOMICS_BYTES = new Uint8Array([
   228, 0, 0, 0, 7, 0, 0, 0, 69, 99, 104, 105, 112, 196, 131, 150, 134, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -140,6 +148,13 @@ describe('Launchpad records', () => {
         { purpose: 'Community', amount: 100_020n, description: '', holder: '' },
       ],
       updatedAt: 1791531479036,
+    });
+  });
+
+  it('decodes a holder discount serialized by the contract', () => {
+    expect(readHolderDiscount(new Args(CONTRACT_HOLDER_DISCOUNT_BYTES))).toEqual({
+      collection: 'AU12BqZEQ6sByhRLyEuf0YbQmcF2PsDdkNNG1akBJu9XcjZA1e8',
+      bps: 1_000,
     });
   });
 

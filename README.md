@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="Version 1.3.2" src="https://img.shields.io/badge/version-1.3.2-brightgreen" />
+  <img alt="Version 1.4.0" src="https://img.shields.io/badge/version-1.4.0-brightgreen" />
   <img alt="Network: Massa" src="https://img.shields.io/badge/network-Massa-red" />
   <img alt="License: FSL-1.1-ALv2" src="https://img.shields.io/badge/license-FSL--1.1--ALv2-blue" />
 </p>
@@ -42,10 +42,11 @@ your money. RustCore Launchpad is built on four principles:
   The Launchpad's own code can only change after a **72-hour public delay**, and its admin can
   never touch presale funds — only the fees collected.
 
-> **Version 1.3.2** ([what's new](CHANGELOG.md)). The Launchpad contract **v1.3.1** is live
+> **Version 1.4.0** ([what's new](CHANGELOG.md)). The Launchpad contract **v1.3.1** is live
 > on Massa **mainnet** at `AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP`, upgraded in
-> place from v1.0.0 on 2026-10-17 after the 72-hour public delay. It has not had an independent
-> security audit yet: start with small amounts.
+> place from v1.0.0 on 2026-10-17 after the 72-hour public delay; v1.4.0 (holder discount)
+> follows the same way. It has not had an independent security audit yet: start with small
+> amounts.
 
 ## What you can do
 
@@ -62,10 +63,9 @@ your money. RustCore Launchpad is built on four principles:
 
 ## Getting started
 
-1. **Install a Massa wallet**: [Bearby](https://bearby.io),
-   [Massa Station](https://station.massa.net/) or MetaMask with the
-   [Massa Snap](https://snaps.metamask.io/snap/npm/massalabs/metamask-snap/). RustCore Wallet
-   joins the list once its browser extension can connect to dApps.
+1. **Install a Massa wallet**: [RustCore Wallet](https://wrustcore.massa.network),
+   [Bearby](https://bearby.io), [Massa Station](https://station.massa.net/) or MetaMask with the
+   [Massa Snap](https://snaps.metamask.io/snap/npm/massalabs/metamask-snap/).
 2. **Have some MAS** on Massa mainnet for the fees and storage, and keep your wallet on
    mainnet. (Developers can run the app locally against buildnet, the test network — see
    [CONTRIBUTING.md](CONTRIBUTING.md).)
@@ -98,6 +98,14 @@ On top of the fee, a launch pays the storage of its new contract (about 4–5 MA
 live in the Launchpad contract (its `config`, readable by anyone) and may change; each
 operation shows its cost before you sign, and a change never reaches presales or listings
 already created.
+
+**Holder discount** (Launchpad v1.4.0): whoever holds at least one NFT of the RustCore
+collection, **Core Keepers** (`AS125HSzXL9sphoniiqezuYKX3mGNuuS19yLQKvaJUGyEkfALpVTB`), when
+they pay gets **10% off** each fee above — the presale and marketplace fees are fixed with the
+discount when the presale or the listing is created. Storage and deposits are never
+discounted. The collection and the percentage are in the contract (`holderDiscount`, readable
+by anyone; the admin can set up to 50%), and the money from the collection supports
+the Launchpad's development.
 
 ## Your security & privacy
 
@@ -200,11 +208,12 @@ the links. Pin your files so they stay online.
 - [x] Tokenomics on token pages: the split the owner declares, as a chart, with live balances (v1.2.0)
 - [x] Fixes from the internal security audit: RC-Collection v2, royalty fixed in listings,
       presale rate cap, warnings on imports and inactive listings (v1.3.1)
+- [ ] RustCore NFT collection: 10% off every Launchpad fee for its holders (v1.4.0)
 - [ ] Presale extras: whitelist, vesting, liquidity on Dusa
 - [ ] Token payments on the marketplace
 - [ ] An indexer for very large collections
 - [ ] Independent security audit
-- [ ] RustCore Wallet connection
+- [x] RustCore Wallet connection
 
 ## Community
 

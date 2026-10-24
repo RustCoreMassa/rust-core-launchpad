@@ -195,7 +195,12 @@
             </div>
             <div>
               <dt>Presale fee (on the MAS raised, at withdrawal)</dt>
-              <dd>{{ feeBps() / 100 }}%</dd>
+              <dd>
+                @if (feeBps() !== fullFeeBps()) {
+                  <s class="full-fee">{{ fullFeeBps() / 100 }}%</s>
+                }
+                {{ feeBps() / 100 }}%
+              </dd>
             </div>
             <div>
               <dt>If the soft cap is reached</dt>
@@ -206,6 +211,7 @@
               <dd>contributors are refunded; all tokens come back</dd>
             </div>
           </dl>
+          <app-holder-discount-note />
           @if (!enoughTokens()) {
             <div class="notice notice-error">
               You don't hold enough {{ p.symbol }} for this hard cap.

@@ -1,7 +1,7 @@
 // Marketplace. No custody: the NFT stays with the seller, who approves the Launchpad for it;
 // `buy` moves it to the buyer and pays the seller and the creator's royalty in the same call.
-// The marketplace fee (config.marketFeeBps, fixed in each listing when it's created) stays in
-// the Launchpad as collected fees.
+// The marketplace fee (config.marketFeeBps, less the seller's holder discount, fixed in each
+// listing when it's created) stays in the Launchpad as collected fees.
 //
 // Checks read the collection's standard MRC721 storage directly (owner, approvals), so no
 // foreign code runs except the single transferFrom in `buy` — done after this contract's own
@@ -48,6 +48,7 @@ import {
   statsKey,
   u64FromBE,
 } from './keys';
+import { _feeBpsFor } from './discount';
 import { Listing, MarketStats, Project, Sale } from './records';
 import { MAX_PAGE } from './rules';
 import { settle } from './settlement';
@@ -108,7 +109,7 @@ export function list(binaryArgs: StaticArray<u8>): void {
     price,
     now,
     expiresAt,
-    config.marketFeeBps,
+    _feeBpsFor(config.marketFeeBps, seller),
     project.royaltyBps,
     project.royaltyReceiver,
   );

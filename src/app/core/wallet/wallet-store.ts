@@ -179,9 +179,10 @@ export class WalletStore {
   }
 
   /**
-   * Follows account and network switches made in the wallet. wallet-provider 3.3 throws "not yet
-   * implemented" for account changes in Massa Station and MetaMask: those wallets still work,
-   * the account is then picked in the app's wallet menu.
+   * Follows account and network switches made in the wallet, and the site being disconnected
+   * there (RustCore Wallet only). wallet-provider 3.3 throws "not yet implemented" for account
+   * changes in Massa Station and MetaMask: those wallets still work, the account is then picked
+   * in the app's wallet menu.
    */
   private listen(wallet: Wallet, attempt: number): void {
     const accounts = subscribe(() =>
@@ -200,7 +201,12 @@ export class WalletStore {
         if (attempt === this.attempt) this._walletChainId.set(info.chainId);
       }),
     );
-    this.listeners = [accounts, network].filter((l) => !!l);
+    const disconnect = subscribe(() =>
+      (wallet as Partial<DisconnectListener>).listenDisconnect?.(() => {
+        if (attempt === this.attempt) void this.disconnect();
+      }),
+    );
+    this.listeners = [accounts, network, disconnect].filter((l) => !!l);
   }
 
   private stopListening(): void {
@@ -224,6 +230,11 @@ export class WalletStore {
 
 type Subscription = { unsubscribe(): void } | undefined;
 
+/** RustCoreWallet's extra: the user disconnected this site in the wallet. */
+interface DisconnectListener {
+  listenDisconnect(callback: () => void): { unsubscribe(): void };
+}
+
 function subscribe(listen: () => Subscription): Subscription {
   try {
     return listen();
@@ -232,8 +243,13 @@ function subscribe(listen: () => Subscription): Subscription {
   }
 }
 
+/**
+ * RustCore Wallet doesn't share account names: its accounts are named by their address. The
+ * wallet menu then shows the short address alone.
+ */
 function toAccount(provider: Provider): WalletAccount {
-  return { address: provider.address, name: provider.accountName };
+  const name = provider.accountName === provider.address ? '' : provider.accountName;
+  return { address: provider.address, name };
 }
 
 function labelOf(id: WalletId): string {

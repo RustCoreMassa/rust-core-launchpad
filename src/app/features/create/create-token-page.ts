@@ -9,7 +9,8 @@ import {
   viewChild,
 } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { LaunchCost, launchCost } from '../../core/launchpad/launch-cost';
+import { HolderDiscountStore } from '../../core/launchpad/holder-discount';
+import { launchCost } from '../../core/launchpad/launch-cost';
 import { parseSupply } from '../../core/launchpad/launch-rules';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
 import { KEEP_ONLY_ORIGINAL } from '../../core/launchpad/original-code';
@@ -32,6 +33,7 @@ import { toUserMessage } from '../../core/utils/user-error';
 import { WalletStore } from '../../core/wallet/wallet-store';
 import { ConnectWalletDialog } from '../../layout/connect-wallet-dialog/connect-wallet-dialog';
 import { MasPipe } from '../../shared/pipes/units-pipe';
+import { HolderDiscountNote } from '../../shared/ui/holder-discount-note/holder-discount-note';
 import { InfoForm } from '../../shared/ui/info-form/info-form';
 import { ProjectLogo } from '../../shared/ui/project-logo/project-logo';
 import { TokenomicsChart } from '../../shared/ui/tokenomics-chart/tokenomics-chart';
@@ -56,6 +58,7 @@ type SymbolCheck = 'idle' | 'checking' | 'free' | 'taken' | 'error';
     InfoForm,
     ProjectLogo,
     MasPipe,
+    HolderDiscountNote,
     ConnectWalletDialog,
     TokenomicsChart,
     TokenomicsEditor,
@@ -68,6 +71,7 @@ export class CreateTokenPage {
   protected readonly launchpad = inject(LaunchpadReader);
   protected readonly wallet = inject(WalletStore);
   protected readonly network = inject(NetworkStore);
+  private readonly discount = inject(HolderDiscountStore);
   private readonly transactions = inject(Transactions);
   private readonly store = inject(ProjectStore);
   private readonly router = inject(Router);
@@ -83,7 +87,12 @@ export class CreateTokenPage {
   protected readonly symbolCheck = signal<SymbolCheck>('idle');
   protected readonly mutableAccepted = signal(false);
 
-  protected readonly cost = signal<LaunchCost | null>(null);
+  /** The fee before any holder discount, the deposit and the template's size, once read. */
+  private readonly costBase = signal<{ fee: bigint; deposit: bigint; bytes: number } | null>(null);
+  protected readonly cost = computed(() => {
+    const base = this.costBase();
+    return base && launchCost(base.fee, base.deposit, base.bytes, this.discount.bps());
+  });
   protected readonly paused = signal(false);
   protected readonly costError = signal<string | null>(null);
   protected readonly launching = signal(false);
@@ -151,7 +160,7 @@ export class CreateTokenPage {
     effect(() => {
       this.network.network();
       untracked(() => {
-        this.cost.set(null);
+        this.costBase.set(null);
         this.symbolCheck.set('idle');
         void this.checkTokenomics();
       });
@@ -267,7 +276,8 @@ export class CreateTokenPage {
   }
 
   private async loadCost(): Promise<void> {
-    if (this.cost()) return;
+    void this.discount.refresh();
+    if (this.costBase()) return;
     this.costError.set(null);
     try {
       const config = await this.launchpad.config();
@@ -276,7 +286,11 @@ export class CreateTokenPage {
       assertKnownTemplate(KIND_TOKEN, template.hash);
       const code = await this.launchpad.templateCode(KIND_TOKEN, template.version);
       this.paused.set(config.paused);
-      this.cost.set(launchCost(config.tokenFee, config.deployDeposit, code.length));
+      this.costBase.set({
+        fee: config.tokenFee,
+        deposit: config.deployDeposit,
+        bytes: code.length,
+      });
     } catch (err) {
       this.costError.set(toUserMessage(err));
     }

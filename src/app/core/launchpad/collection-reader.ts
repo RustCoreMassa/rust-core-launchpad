@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Args, U256 } from '@massalabs/massa-web3';
-import { MassaReader } from '../massa/massa-reader';
+import { MassaReader, READ_FINAL } from '../massa/massa-reader';
 import { Listing } from './records';
 
 /** RC-Collection's mintInfo(); absent on imported collections. */
@@ -77,7 +77,9 @@ export class CollectionReader {
   /** Every existing NFT of the collection with its holder, lowest id first. */
   async items(address: string): Promise<NftItem[]> {
     const keys = (
-      await this.reader.provider().getStorageKeys(address, new Uint8Array([OWNER_PREFIX]), true)
+      await this.reader
+        .provider()
+        .getStorageKeys(address, new Uint8Array([OWNER_PREFIX]), READ_FINAL)
     ).filter((key) => key.length === OWNER_KEY_LENGTH && key[0] === OWNER_PREFIX);
     const items: NftItem[] = [];
     for (let i = 0; i < keys.length; i += BATCH) {
@@ -94,7 +96,7 @@ export class CollectionReader {
   /** Ids `holder` owns, from the Enumerable index (RC-Collection and other enumerable ones). */
   async ownedBy(address: string, holder: string): Promise<bigint[]> {
     const prefix = new TextEncoder().encode(OWNED_TOKENS + holder);
-    const keys = await this.reader.provider().getStorageKeys(address, prefix, true);
+    const keys = await this.reader.provider().getStorageKeys(address, prefix, READ_FINAL);
     return keys
       .filter((key) => key.length === prefix.length + 32)
       .map((key) => U256.fromBytes(key.slice(prefix.length)))
@@ -173,7 +175,7 @@ export class CollectionReader {
   }
 
   private async storage(address: string, keys: Uint8Array[]): Promise<(Uint8Array | null)[]> {
-    return this.reader.provider().readStorage(address, keys, true);
+    return this.reader.provider().readStorage(address, keys, READ_FINAL);
   }
 
   private async call(address: string, func: string, parameter = new Args()): Promise<Uint8Array> {

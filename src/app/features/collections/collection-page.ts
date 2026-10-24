@@ -13,6 +13,7 @@ import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { Args } from '@massalabs/massa-web3';
 import { CollectionReader, CollectionState, NftItem } from '../../core/launchpad/collection-reader';
+import { HolderDiscountStore } from '../../core/launchpad/holder-discount';
 import { LaunchpadReader } from '../../core/launchpad/launchpad-reader';
 import { publicMintCoins } from '../../core/launchpad/mint-cost';
 import { publicMintSafety } from '../../core/launchpad/templates';
@@ -71,6 +72,7 @@ export class CollectionPage {
   private readonly transactions = inject(Transactions);
   protected readonly networks = inject(NetworkStore);
   protected readonly wallet = inject(WalletStore);
+  protected readonly discount = inject(HolderDiscountStore);
 
   /** Route parameter. */
   readonly address = input.required<string>();

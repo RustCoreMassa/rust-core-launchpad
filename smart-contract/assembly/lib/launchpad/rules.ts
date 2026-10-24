@@ -17,6 +17,8 @@ export const MAX_ROYALTY_BPS: u16 = 1_000; // 10 %
 export const MAX_PRESALE_FEE_BPS: u16 = 1_000; // 10 %
 /** Cap on the marketplace fee the admin may set (fixed in each listing when it's created). */
 export const MAX_MARKET_FEE_BPS: u16 = 500; // 5 %
+/** Cap on the holder discount the admin may set. */
+export const MAX_HOLDER_DISCOUNT_BPS: u16 = 5_000; // 50 %
 export const MAX_PAGE: u32 = 50;
 /** Tokenomics: a safety limit, so one call can't fill the storage or run out of gas. */
 export const MAX_ALLOCATIONS = 30;

@@ -1,7 +1,8 @@
 // RustCore Launchpad — the platform's only contract.
 // Factory: deploys RC-Token / RC-Collection from versioned templates; the caller becomes the owner.
 // Registry: records, indexes, editable presentation, imports, declared tokenomics.
-// Admin: fees, templates, verification, hiding and removal, pause, upgrade timelock.
+// Admin: fees, holder discount, templates, verification, hiding and removal, pause, upgrade
+// timelock.
 // Marketplace and Presale live in lib/launchpad/ and are re-exported below.
 //
 // Every write settles its own cost (lib/launchpad/settlement.ts): the caller's MAS pay the
@@ -97,9 +98,10 @@ import {
   _onlyProjectOwner,
   _ownerOf,
 } from '../lib/launchpad/common';
+import { _feeFor } from '../lib/launchpad/discount';
 import { _storeTokenomics } from '../lib/launchpad/tokenomics';
 
-export const VERSION = '1.3.1';
+export const VERSION = '1.4.0';
 /** Delay between proposing and executing an upgrade of this contract: 72 hours. */
 export const UPGRADE_DELAY_MS: u64 = 72 * 60 * 60 * 1000;
 export const MAX_DECIMALS: u8 = 18;
@@ -206,7 +208,7 @@ export function createToken(binaryArgs: StaticArray<u8>): void {
   Storage.set(symbolKey(symbol), projectRef(KIND_TOKEN, project.id));
   generateEvent(createEvent('TOKEN_CREATED', [project.id.toString(), project.address, creator]));
   if (tokenomics.length > 0) _storeTokenomics(project.id, tokenomics);
-  settle(before, config.tokenFee);
+  settle(before, _feeFor(config.tokenFee, creator));
 }
 
 /**
@@ -287,7 +289,7 @@ export function createCollection(binaryArgs: StaticArray<u8>): void {
   generateEvent(
     createEvent('COLLECTION_CREATED', [project.id.toString(), project.address, creator]),
   );
-  settle(before, config.collectionFee);
+  settle(before, _feeFor(config.collectionFee, creator));
 }
 
 // ==================================================== //
@@ -341,7 +343,7 @@ export function importToken(binaryArgs: StaticArray<u8>): void {
   project.info = info;
   _record(project);
   generateEvent(createEvent('TOKEN_IMPORTED', [project.id.toString(), address, project.creator]));
-  settle(before, config.importFee);
+  settle(before, _feeFor(config.importFee, project.creator));
 }
 
 /**
@@ -396,7 +398,7 @@ export function importCollection(binaryArgs: StaticArray<u8>): void {
   project.info = info;
   _record(project);
   generateEvent(createEvent('COLLECTION_IMPORTED', [project.id.toString(), address, creator]));
-  settle(before, config.importFee);
+  settle(before, _feeFor(config.importFee, creator));
 }
 
 // ==================================================== //
@@ -682,6 +684,9 @@ export {
   getContribution,
   getContributionsOf,
 } from '../lib/launchpad/presale';
+
+// Holder discount (v1.4.0), in lib/launchpad/discount.ts.
+export { setHolderDiscount, holderDiscount, getHolderDiscount } from '../lib/launchpad/discount';
 
 // Tokenomics (phase 8), in lib/launchpad/tokenomics.ts.
 export { setTokenomics, getTokenomics } from '../lib/launchpad/tokenomics';

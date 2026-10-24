@@ -23,8 +23,10 @@
 }
 
 .banner {
+  // Edge to edge over the card's 24px padding (the global img max-width would cut it short).
   width: calc(100% + 48px);
-  height: 180px;
+  max-width: none;
+  height: 260px;
   margin: 0 -24px;
   object-fit: cover;
 }
@@ -103,5 +105,11 @@ h2 {
 @media (max-width: 860px) {
   .columns {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .banner {
+    height: 160px;
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { Args, JsonRpcPublicProvider } from '@massalabs/massa-web3';
-import { MassaReader } from '../massa/massa-reader';
+import { MassaReader, READ_FINAL } from '../massa/massa-reader';
 
 /** What an RC-Token reports through templateInfo(); absent on imported tokens. */
 export interface TokenTemplateInfo {
@@ -62,7 +62,7 @@ export class TokenReader {
   /** sha256 (hex) of the contract's current bytecode, to compare with the original. */
   async codeHash(address: string): Promise<string> {
     const provider = this.reader.provider() as JsonRpcPublicProvider;
-    const code = await provider.client.getAddressesBytecode({ address, is_final: true });
+    const code = await provider.client.getAddressesBytecode({ address, is_final: READ_FINAL });
     const digest = await crypto.subtle.digest('SHA-256', code as Uint8Array<ArrayBuffer>);
     return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
   }

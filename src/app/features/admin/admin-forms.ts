@@ -7,6 +7,8 @@ import { priceNano } from '../create/collection-draft';
 export const MAX_PRESALE_FEE_BPS = 1_000;
 /** The contract's cap on the marketplace fee (rules.ts MAX_MARKET_FEE_BPS). */
 export const MAX_MARKET_FEE_BPS = 500;
+/** The contract's cap on the holder discount (rules.ts MAX_HOLDER_DISCOUNT_BPS). */
+export const MAX_HOLDER_DISCOUNT_BPS = 5_000;
 
 /**
  * Sent with small admin writes (a record re-written, a flag); whatever isn't used comes back
@@ -80,6 +82,22 @@ export function configFromForm(
   };
 }
 
+/**
+ * setHolderDiscount's arguments from the form: an empty collection turns the discount off,
+ * otherwise a contract address and 0.01-50 %.
+ */
+export function holderDiscountFromForm(
+  collection: string,
+  percent: string,
+): { collection: string; bps: number } | { error: string } {
+  const address = collection.trim();
+  if (!address) return { collection: '', bps: 0 };
+  if (!CONTRACT.test(address)) return { error: 'A collection address (it starts with AS).' };
+  const bps = percentToBps(percent, MAX_HOLDER_DISCOUNT_BPS);
+  if (!bps) return { error: 'A discount from 0.01 to 50%.' };
+  return { collection: address, bps };
+}
+
 /** setTemplate: the bytecode, its hash and version entries, plus the admin margin. */
 export function templateCoins(bytes: number): bigint {
   return StorageCost.bytes(bytes + 200) + ADMIN_COINS;
@@ -96,6 +114,7 @@ export function isWasm(bytes: Uint8Array): boolean {
 }
 
 export const ADDRESS = /^A[US][1-9A-HJ-NP-Za-km-z]{40,60}$/;
+const CONTRACT = /^AS[1-9A-HJ-NP-Za-km-z]{40,60}$/;
 
 /** nanoMAS → "1.5", for an input field (no separators). */
 export function masText(nano: bigint): string {

@@ -112,8 +112,12 @@
       (click)="selectAccount(account.address)"
     >
       <span class="account">
-        <span>{{ account.name || 'Account' }}</span>
-        <span class="mono muted">{{ account.address | shortAddress }}</span>
+        @if (account.name) {
+          <span>{{ account.name }}</span>
+          <span class="mono muted">{{ account.address | shortAddress }}</span>
+        } @else {
+          <span class="mono">{{ account.address | shortAddress }}</span>
+        }
       </span>
       @if (account.address === wallet.address()) {
         <span aria-label="selected">✓</span>

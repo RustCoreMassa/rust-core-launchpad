@@ -1,0 +1,109 @@
+@if (project(); as p) {
+  <section class="container section" aria-labelledby="membership-title">
+    <div class="card membership">
+      <div class="main">
+        <span class="label">RustCore membership NFT</span>
+        <div class="identity">
+          <app-project-logo [url]="p.info.logoUrl" [symbol]="p.symbol" />
+          <div>
+            <h2 id="membership-title">{{ p.name }}</h2>
+            <span class="muted">{{ p.symbol }}</span>
+          </div>
+        </div>
+        @if (p.info.description) {
+          <p class="description">{{ p.info.description }}</p>
+        }
+
+        @if (mint(); as m) {
+          @let pr = progress()!;
+          <div class="progress-head">
+            <span>
+              <strong class="tabular">{{ pr.minted }}</strong> / {{ pr.maxSupply }} minted
+            </span>
+            <span class="tabular">{{ pr.percent }}%</span>
+          </div>
+          <div
+            class="bar"
+            role="progressbar"
+            aria-label="Minted"
+            [attr.aria-valuenow]="pr.percent"
+            aria-valuemin="0"
+            aria-valuemax="100"
+          >
+            <span [style.width.%]="pr.percent"></span>
+          </div>
+          <dl class="facts">
+            <div>
+              <dt>Price</dt>
+              <dd>{{ m.mintPrice | mas }}</dd>
+            </div>
+            <div>
+              <dt>Left</dt>
+              <dd class="tabular">{{ pr.left }}</dd>
+            </div>
+            <div>
+              <dt>Per wallet</dt>
+              <dd>{{ m.maxPerWallet || 'no limit' }}</dd>
+            </div>
+          </dl>
+          <div class="actions">
+            @if (pr.soldOut) {
+              <a class="btn btn-ghost" [routerLink]="['/collections', p.address]"
+                >Sold out — find one for sale</a
+              >
+            } @else if (m.publicMint) {
+              <a class="btn btn-red" [routerLink]="['/collections', p.address]"
+                >Mint for {{ m.mintPrice | mas }}</a
+              >
+            } @else {
+              <a class="btn btn-ghost" [routerLink]="['/collections', p.address]"
+                >Mint opens soon — see the collection</a
+              >
+            }
+          </div>
+        } @else {
+          <a class="btn btn-ghost" [routerLink]="['/collections', p.address]">See the collection</a>
+        }
+      </div>
+
+      <div class="benefits">
+        <h3>What it gives you</h3>
+        @if (discount.bps() && active()) {
+          <p class="held">Your wallet holds one: your discount is on.</p>
+        }
+        <ul>
+          <li>
+            @if (discount.program(); as program) {
+              @if (active()) {
+                <strong>{{ program.bps / 100 }}% off every Launchpad fee</strong>, as long as you
+                hold one:
+                <ul class="savings">
+                  @for (s of savings(); track s.label) {
+                    <li>
+                      {{ s.label }}: <s class="full-fee">{{ s.full | mas }}</s>
+                      {{ s.held | mas }}
+                    </li>
+                  }
+                  <li>Presale and marketplace fees, fixed with the discount when you start one</li>
+                </ul>
+              }
+            } @else {
+              <strong>A discount on every Launchpad fee</strong> — launches, imports, presales and
+              the marketplace. It starts with the Launchpad's next upgrade.
+            }
+          </li>
+          <li>
+            <strong>Support RustCore.</strong> Mint proceeds fund the development of the Launchpad,
+            RustCore Wallet and the services to come.
+          </li>
+          <li>
+            <strong>Yours to keep or trade.</strong> Sell it on the marketplace whenever you like.
+            @if (p.royaltyBps) {
+              Its {{ p.royaltyBps / 100 }}% royalty on resales goes to development too.
+            }
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+}
