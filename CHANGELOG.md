@@ -8,14 +8,7 @@ Launchpad contract version it works with.
 
 ## [Unreleased]
 
-### Added
-
-- RustCore Wallet in the Connect dialog (its browser extension, through wallet-provider's new
-  RustCore provider, not yet in wallet-provider 3.3.1: until that update it shows its install
-  link). Disconnecting the site in the wallet disconnects the app too; an account without a name
-  shows its short address in the wallet menu.
-
-## [1.4.0] — 2026-10-19
+## [1.4.0] — 2026-10-24
 
 Works with the Launchpad contract **v1.4.0** (new: the holder discount). On older contracts
 the app shows the fees as before, without any discount.
@@ -36,10 +29,18 @@ the app shows the fees as before, without any discount.
   price, NFTs left, the limit per wallet, a mint button, and what holding one gives (the
   discount with the fees it lowers, support for development, resale on the marketplace). It
   shows the collection the holder discount names, or the one announced for the network before
-  that (`membershipCollection` in networks.ts).
+  that (`membershipCollection` in networks.ts) — on mainnet, Core Keepers
+  (`AS125HSzXL9sphoniiqezuYKX3mGNuuS19yLQKvaJUGyEkfALpVTB`).
+- RustCore Wallet in the Connect dialog (its browser extension, through wallet-provider's new
+  RustCore provider, not yet in wallet-provider 3.3.1: until that update it shows its install
+  link). Disconnecting the site in the wallet disconnects the app too; an account without a name
+  shows its short address in the wallet menu.
 
 ### Fixed
 
+- Token and collection banners now span the whole width of the page's header card (they stopped
+  48 px short of the right edge) and are taller (260 px, 160 px on phones); the banner field
+  suggests a 4:1 image.
 - Right after a launch, the new token's or collection's page failed with "Not found: Account …"
   until the transaction was final (~45 s): the app read the contract's code and storage from the
   final state, which doesn't hold it yet. Every read now uses the same (candidate) state as the
@@ -218,6 +219,7 @@ raised, marketplace 1% of each sale. Not independently audited yet.
   one-step admin transfer, and upgrade storage paid from escrow. The app launches only from
   templates whose source it ships, checked by hash.
 
+[1.4.0]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.4.0
 [1.3.2]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.3.2
 [1.3.1]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.3.1
 [1.2.0]: https://github.com/RustCoreMassa/rust-core-launchpad/releases/tag/v1.2.0

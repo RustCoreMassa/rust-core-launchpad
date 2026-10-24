@@ -81,6 +81,8 @@ type LinkField = 'website' | 'twitter' | 'telegram' | 'discord';
       />
       @if (errors().bannerUrl; as error) {
         <span class="error">{{ error }}</span>
+      } @else {
+        <span class="hint">A wide image, about 4:1 (e.g. 1600 × 400).</span>
       }
     </label>
 

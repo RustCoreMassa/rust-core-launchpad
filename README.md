@@ -100,10 +100,11 @@ operation shows its cost before you sign, and a change never reaches presales or
 already created.
 
 **Holder discount** (Launchpad v1.4.0): whoever holds at least one NFT of the RustCore
-collection when they pay gets **10% off** each fee above — the presale and marketplace fees are
-fixed with the discount when the presale or the listing is created. Storage and deposits are
-never discounted. The collection and the percentage are in the contract (`holderDiscount`,
-readable by anyone; the admin can set up to 50%), and the money from the collection supports
+collection, **Core Keepers** (`AS125HSzXL9sphoniiqezuYKX3mGNuuS19yLQKvaJUGyEkfALpVTB`), when
+they pay gets **10% off** each fee above — the presale and marketplace fees are fixed with the
+discount when the presale or the listing is created. Storage and deposits are never
+discounted. The collection and the percentage are in the contract (`holderDiscount`, readable
+by anyone; the admin can set up to 50%), and the money from the collection supports
 the Launchpad's development.
 
 ## Your security & privacy
