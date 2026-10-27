@@ -1,0 +1,30 @@
+{
+  "network": "mainnet",
+  "address": "AS1LbJFfhZpq8DehV7Uw5XQxCyfXtwgUUoiZSTsHcyhEGB7RPWyP",
+  "version": "1.3.1",
+  "admin": "AU126s93ZxbT4QUJcZYqsAxyMc3wv8nkHJYKYCtgQyEnZ8VGRM99P",
+  "deployedAt": "2026-10-05T12:16:59.684Z",
+  "launchpadBytes": 153784,
+  "config": {
+    "tokenFee": "100",
+    "collectionFee": "200",
+    "importFee": "50",
+    "presaleFeeBps": 200,
+    "deployDeposit": "0.1",
+    "marketFeeBps": 100
+  },
+  "templates": {
+    "rc-token.wasm": {
+      "version": 1,
+      "sha256": "c7fdc5f3a86abebc7b9c21baf2d2f7626013b58fb24e15467cfd120b6c726878",
+      "bytes": 38523
+    },
+    "rc-collection.wasm": {
+      "version": 2,
+      "sha256": "cf863abe54010fba9b94f4b9ff01962b026fc5204df7f6f82bb10897cc1d58ee",
+      "bytes": 46772
+    }
+  },
+  "upgradedAt": "2026-10-17T16:03:09.119Z",
+  "upgradedFrom": "1.0.0"
+}
