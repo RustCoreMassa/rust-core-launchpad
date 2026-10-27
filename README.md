@@ -101,8 +101,8 @@ already created.
 
 **Holder discount** (Launchpad v1.4.0): whoever holds at least one NFT of the RustCore
 collection, **Core Keepers** (`AS125HSzXL9sphoniiqezuYKX3mGNuuS19yLQKvaJUGyEkfALpVTB`), when
-they pay gets **10% off** each fee above — the presale and marketplace fees are fixed with the
-discount when the presale or the listing is created. Storage and deposits are never
+they pay gets **30% off** each fee above (the starting rate; it may change) — the presale and
+marketplace fees are fixed with the discount when the presale or the listing is created. Storage and deposits are never
 discounted. The collection and the percentage are in the contract (`holderDiscount`, readable
 by anyone; the admin can set up to 50%), and the money from the collection supports
 the Launchpad's development.
@@ -208,7 +208,7 @@ the links. Pin your files so they stay online.
 - [x] Tokenomics on token pages: the split the owner declares, as a chart, with live balances (v1.2.0)
 - [x] Fixes from the internal security audit: RC-Collection v2, royalty fixed in listings,
       presale rate cap, warnings on imports and inactive listings (v1.3.1)
-- [ ] RustCore NFT collection: 10% off every Launchpad fee for its holders (v1.4.0)
+- [ ] RustCore NFT collection: a discount on every Launchpad fee for its holders, 30% to start (v1.4.0)
 - [ ] Presale extras: whitelist, vesting, liquidity on Dusa
 - [ ] Token payments on the marketplace
 - [ ] An indexer for very large collections
